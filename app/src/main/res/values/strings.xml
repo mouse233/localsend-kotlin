@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">LocalSend Kotlin</string>
+    <string name="app_subtitle">轻量级局域网文件传输</string>
+    <string name="nearby_devices">附近设备</string>
+    <string name="refresh_devices">刷新</string>
+    <string name="discovery_scanning">正在查找附近设备…</string>
+    <string name="discovery_refreshing">正在刷新设备列表…</string>
+    <string name="discovery_error">发现失败：%1$s</string>
+    <string name="device_details_format">%1$s · %2$s:%3$d</string>
+    <plurals name="device_count">
+        <item quantity="one">发现 1 台设备</item>
+        <item quantity="other">发现 %d 台设备</item>
+    </plurals>
+</resources>
