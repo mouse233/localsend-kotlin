@@ -53,9 +53,9 @@ class DiscoveryManager(
         .readTimeout(3, TimeUnit.SECONDS)
         .writeTimeout(3, TimeUnit.SECONDS)
         .build()
-    private val httpsClient = identity.tlsIdentity.createSslContext().let { sslContext ->
+    private fun createHttpsClient(expectedFingerprint: String? = null): OkHttpClient = identity.tlsIdentity.createSslContext(expectedFingerprint).let { sslContext ->
         OkHttpClient.Builder()
-            .sslSocketFactory(sslContext.socketFactory, identity.tlsIdentity.trustManager)
+            .sslSocketFactory(sslContext.socketFactory, identity.tlsIdentity.trustManagerFor(expectedFingerprint))
             .hostnameVerifier(HostnameVerifier { _, _ -> true })
             .connectTimeout(3, TimeUnit.SECONDS)
             .readTimeout(3, TimeUnit.SECONDS)
@@ -113,7 +113,7 @@ class DiscoveryManager(
                     mainHandler.post { listener.onIncomingTransferRequest(request, decide) }
                 },
                 onTransferCancelRequested = { info, address, sessionId ->
-                    cancelRemoteTransfer(info.protocol, address, info.port, sessionId)
+                    cancelRemoteTransfer(info.protocol, address, info.port, info.fingerprint, sessionId)
                 },
                 onFileProgress = { fileName, received, total ->
                     mainHandler.post { listener.onFileReceiveProgress(fileName, received, total) }
@@ -154,12 +154,12 @@ class DiscoveryManager(
 
     fun cancelIncomingTransfer(): Boolean = incomingTransfers?.cancelCurrent() == true
 
-    private fun cancelRemoteTransfer(protocol: String, address: String, port: Int, sessionId: String) {
+    private fun cancelRemoteTransfer(protocol: String, address: String, port: Int, fingerprint: String, sessionId: String) {
         executor?.execute {
             try {
                 val url = "$protocol://$address:$port${LocalSendProtocol.CANCEL_PATH}?sessionId=$sessionId"
                 val request = Request.Builder().url(url).post(RequestBody.create(null, ByteArray(0))).build()
-                (if (protocol == "https") httpsClient else httpClient).newCall(request).execute().use { }
+                (if (protocol == "https") createHttpsClient(fingerprint) else httpClient).newCall(request).execute().use { }
             } catch (_: Exception) { }
         }
     }
@@ -201,7 +201,7 @@ class DiscoveryManager(
             .post(requestBody)
             .build()
         return try {
-            val client = if (protocol == "https") httpsClient else httpClient
+            val client = if (protocol == "https") createHttpsClient(expectedFingerprint) else httpClient
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
                 val peerFingerprint = if (protocol == "https") {
@@ -347,7 +347,7 @@ class DiscoveryManager(
     }
 
     private fun acquireMulticastLock() {
-        val wifiManager = appContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return
+        val wifiManager = appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return
         multicastLock = wifiManager.createMulticastLock("localsend-discovery").apply {
             setReferenceCounted(false)
             acquire()

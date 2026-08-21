@@ -4,7 +4,6 @@
     <string name="nearby_devices">附近设备</string>
     <string name="refresh_devices">刷新</string>
     <string name="discovery_scanning">正在查找附近设备…</string>
-    <string name="discovery_refreshing">正在刷新设备列表…</string>
     <string name="discovery_error">发现失败：%1$s</string>
     <string name="device_details_format">%1$s · %2$s:%3$d</string>
     <string name="select_file">选择文件</string>
@@ -18,7 +17,6 @@
     <string name="received_files">已接收文件</string>
     <string name="open_file">打开</string>
     <string name="open_file_failed">无法打开此文件</string>
-    <string name="legacy_storage_permission">允许存储权限，以将接收文件保存到下载目录</string>
     <string name="incoming_request_title">%1$s 请求发送文件</string>
     <string name="incoming_request_accept">接收</string>
     <string name="incoming_request_reject">拒绝</string>

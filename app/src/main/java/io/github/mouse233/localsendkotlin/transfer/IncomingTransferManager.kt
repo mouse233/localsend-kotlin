@@ -58,7 +58,7 @@ class IncomingTransferManager(
         val digest = MessageDigest.getInstance("SHA-256")
         val source = if (isChunked) ChunkedInputStream(input) else input
         try {
-            fileStore.openOutput(target.destination).use { output ->
+            fileStore.withOutput(target.destination) { output ->
                 val buffer = ByteArray(BUFFER_SIZE)
                 var received = 0L
                 if (isChunked) {

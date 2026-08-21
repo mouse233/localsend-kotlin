@@ -106,8 +106,8 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         }
     }
 
-    private fun client(device: RemoteDevice): OkHttpClient = identity.tlsIdentity.createSslContext().let { context ->
-        OkHttpClient.Builder().sslSocketFactory(context.socketFactory, identity.tlsIdentity.trustManager)
+    private fun client(device: RemoteDevice): OkHttpClient = identity.tlsIdentity.createSslContext(device.fingerprint).let { context ->
+        OkHttpClient.Builder().sslSocketFactory(context.socketFactory, identity.tlsIdentity.trustManagerFor(device.fingerprint))
             .hostnameVerifier { _, _ -> true }.connectTimeout(8, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
     }
 

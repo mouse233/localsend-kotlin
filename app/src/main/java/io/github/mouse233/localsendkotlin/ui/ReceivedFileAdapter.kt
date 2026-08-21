@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
 import io.github.mouse233.localsendkotlin.R
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 
@@ -13,15 +14,28 @@ class ReceivedFileAdapter(private val onOpenFile: (ReceivedFile) -> Unit) : Recy
     private val files = mutableListOf<ReceivedFile>()
 
     fun submitFiles(newFiles: List<ReceivedFile>) {
+        val oldFiles = files.toList()
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize(): Int = oldFiles.size
+            override fun getNewListSize(): Int = newFiles.size
+            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                oldFiles[oldItemPosition].uri == newFiles[newItemPosition].uri
+            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                oldFiles[oldItemPosition] == newFiles[newItemPosition]
+        })
         files.clear()
         files.addAll(newFiles)
-        notifyDataSetChanged()
+        diff.dispatchUpdatesTo(this)
     }
 
     fun addFile(file: ReceivedFile) {
-        files.removeAll { it.uri == file.uri }
+        val existingIndex = files.indexOfFirst { it.uri == file.uri }
+        if (existingIndex >= 0) {
+            files.removeAt(existingIndex)
+            notifyItemRemoved(existingIndex)
+        }
         files.add(0, file)
-        notifyDataSetChanged()
+        notifyItemInserted(0)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder = ViewHolder(

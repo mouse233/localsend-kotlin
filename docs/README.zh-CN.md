@@ -1,0 +1,145 @@
+# LocalSend Kotlin
+
+[English](../README.md) | [简体中文](README.zh-CN.md)
+
+一个使用 Kotlin 编写的 Android LocalSend 客户端，目标是与原版 LocalSend 客户端互操作，并支持在局域网内安全地发送和接收文件。
+
+> 当前版本：`v0.1.0-alpha`
+>
+> 基本功能已经可以使用，但跨 Android 版本、不同厂商后台策略和长时间传输仍需要更多实机验证。
+
+## 已实现功能
+
+- 局域网设备发现
+  - LocalSend v2 多播 UDP 发现（`224.0.0.167:53317`）
+  - 多播失败时使用 HTTPS 局域网扫描作为兼容回退
+  - 支持 Android 5.0（API 21）的网络绑定方式
+- 文件发送
+  - 从系统文件选择器选择文件
+  - 显示上传进度
+  - 支持发送端取消
+  - 接收端取消时，发送端会停止上传
+- 文件接收
+  - 接收前显示确认对话框
+  - 显示接收进度
+  - 支持接收端取消，并通知发送端停止
+  - 保存到 `Download/LocalSend Kotlin`
+  - 提供已接收文件列表和打开按钮
+- 安全传输
+  - HTTPS 加密
+  - 基于设备证书指纹的双向身份校验
+
+## 未实现功能
+
+- 后台服务和锁屏状态下的可靠持续传输
+- 多文件队列和并发传输管理
+- 接收设置
+  - 可配置保存目录
+  - 保存到相册
+  - 自动完成传输任务和接收历史
+- 发送设置
+  - 创建校验和的用户开关（当前发送默认创建校验和）
+- 网络设置
+  - 服务器重启/停止控制
+  - 自定义设备名称、设备类型和设备型号
+  - 自定义端口、网络接口、多播地址和搜索超时
+  - 加密开关（当前固定使用 HTTPS/TLS）
+- 手动输入 IP 的辅助连接方式
+- 关于 LocalSend Kotlin 页面
+
+## 技术栈
+
+- Kotlin、Android SDK、AndroidX Core KTX
+- Android Views/XML 布局
+- Android Activity、RecyclerView、系统文件选择器
+- Gradle Kotlin DSL、Android Gradle Plugin
+- OkHttp：HTTPS 请求和文件上传
+- NanoHTTPD：本地 HTTP/HTTPS 服务
+- Gson：LocalSend 协议 JSON 编解码
+- Bouncy Castle：TLS 证书和加密支持
+- UDP Multicast、IPv4 局域网扫描：设备发现
+- MediaStore：Android 10 及以上的公共下载目录存储
+
+## 兼容性
+
+| 项目 | 当前设置 |
+| --- | --- |
+| 最低 Android 版本 | Android 5.0（API 21） |
+| 编译 SDK | Android 13（API 33） |
+| Target SDK | API 33 |
+| Java/Kotlin JVM | Java 8 语言级别；构建建议使用 JDK 17 |
+| 默认端口 | TCP/UDP `53317` |
+| 协议 | LocalSend Protocol v2.2 / version `2.0` |
+
+两台设备需要连接到同一个局域网。部分路由器、访客网络、AP 隔离或厂商防火墙可能会阻止多播或设备之间的 TCP 连接。
+
+## 构建项目
+
+要求：
+
+- Android Studio（建议使用较新的稳定版本）
+- Android SDK Platform 33
+- JDK 17
+
+在项目根目录执行：
+
+```bash
+./gradlew assembleDebug
+```
+
+提交修改前建议运行完整验证：
+
+```bash
+./gradlew lintDebug test assembleDebug
+```
+
+当前构建已无 lint 错误，剩余少量非阻塞警告主要来自旧版 Android 兼容、AndroidManifest 属性、Bouncy Castle 第三方依赖和根布局背景检查。
+
+生成的调试 APK 位于：
+
+```text
+app/build/outputs/apk/debug/app-debug.apk
+```
+
+也可以直接使用 Android Studio 打开项目并运行 `app` 配置。
+
+## 使用方法
+
+1. 在两台设备上安装并打开应用。
+2. 确认两台设备连接到同一个 Wi-Fi/局域网，并允许应用访问网络。
+3. 点击“选择文件”，选择要发送的文件。
+4. 在“附近设备”中点击目标设备。
+5. 接收端确认弹窗后，文件开始传输。
+6. 传输过程中可以点击“取消”。接收的文件会出现在“已接收文件”列表中。
+
+主页的“刷新”按钮会重新发送一次设备多播公告，用于设备刚连接网络、列表为空或需要主动触发对方发现时使用；它不会清空已有设备列表。
+
+## 文件保存和权限
+
+- Android 10（API 29）及以上：通过 MediaStore 保存到公共下载目录，不需要申请传统存储权限。
+- Android 5.0 至 Android 9（API 21–28）：保存到公共 `Download/LocalSend Kotlin` 目录，需要申请 `WRITE_EXTERNAL_STORAGE` 权限。
+
+## 协议与安全说明
+
+项目实现了 LocalSend v2 的设备注册、准备上传、文件上传和取消接口。HTTPS 使用本地生成的设备证书，并对主动连接的设备固定校验证书指纹；服务端也会在 LocalSend 协议层校验客户端指纹。因此应用不依赖公共 CA 证书，也不应把局域网 HTTPS 地址当作普通公网 HTTPS 服务使用。
+
+协议参考文件：
+
+- [LocalSend-Protocol-v2.2.md](LocalSend-Protocol-v2.2.md)
+- [LocalSend-Kotlin-PROJECT.md](LocalSend-Kotlin-PROJECT.md)
+
+## 许可证
+
+LocalSend Kotlin 使用 [Apache License 2.0](../LICENSE) 发布。第三方依赖仍遵循各自的许可证，概要说明见 [NOTICE](../NOTICE)。
+
+## 当前限制
+
+- 当前主要验证环境为 Android 16 实机；旧版 Android 和更多厂商 ROM 仍需要进一步测试。
+- 当前不支持 Android 4.4（API 19）。未来可以将其作为实验性目标，但由于旧系统在 TLS、证书、存储和网络兼容性方面存在更大风险，目前仍将 API 21 作为最低版本。
+- 应用目前以 Activity 前台使用为主，锁屏、切到后台或系统回收进程时不保证传输继续。
+- 当前重点覆盖单文件传输；多文件会话、断点续传和后台通知尚未实现。
+- 如果网络启用了 AP 隔离、组播过滤或设备间客户端隔离，可能需要切换到允许设备互访的网络。
+
+## 项目状态
+
+这是一个可供早期用户试用的 Alpha 项目。欢迎通过实际设备测试发现问题，并提供 Android 版本、设备型号、双方客户端版本和复现步骤。

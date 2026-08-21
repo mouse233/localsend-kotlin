@@ -1,0 +1,17 @@
+LocalSend Kotlin
+
+Copyright 2026 LocalSend Kotlin contributors.
+
+This project is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the complete license text.
+
+Third-party components are distributed under their respective licenses:
+
+- OkHttp — Apache License 2.0
+- Gson — Apache License 2.0
+- NanoHTTPD — BSD 3-Clause License
+- Bouncy Castle — MIT-style license
+- AndroidX — Apache License 2.0
+
+Refer to the respective component distributions for their complete license
+and notice texts.

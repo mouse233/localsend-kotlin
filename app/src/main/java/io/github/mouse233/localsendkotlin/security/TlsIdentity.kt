@@ -1,6 +1,7 @@
 package io.github.mouse233.localsendkotlin.security
 
 import android.content.Context
+import android.annotation.SuppressLint
 import android.util.Base64
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
@@ -16,6 +17,7 @@ import java.security.MessageDigest
 import java.security.PrivateKey
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import java.security.cert.CertificateException
 import java.util.Date
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.KeyManager
@@ -35,11 +37,15 @@ class TlsIdentity(context: Context) {
     val fingerprint: String = certificateFingerprint(certificate)
     val trustManager: X509TrustManager = AcceptAnyTrustManager
 
-    fun createSslContext(): SSLContext {
+    fun trustManagerFor(expectedPeerFingerprint: String?): X509TrustManager =
+        expectedPeerFingerprint?.let(::PinnedTrustManager) ?: AcceptAnyTrustManager
+
+    fun createSslContext(expectedPeerFingerprint: String? = null): SSLContext {
         val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
         keyManagerFactory.init(keyStore, password)
         return SSLContext.getInstance("TLS").apply {
-            init(forceLocalSendAlias(keyManagerFactory.keyManagers), arrayOf<TrustManager>(AcceptAnyTrustManager), SecureRandom())
+            val peerTrustManager = trustManagerFor(expectedPeerFingerprint)
+            init(forceLocalSendAlias(keyManagerFactory.keyManagers), arrayOf<TrustManager>(peerTrustManager), SecureRandom())
         }
     }
 
@@ -109,6 +115,9 @@ class TlsIdentity(context: Context) {
             MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
                 .joinToString("") { byte -> "%02X".format(byte.toInt() and 0xff) }
 
+        internal fun fingerprintsMatch(expected: String, actual: String): Boolean =
+            expected.trim().equals(actual.trim(), ignoreCase = true)
+
         private const val ALIAS = "localsend"
         private const val KEY_STORE_FILE = "localsend-identity.p12"
         private const val PREFERENCES_NAME = "localsend_identity"
@@ -118,9 +127,42 @@ class TlsIdentity(context: Context) {
         private const val CERTIFICATE_VALIDITY_MS = 3650L * 24 * 60 * 60 * 1000
     }
 
+    /**
+     * Server-side trust manager only. LocalSend uses mutual TLS with self-signed
+     * certificates, so the certificate must be accepted during the TLS handshake;
+     * LocalSendServer then verifies the peer certificate fingerprint before serving
+     * any request. This manager is never used for outbound client connections.
+     */
+    @SuppressLint("TrustAllX509TrustManager", "CustomX509TrustManager")
     private object AcceptAnyTrustManager : X509TrustManager {
         override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) = Unit
         override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) = Unit
+        override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+    }
+
+    /** Trusts only the self-signed certificate whose LocalSend fingerprint was advertised. */
+    @SuppressLint("CustomX509TrustManager")
+    private class PinnedTrustManager(private val expectedFingerprint: String) : X509TrustManager {
+        override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
+            val certificate = chain.firstOrNull()
+                ?: throw CertificateException("Peer did not provide a certificate")
+            if (chain.size != 1) {
+                throw CertificateException("Unexpected peer certificate chain")
+            }
+            try {
+                certificate.checkValidity()
+            } catch (exception: Exception) {
+                throw CertificateException("Peer certificate is not valid", exception)
+            }
+            if (!fingerprintsMatch(expectedFingerprint, certificateFingerprint(certificate))) {
+                throw CertificateException("Peer certificate fingerprint does not match the discovered device")
+            }
+        }
+
+        override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {
+            throw CertificateException("Client certificates are not accepted by this trust manager")
+        }
+
         override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
     }
 }

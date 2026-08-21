@@ -1,5 +1,6 @@
 package io.github.mouse233.localsendkotlin.transfer
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.media.MediaScannerConnection
@@ -7,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
 import io.github.mouse233.localsendkotlin.BuildConfig
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
@@ -18,7 +20,8 @@ import java.io.OutputStream
 /** Saves received files in shared Downloads while respecting scoped-storage rules. */
 class IncomingFileStore(context: Context) {
     private val appContext = context.applicationContext
-    private val resolver = appContext.contentResolver
+    @PublishedApi
+    internal val resolver = appContext.contentResolver
 
     fun create(displayName: String, mimeType: String, size: Long): Destination {
         val safeName = File(displayName).name.ifBlank { "received-file" }
@@ -40,10 +43,14 @@ class IncomingFileStore(context: Context) {
         }
     }
 
-    fun openOutput(destination: Destination): OutputStream =
-        destination.legacyFile?.let(::FileOutputStream)
+    /** Opens the destination, runs the writer, and always closes the stream before returning. */
+    @SuppressLint("Recycle")
+    internal inline fun <T> withOutput(destination: Destination, writer: (OutputStream) -> T): T {
+        val output = destination.legacyFile?.let(::FileOutputStream)
             ?: resolver.openOutputStream(destination.file.uri, "w")
             ?: throw IOException("Unable to open download entry")
+        return output.use(writer)
+    }
 
     fun complete(destination: Destination) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -65,6 +72,7 @@ class IncomingFileStore(context: Context) {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) listModernFiles() else listLegacyFiles()
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     private fun listModernFiles(): List<ReceivedFile> {
         val projection = arrayOf(
             MediaStore.Downloads._ID,

@@ -2,6 +2,7 @@ package io.github.mouse233.localsendkotlin
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.annotation.TargetApi
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -113,7 +114,7 @@ class MainActivity : Activity(), DiscoveryListener {
         request: IncomingTransferManager.PrepareUploadRequest,
         decide: (Boolean) -> Unit
     ) {
-        if (isFinishing || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 && isDestroyed)) {
+        if (isFinishing || isDestroyed) {
             decide(false)
             return
         }
@@ -167,6 +168,7 @@ class MainActivity : Activity(), DiscoveryListener {
         }
     }
 
+    @TargetApi(Build.VERSION_CODES.M)
     private fun requestLegacyStoragePermission() {
         if (Build.VERSION.SDK_INT in Build.VERSION_CODES.M..Build.VERSION_CODES.P &&
             checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED

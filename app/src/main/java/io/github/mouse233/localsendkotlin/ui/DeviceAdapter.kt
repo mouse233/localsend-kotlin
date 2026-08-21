@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
 import io.github.mouse233.localsendkotlin.R
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 
@@ -13,9 +14,18 @@ class DeviceAdapter(private val onDeviceClick: (RemoteDevice) -> Unit) : Recycle
     private val devices = mutableListOf<RemoteDevice>()
 
     fun submitDevices(newDevices: List<RemoteDevice>) {
+        val oldDevices = devices.toList()
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize(): Int = oldDevices.size
+            override fun getNewListSize(): Int = newDevices.size
+            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                oldDevices[oldItemPosition].fingerprint == newDevices[newItemPosition].fingerprint
+            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                oldDevices[oldItemPosition] == newDevices[newItemPosition]
+        })
         devices.clear()
         devices.addAll(newDevices)
-        notifyDataSetChanged()
+        diff.dispatchUpdatesTo(this)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DeviceViewHolder {
