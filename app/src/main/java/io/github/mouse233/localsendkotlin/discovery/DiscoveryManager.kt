@@ -22,6 +22,7 @@ import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.server.LocalSendServer
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
+import io.github.mouse233.localsendkotlin.transfer.UploadClient
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.InetAddress
@@ -66,6 +67,7 @@ class DiscoveryManager(
     @Volatile private var legacyScanExecutor: ExecutorService? = null
     @Volatile private var socket: MulticastSocket? = null
     @Volatile private var server: LocalSendServer? = null
+    @Volatile private var incomingTransfers: IncomingTransferManager? = null
     @Volatile private var multicastLock: WifiManager.MulticastLock? = null
     @Volatile private var legacyProcessNetworkBound = false
 
@@ -105,14 +107,32 @@ class DiscoveryManager(
     private fun runDiscovery() {
         try {
             acquireMulticastLock()
+            val transferManager = IncomingTransferManager(
+                appContext,
+                onTransferRequested = { request, decide ->
+                    mainHandler.post { listener.onIncomingTransferRequest(request, decide) }
+                },
+                onTransferCancelRequested = { info, address, sessionId ->
+                    cancelRemoteTransfer(info.protocol, address, info.port, sessionId)
+                },
+                onFileProgress = { fileName, received, total ->
+                    mainHandler.post { listener.onFileReceiveProgress(fileName, received, total) }
+                },
+                onFileReceiveCancelled = { fileName ->
+                    mainHandler.post { listener.onFileReceiveCancelled(fileName) }
+                },
+                onFileReceived = { file ->
+                    mainHandler.post { listener.onFileReceived(file) }
+                }
+            )
+            incomingTransfers = transferManager
             val localServer = LocalSendServer(
                 gson,
                 identity.tlsIdentity,
                 identity::deviceInfo,
                 ::registerDevice,
-                IncomingTransferManager(appContext) { file ->
-                    mainHandler.post { listener.onFileReceived(file) }
-                }
+                transferManager,
+                onTransferCancelled = UploadClient::cancel
             )
             localServer.start(SOCKET_READ_TIMEOUT_MS, false)
             server = localServer
@@ -129,6 +149,18 @@ class DiscoveryManager(
             reportError("Unable to start discovery: ${exception.message ?: "network error"}")
         } finally {
             stop()
+        }
+    }
+
+    fun cancelIncomingTransfer(): Boolean = incomingTransfers?.cancelCurrent() == true
+
+    private fun cancelRemoteTransfer(protocol: String, address: String, port: Int, sessionId: String) {
+        executor?.execute {
+            try {
+                val url = "$protocol://$address:$port${LocalSendProtocol.CANCEL_PATH}?sessionId=$sessionId"
+                val request = Request.Builder().url(url).post(RequestBody.create(null, ByteArray(0))).build()
+                (if (protocol == "https") httpsClient else httpClient).newCall(request).execute().use { }
+            } catch (_: Exception) { }
         }
     }
 

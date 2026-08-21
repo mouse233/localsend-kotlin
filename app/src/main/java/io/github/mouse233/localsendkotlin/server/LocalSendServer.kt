@@ -20,7 +20,8 @@ class LocalSendServer(
     tlsIdentity: TlsIdentity,
     private val localDevice: () -> DeviceInfo,
     private val onDeviceRegistered: (DeviceInfo, String) -> Unit,
-    private val incomingTransfers: IncomingTransferManager
+    private val incomingTransfers: IncomingTransferManager,
+    private val onTransferCancelled: (String) -> Unit = {}
 ) : NanoHTTPD(LocalSendProtocol.DEFAULT_PORT) {
 
     private val clientFingerprint = ThreadLocal<String?>()
@@ -77,6 +78,7 @@ class LocalSendServer(
         return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, reason)
     }
     private fun forbidden(): Response = newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Invalid certificate")
+    private fun rejected(): Response = newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Rejected")
 
     private fun prepareUpload(session: IHTTPSession): Response {
         val request = gson.fromJson(readUtf8Body(session), IncomingTransferManager.PrepareUploadRequest::class.java) ?: return badRequest()
@@ -85,7 +87,8 @@ class LocalSendServer(
             Log.w(TAG, "Prepare upload rejected because client identity did not match TLS certificate")
             return forbidden()
         }
-        return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(incomingTransfers.prepare(request)))
+        val response = incomingTransfers.prepare(request, session.remoteIpAddress) ?: return rejected()
+        return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(response))
     }
 
     private fun receiveFile(session: IHTTPSession): Response {
@@ -112,6 +115,7 @@ class LocalSendServer(
 
     private fun cancel(session: IHTTPSession): Response {
         val sessionId = session.parms["sessionId"] ?: return badRequest(); incomingTransfers.cancel(sessionId)
+        onTransferCancelled(sessionId)
         return newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "")
     }
 

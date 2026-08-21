@@ -41,6 +41,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="16dp">
 
@@ -52,23 +53,48 @@
             android:textColor="@color/secondary_text"
             android:textSize="14sp" />
 
+        <ProgressBar
+            android:id="@+id/transfer_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="0"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/cancel_transfer_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
+            android:text="@string/cancel_transfer"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/nearby_devices"
+            android:textColor="@color/primary_text"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
         <Button
             android:id="@+id/refresh_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/refresh_devices" />
     </LinearLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingBottom="8dp"
-        android:text="@string/nearby_devices"
-        android:textColor="@color/primary_text"
-        android:textSize="18sp"
-        android:textStyle="bold" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/device_list"

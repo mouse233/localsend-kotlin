@@ -15,15 +15,21 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import okio.BufferedSink
 import java.security.MessageDigest
+import java.io.IOException
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 class UploadClient(context: Context, private val identity: LocalIdentity) {
     private val resolver: ContentResolver = context.applicationContext.contentResolver
     private val gson = Gson()
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val cancelExecutor: ExecutorService = Executors.newCachedThreadPool()
+    @Volatile private var activeSessionId: String? = null
+    @Volatile private var activeDevice: RemoteDevice? = null
 
     fun send(uri: Uri, device: RemoteDevice, listener: Listener) {
         executor.execute {
@@ -35,10 +41,39 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 listener.onStatus("正在请求 ${device.alias} 接收文件…")
                 val prepared = prepare(device, file.copy(id = fileId, sha256 = sha256))
                 val token = prepared.files[fileId] ?: throw IllegalStateException("接收方未接受该文件")
-                upload(device, prepared.sessionId, fileId, token, file, listener)
+                val cancelled = AtomicBoolean(false)
+                activeTransfers[prepared.sessionId] = cancelled
+                activeSessionId = prepared.sessionId
+                activeDevice = device
+                try {
+                    upload(device, prepared.sessionId, fileId, token, file, listener, cancelled)
+                } finally {
+                    activeTransfers.remove(prepared.sessionId, cancelled)
+                    activeSessionId = null
+                    activeDevice = null
+                }
                 listener.onCompleted(file.fileName)
             } catch (exception: Exception) {
                 listener.onError(exception.message ?: "文件发送失败")
+            }
+        }
+    }
+
+    fun cancelCurrent() {
+        val sessionId = activeSessionId ?: return
+        val device = activeDevice
+        cancel(sessionId)
+        if (device != null) {
+            cancelExecutor.execute {
+                try {
+                    val request = Request.Builder()
+                        .url(url(device, LocalSendProtocol.CANCEL_PATH).newBuilder().addQueryParameter("sessionId", sessionId).build())
+                        .post(RequestBody.create(null, ByteArray(0)))
+                        .build()
+                    client(device).newCall(request).execute().use { }
+                } catch (_: Exception) {
+                    // The local cancellation flag is sufficient if the peer is already disconnected.
+                }
             }
         }
     }
@@ -55,14 +90,15 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         }
     }
 
-    private fun upload(device: RemoteDevice, sessionId: String, fileId: String, token: String, file: FileInfo, listener: Listener) {
+    private fun upload(device: RemoteDevice, sessionId: String, fileId: String, token: String, file: FileInfo, listener: Listener, cancelled: AtomicBoolean) {
         val uploadUrl = url(device, LocalSendProtocol.UPLOAD_PATH).newBuilder()
             .addQueryParameter("sessionId", sessionId).addQueryParameter("fileId", fileId).addQueryParameter("token", token).build()
         val body = StreamBody(
             file.fileType,
             file.size,
             source = { resolver.openInputStream(file.uri) ?: throw IllegalStateException("无法读取文件") },
-            progress = { sent -> listener.onProgress(sent, file.size) }
+            progress = { sent -> listener.onProgress(sent, file.size) },
+            shouldCancel = { cancelled.get() }
         )
         val request = Request.Builder().url(uploadUrl).post(body).build()
         client(device).newCall(request).execute().use { response ->
@@ -100,10 +136,15 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     private data class PrepareRequest(val info: Any, val files: Map<String, FileInfo>)
     private data class PrepareResponse(val sessionId: String, val files: Map<String, String>)
     private data class FileInfo(val id: String, val uri: Uri, val fileName: String, val size: Long, val fileType: String, val sha256: String?)
-    private class StreamBody(private val type: String, private val length: Long, private val source: () -> java.io.InputStream, private val progress: (Long) -> Unit) : RequestBody() {
+    private class StreamBody(private val type: String, private val length: Long, private val source: () -> java.io.InputStream, private val progress: (Long) -> Unit, private val shouldCancel: () -> Boolean) : RequestBody() {
         override fun contentType(): MediaType? = MediaType.parse(type)
         override fun contentLength(): Long = length
-        override fun writeTo(sink: BufferedSink) { source().use { input -> val buffer = ByteArray(BUFFER_SIZE); var sent = 0L; while (true) { val count = input.read(buffer); if (count < 0) break; sink.write(buffer, 0, count); sent += count; progress(sent) } } }
+        override fun writeTo(sink: BufferedSink) { source().use { input -> val buffer = ByteArray(BUFFER_SIZE); var sent = 0L; while (true) { if (shouldCancel()) throw IOException("发送已取消"); val count = input.read(buffer); if (count < 0) break; sink.write(buffer, 0, count); sent += count; progress(sent) } } }
     }
-    private companion object { val JSON = MediaType.parse("application/json; charset=utf-8")!!; const val BUFFER_SIZE = 32 * 1024 }
+    companion object {
+        private val activeTransfers = ConcurrentHashMap<String, AtomicBoolean>()
+        fun cancel(sessionId: String): Boolean = activeTransfers[sessionId]?.let { it.set(true); true } == true
+        private val JSON = MediaType.parse("application/json; charset=utf-8")!!
+        private const val BUFFER_SIZE = 32 * 1024
+    }
 }
