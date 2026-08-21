@@ -12,6 +12,11 @@
     <string name="file_selected">已选择：%1$s。点击目标设备发送。</string>
     <string name="upload_progress">正在上传：%1$d%%</string>
     <string name="upload_completed">已发送：%1$s</string>
+    <string name="download_completed">已接收：%1$s</string>
+    <string name="received_files">已接收文件</string>
+    <string name="open_file">打开</string>
+    <string name="open_file_failed">无法打开此文件</string>
+    <string name="legacy_storage_permission">允许存储权限，以将接收文件保存到下载目录</string>
     <plurals name="device_count">
         <item quantity="one">发现 1 台设备</item>
         <item quantity="other">发现 %d 台设备</item>

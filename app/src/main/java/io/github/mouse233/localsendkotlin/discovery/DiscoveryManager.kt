@@ -20,6 +20,7 @@ import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.server.LocalSendServer
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
+import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.InetAddress
@@ -101,15 +102,19 @@ class DiscoveryManager(
                 gson,
                 identity.tlsIdentity,
                 identity::deviceInfo,
-                ::registerDevice
+                ::registerDevice,
+                IncomingTransferManager(appContext) { file ->
+                    mainHandler.post { listener.onFileReceived(file) }
+                }
             )
-            localServer.start(SERVER_START_TIMEOUT_MS, false)
+            localServer.start(SOCKET_READ_TIMEOUT_MS, false)
             server = localServer
 
             val multicastSocket = createMulticastSocket()
             socket = multicastSocket
             Log.i(TAG, "Listening for LocalSend discovery on ${multicastSocket.networkInterface.name}")
             sendAnnouncement(announce = true)
+            scheduleMulticastRetries()
             scheduleLegacyScan()
             receiveAnnouncements(multicastSocket)
         } catch (exception: Exception) {
@@ -182,6 +187,26 @@ class DiscoveryManager(
         }
     }
 
+    /**
+     * Match LocalSend's startup announcement burst: immediately (at startup), then after
+     * roughly 500 ms and 2 s. This avoids missing peers that are still joining the group.
+     */
+    private fun scheduleMulticastRetries() {
+        executor?.execute {
+            for (delay in MULTICAST_RETRY_DELAYS_MS) {
+                try {
+                    Thread.sleep(delay)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return@execute
+                }
+                if (!running.get() || devices.isNotEmpty()) return@execute
+                Log.d(TAG, "Retrying LocalSend multicast announcement")
+                sendAnnouncement(announce = true)
+            }
+        }
+    }
+
     /** HTTP legacy-mode fallback for WLANs that suppress multicast packets. */
     private fun scanLocalNetwork() {
         val transport = try {
@@ -194,12 +219,23 @@ class DiscoveryManager(
         val hostBits = 32 - effectivePrefix
         val networkAddress = ipv4ToInt(transport.address) and (-1 shl hostBits)
         val addressCount = 1 shl hostBits
-        Log.i(TAG, "Starting HTTP legacy scan with ${addressCount - 2} hosts")
-        for (offset in 1 until addressCount - 1) {
-            val address = intToIpv4(networkAddress + offset)
-            if (address == transport.address.hostAddress) continue
-            legacyScanExecutor?.execute { scanAddress(address) }
+        Log.i(TAG, "Starting HTTP legacy scan with ${addressCount - 2} hosts, nearest addresses first")
+        orderedHostOffsets(networkAddress, addressCount, transport.address).forEach { offset ->
+            legacyScanExecutor?.execute { scanAddress(intToIpv4(networkAddress + offset)) }
         }
+    }
+
+    /** DHCP leases are usually adjacent, so check Wi-Fi neighbours before the rest of the subnet. */
+    private fun orderedHostOffsets(networkAddress: Int, addressCount: Int, localAddress: Inet4Address): List<Int> {
+        val localOffset = ipv4ToInt(localAddress) - networkAddress
+        val offsets = ArrayList<Int>(addressCount - 2)
+        for (distance in 1 until addressCount) {
+            val lower = localOffset - distance
+            if (lower > 0) offsets += lower
+            val upper = localOffset + distance
+            if (upper < addressCount - 1) offsets += upper
+        }
+        return offsets
     }
 
     private fun scanAddress(address: String) {
@@ -343,9 +379,11 @@ class DiscoveryManager(
     private companion object {
         const val TAG = "LocalSendDiscovery"
         const val MAX_PACKET_SIZE = 8 * 1024
-        const val SERVER_START_TIMEOUT_MS = 5_000
-        const val LEGACY_SCAN_DELAY_MS = 2_000L
-        const val LEGACY_SCAN_PARALLELISM = 12
+        const val SOCKET_READ_TIMEOUT_MS = 60_000
+        // The HTTP legacy scan is a fallback and must not race the multicast announcement burst.
+        const val LEGACY_SCAN_DELAY_MS = 2_500L
+        const val LEGACY_SCAN_PARALLELISM = 24
+        val MULTICAST_RETRY_DELAYS_MS = longArrayOf(500L, 1_500L)
         const val MINIMUM_SCAN_PREFIX = 24
         val JSON_MEDIA_TYPE: MediaType = MediaType.parse("application/json; charset=utf-8")!!
         val SUPPORTED_PROTOCOLS = setOf("http", "https")

@@ -1,8 +1,11 @@
 package io.github.mouse233.localsendkotlin
 
 import android.app.Activity
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -14,8 +17,11 @@ import io.github.mouse233.localsendkotlin.discovery.DiscoveryListener
 import io.github.mouse233.localsendkotlin.discovery.DiscoveryManager
 import io.github.mouse233.localsendkotlin.discovery.LocalIdentity
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
+import io.github.mouse233.localsendkotlin.model.ReceivedFile
+import io.github.mouse233.localsendkotlin.transfer.IncomingFileStore
 import io.github.mouse233.localsendkotlin.transfer.UploadClient
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
+import io.github.mouse233.localsendkotlin.ui.ReceivedFileAdapter
 
 class MainActivity : Activity(), DiscoveryListener {
     private lateinit var statusText: TextView
@@ -24,17 +30,24 @@ class MainActivity : Activity(), DiscoveryListener {
     private var selectedFile: Uri? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private val deviceAdapter = DeviceAdapter(::sendToDevice)
+    private val receivedFileAdapter = ReceivedFileAdapter(::openReceivedFile)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         statusText = findViewById(R.id.discovery_status)
         findViewById<RecyclerView>(R.id.device_list).apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = deviceAdapter }
+        findViewById<RecyclerView>(R.id.received_file_list).apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = receivedFileAdapter }
         discoveryManager = DiscoveryManager(this, this)
         uploadClient = UploadClient(this, LocalIdentity(this))
         findViewById<android.view.View>(R.id.refresh_button).setOnClickListener { discoveryManager.announce() }
         findViewById<android.view.View>(R.id.select_file_button).setOnClickListener { chooseFile() }
         onDevicesChanged(emptyList())
+        requestLegacyStoragePermission()
+        Thread {
+            val files = IncomingFileStore(this).listReceivedFiles()
+            mainHandler.post { receivedFileAdapter.submitFiles(files) }
+        }.start()
     }
 
     override fun onStart() { super.onStart(); discoveryManager.start() }
@@ -62,5 +75,36 @@ class MainActivity : Activity(), DiscoveryListener {
     private fun showStatus(message: String) { mainHandler.post { statusText.text = message } }
     override fun onDevicesChanged(devices: List<RemoteDevice>) { deviceAdapter.submitDevices(devices); if (selectedFile == null) statusText.text = if (devices.isEmpty()) getString(R.string.discovery_scanning) else resources.getQuantityString(R.plurals.device_count, devices.size, devices.size) }
     override fun onDiscoveryError(message: String) = showStatus(getString(R.string.discovery_error, message))
-    private companion object { const val FILE_REQUEST = 1001 }
+    override fun onFileReceived(file: ReceivedFile) {
+        val message = getString(R.string.download_completed, file.displayName)
+        showStatus(message)
+        mainHandler.post {
+            receivedFileAdapter.addFile(file)
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun openReceivedFile(file: ReceivedFile) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(file.uri, file.mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            })
+        } catch (_: Exception) {
+            Toast.makeText(this, R.string.open_file_failed, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun requestLegacyStoragePermission() {
+        if (Build.VERSION.SDK_INT in Build.VERSION_CODES.M..Build.VERSION_CODES.P &&
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), LEGACY_STORAGE_PERMISSION_REQUEST)
+        }
+    }
+
+    private companion object {
+        const val FILE_REQUEST = 1001
+        const val LEGACY_STORAGE_PERMISSION_REQUEST = 1002
+    }
 }

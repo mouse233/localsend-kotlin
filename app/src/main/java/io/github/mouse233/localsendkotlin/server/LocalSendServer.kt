@@ -5,10 +5,12 @@ import fi.iki.elonen.NanoHTTPD
 import io.github.mouse233.localsendkotlin.model.DeviceInfo
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
+import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import java.net.ServerSocket
 import java.net.Socket
 import java.io.IOException
 import java.nio.charset.StandardCharsets
+import android.util.Log
 import javax.net.ssl.SSLServerSocket
 import javax.net.ssl.SSLSocket
 
@@ -17,7 +19,8 @@ class LocalSendServer(
     private val gson: Gson,
     tlsIdentity: TlsIdentity,
     private val localDevice: () -> DeviceInfo,
-    private val onDeviceRegistered: (DeviceInfo, String) -> Unit
+    private val onDeviceRegistered: (DeviceInfo, String) -> Unit,
+    private val incomingTransfers: IncomingTransferManager
 ) : NanoHTTPD(LocalSendProtocol.DEFAULT_PORT) {
 
     private val clientFingerprint = ThreadLocal<String?>()
@@ -32,19 +35,30 @@ class LocalSendServer(
     }
 
     override fun serve(session: IHTTPSession): Response {
-        if (session.method != Method.POST || session.uri != LocalSendProtocol.REGISTER_PATH) {
+        val contentLengthHeader = session.headers["content-length"]
+        val transferEncodingHeader = session.headers["transfer-encoding"]
+        Log.i(
+            TAG,
+            "Request method=${session.method} uri=${session.uri} remote=${session.remoteIpAddress} " +
+                "contentLength=$contentLengthHeader transferEncoding=$transferEncodingHeader " +
+                "parameters=${session.parms.keys}"
+        )
+        if (session.method != Method.POST) {
+            Log.w(TAG, "Rejecting non-POST request")
             return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "Not found")
         }
 
         return try {
+            if (session.uri == LocalSendProtocol.PREPARE_UPLOAD_PATH) return prepareUpload(session)
+            if (session.uri == LocalSendProtocol.UPLOAD_PATH) return receiveFile(session)
+            if (session.uri == LocalSendProtocol.CANCEL_PATH) return cancel(session)
+            if (session.uri != LocalSendProtocol.REGISTER_PATH) {
+                Log.w(TAG, "Rejecting unknown route: ${session.uri}")
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "Not found")
+            }
             val device = gson.fromJson(readUtf8Body(session), DeviceInfo::class.java)
                 ?: return badRequest()
-            if (device.fingerprint.isBlank() || device.port !in 1..65535) {
-                return badRequest()
-            }
-            if (!device.fingerprint.equals(clientFingerprint.get(), ignoreCase = true)) {
-                return newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Invalid certificate")
-            }
+            if (!validIdentity(device)) return forbidden()
 
             onDeviceRegistered(device, session.remoteIpAddress)
             newFixedLengthResponse(
@@ -53,12 +67,55 @@ class LocalSendServer(
                 gson.toJson(localDevice())
             )
         } catch (exception: Exception) {
+            Log.e(TAG, "LocalSend request failed: ${session.uri}", exception)
             badRequest()
         }
     }
 
-    private fun badRequest(): Response =
-        newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "Invalid body")
+    private fun badRequest(reason: String = "Invalid body"): Response {
+        Log.w(TAG, "Bad request: $reason")
+        return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, reason)
+    }
+    private fun forbidden(): Response = newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Invalid certificate")
+
+    private fun prepareUpload(session: IHTTPSession): Response {
+        val request = gson.fromJson(readUtf8Body(session), IncomingTransferManager.PrepareUploadRequest::class.java) ?: return badRequest()
+        Log.i(TAG, "Prepare upload: files=${request.files.size} ids=${request.files.keys}")
+        if (!validIdentity(request.info)) {
+            Log.w(TAG, "Prepare upload rejected because client identity did not match TLS certificate")
+            return forbidden()
+        }
+        return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(incomingTransfers.prepare(request)))
+    }
+
+    private fun receiveFile(session: IHTTPSession): Response {
+        val sessionId = session.parms["sessionId"] ?: return badRequest("Missing sessionId")
+        val fileId = session.parms["fileId"] ?: return badRequest("Missing fileId")
+        val token = session.parms["token"] ?: return badRequest("Missing token")
+        val isChunked = session.headers["transfer-encoding"]
+            ?.split(',')
+            ?.any { it.trim().equals("chunked", true) } == true
+        val contentLength = session.headers["content-length"]?.toLongOrNull()
+        if (!isChunked && contentLength == null) return badRequest("Missing Content-Length or chunked encoding")
+        Log.i(TAG, "Receiving file: session=$sessionId file=$fileId bytes=$contentLength chunked=$isChunked")
+        return if (incomingTransfers.write(sessionId, fileId, token, session.inputStream, contentLength, isChunked)) {
+            Log.i(TAG, "Upload completed: session=$sessionId file=$fileId")
+            // LocalSend treats an empty 200 response as a completed upload. 204 is reserved
+            // for prepare-upload when there is no file to transfer.
+            newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "")
+        }
+        else {
+            Log.w(TAG, "Upload rejected: unknown session/file, invalid token, truncated body, or checksum mismatch")
+            newFixedLengthResponse(Response.Status.UNAUTHORIZED, MIME_PLAINTEXT, "Invalid upload")
+        }
+    }
+
+    private fun cancel(session: IHTTPSession): Response {
+        val sessionId = session.parms["sessionId"] ?: return badRequest(); incomingTransfers.cancel(sessionId)
+        return newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "")
+    }
+
+    private fun validIdentity(device: DeviceInfo): Boolean = device.fingerprint.isNotBlank() && device.port in 1..65535 && device.fingerprint.equals(clientFingerprint.get(), true)
 
     override fun createClientHandler(socket: Socket, inputStream: java.io.InputStream): ClientHandler {
         if (socket is SSLSocket) {
@@ -87,6 +144,7 @@ class LocalSendServer(
     }
 
     private companion object {
+        const val TAG = "LocalSendServer"
         const val MAX_REGISTER_BODY_BYTES = 64 * 1024
     }
 }
