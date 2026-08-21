@@ -6,9 +6,11 @@ import io.github.mouse233.localsendkotlin.model.DeviceInfo
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
 import java.net.ServerSocket
+import java.net.Socket
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import javax.net.ssl.SSLServerSocket
+import javax.net.ssl.SSLSocket
 
 /** Minimal HTTP server needed for LocalSend's two-way device discovery. */
 class LocalSendServer(
@@ -17,6 +19,8 @@ class LocalSendServer(
     private val localDevice: () -> DeviceInfo,
     private val onDeviceRegistered: (DeviceInfo, String) -> Unit
 ) : NanoHTTPD(LocalSendProtocol.DEFAULT_PORT) {
+
+    private val clientFingerprint = ThreadLocal<String?>()
 
     init {
         val socketFactory = tlsIdentity.createSslContext().serverSocketFactory
@@ -38,6 +42,9 @@ class LocalSendServer(
             if (device.fingerprint.isBlank() || device.port !in 1..65535) {
                 return badRequest()
             }
+            if (!device.fingerprint.equals(clientFingerprint.get(), ignoreCase = true)) {
+                return newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Invalid certificate")
+            }
 
             onDeviceRegistered(device, session.remoteIpAddress)
             newFixedLengthResponse(
@@ -52,6 +59,15 @@ class LocalSendServer(
 
     private fun badRequest(): Response =
         newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "Invalid body")
+
+    override fun createClientHandler(socket: Socket, inputStream: java.io.InputStream): ClientHandler {
+        if (socket is SSLSocket) {
+            socket.addHandshakeCompletedListener { event ->
+                clientFingerprint.set(TlsIdentity.certificateFingerprint(event.session.peerCertificates.first()))
+            }
+        }
+        return super.createClientHandler(socket, inputStream)
+    }
 
     /** NanoHTTPD 2.3.1 defaults JSON without charset to US-ASCII; protocol JSON is UTF-8. */
     private fun readUtf8Body(session: IHTTPSession): String {

@@ -19,6 +19,7 @@ import io.github.mouse233.localsendkotlin.model.RegisterResponse
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.server.LocalSendServer
+import io.github.mouse233.localsendkotlin.security.TlsIdentity
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.InetAddress
@@ -146,10 +147,10 @@ class DiscoveryManager(
     }
 
     private fun sendRegisterRequest(device: DeviceInfo, address: String): Boolean {
-        return postRegistration(address, device.port, device.protocol) != null
+        return postRegistration(address, device.port, device.protocol, device.fingerprint) != null
     }
 
-    private fun postRegistration(address: String, port: Int, protocol: String): RegisterResponse? {
+    private fun postRegistration(address: String, port: Int, protocol: String, expectedFingerprint: String? = null): RegistrationResult? {
         val requestBody = RequestBody.create(JSON_MEDIA_TYPE, gson.toJson(identity.deviceInfo()))
         val request = Request.Builder()
             .url("$protocol://$address:$port${LocalSendProtocol.REGISTER_PATH}")
@@ -159,7 +160,11 @@ class DiscoveryManager(
             val client = if (protocol == "https") httpsClient else httpClient
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
-                gson.fromJson(response.body()?.charStream(), RegisterResponse::class.java)
+                val peerFingerprint = if (protocol == "https") {
+                    response.handshake()?.peerCertificates()?.firstOrNull()?.let(TlsIdentity::certificateFingerprint)
+                } else null
+                if (expectedFingerprint != null && !expectedFingerprint.equals(peerFingerprint, ignoreCase = true)) return null
+                RegistrationResult(gson.fromJson(response.body()?.charStream(), RegisterResponse::class.java), peerFingerprint)
             }
         } catch (exception: Exception) {
             null
@@ -200,19 +205,19 @@ class DiscoveryManager(
     private fun scanAddress(address: String) {
         if (!running.get()) return
         val response = postRegistration(address, LocalSendProtocol.DEFAULT_PORT, "https") ?: return
-        val alias = response.alias ?: return
-        val version = response.version ?: return
-        val fingerprint = response.fingerprint ?: return
+        val alias = response.body.alias ?: return
+        val version = response.body.version ?: return
+        val fingerprint = response.peerFingerprint ?: response.body.fingerprint ?: return
         registerDevice(
             DeviceInfo(
                 alias = alias,
                 version = version,
-                deviceModel = response.deviceModel,
-                deviceType = response.deviceType,
+                deviceModel = response.body.deviceModel,
+                deviceType = response.body.deviceType,
                 fingerprint = fingerprint,
                 port = LocalSendProtocol.DEFAULT_PORT,
                 protocol = "https",
-                download = response.download
+                download = response.body.download
             ),
             address
         )
@@ -351,5 +356,10 @@ class DiscoveryManager(
         val networkInterface: NetworkInterface,
         val address: Inet4Address,
         val prefixLength: Int
+    )
+
+    private data class RegistrationResult(
+        val body: RegisterResponse,
+        val peerFingerprint: String?
     )
 }
