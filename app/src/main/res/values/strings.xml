@@ -7,6 +7,11 @@
     <string name="discovery_refreshing">正在刷新设备列表…</string>
     <string name="discovery_error">发现失败：%1$s</string>
     <string name="device_details_format">%1$s · %2$s:%3$d</string>
+    <string name="select_file">选择文件</string>
+    <string name="select_file_first">请先选择文件</string>
+    <string name="file_selected">已选择：%1$s。点击目标设备发送。</string>
+    <string name="upload_progress">正在上传：%1$d%%</string>
+    <string name="upload_completed">已发送：%1$s</string>
     <plurals name="device_count">
         <item quantity="one">发现 1 台设备</item>
         <item quantity="other">发现 %d 台设备</item>

@@ -18,9 +18,11 @@ import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.Date
 import javax.net.ssl.KeyManagerFactory
+import javax.net.ssl.KeyManager
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+import javax.net.ssl.X509KeyManager
 
 /** A self-signed TLS identity generated once and retained across application launches. */
 class TlsIdentity(context: Context) {
@@ -37,9 +39,22 @@ class TlsIdentity(context: Context) {
         val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
         keyManagerFactory.init(keyStore, password)
         return SSLContext.getInstance("TLS").apply {
-            init(keyManagerFactory.keyManagers, arrayOf<TrustManager>(AcceptAnyTrustManager), SecureRandom())
+            init(forceLocalSendAlias(keyManagerFactory.keyManagers), arrayOf<TrustManager>(AcceptAnyTrustManager), SecureRandom())
         }
     }
+
+    /** Android's default key manager may decline a self-signed client certificate. */
+    private fun forceLocalSendAlias(keyManagers: Array<KeyManager>): Array<KeyManager> = keyManagers.map { manager ->
+        if (manager !is X509KeyManager) return@map manager
+        object : X509KeyManager {
+            override fun chooseClientAlias(keyType: Array<String>, issuers: Array<java.security.Principal>?, socket: java.net.Socket?): String = ALIAS
+            override fun chooseServerAlias(keyType: String, issuers: Array<java.security.Principal>?, socket: java.net.Socket?): String = ALIAS
+            override fun getClientAliases(keyType: String, issuers: Array<java.security.Principal>?): Array<String> = arrayOf(ALIAS)
+            override fun getServerAliases(keyType: String, issuers: Array<java.security.Principal>?): Array<String> = arrayOf(ALIAS)
+            override fun getCertificateChain(alias: String?): Array<X509Certificate>? = manager.getCertificateChain(ALIAS)
+            override fun getPrivateKey(alias: String?) = manager.getPrivateKey(ALIAS)
+        }
+    }.toTypedArray()
 
     private fun loadOrCreateKeyStore(): KeyStore {
         val file = File(appContext.filesDir, KEY_STORE_FILE)
