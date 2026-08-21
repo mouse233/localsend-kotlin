@@ -44,6 +44,7 @@ class MainActivity : Activity(), DiscoveryListener {
         statusText = findViewById(R.id.discovery_status)
         transferProgress = findViewById(R.id.transfer_progress)
         cancelUploadButton = findViewById(R.id.cancel_transfer_button)
+        findViewById<android.view.View>(R.id.about_button).setOnClickListener { showAbout() }
         cancelUploadButton.setOnClickListener {
             uploadClient.cancelCurrent()
             discoveryManager.cancelIncomingTransfer()
@@ -108,6 +109,13 @@ class MainActivity : Activity(), DiscoveryListener {
         })
     }
     private fun showStatus(message: String) { mainHandler.post { statusText.text = message } }
+    private fun showAbout() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.about_title)
+            .setMessage(R.string.about_message)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
     override fun onDevicesChanged(devices: List<RemoteDevice>) { deviceAdapter.submitDevices(devices); if (selectedFile == null) statusText.text = if (devices.isEmpty()) getString(R.string.discovery_scanning) else resources.getQuantityString(R.plurals.device_count, devices.size, devices.size) }
     override fun onDiscoveryError(message: String) = showStatus(getString(R.string.discovery_error, message))
     override fun onIncomingTransferRequest(
