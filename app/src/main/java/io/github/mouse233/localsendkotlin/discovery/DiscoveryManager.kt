@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -66,6 +67,7 @@ class DiscoveryManager(
     @Volatile private var socket: MulticastSocket? = null
     @Volatile private var server: LocalSendServer? = null
     @Volatile private var multicastLock: WifiManager.MulticastLock? = null
+    @Volatile private var legacyProcessNetworkBound = false
 
     fun start() {
         if (!running.compareAndSet(false, true)) return
@@ -85,6 +87,11 @@ class DiscoveryManager(
         if (!running.compareAndSet(true, false)) return
         socket?.close()
         socket = null
+        if (legacyProcessNetworkBound) {
+            // setProcessDefaultNetwork is the API 21-compatible counterpart to socket binding.
+            ConnectivityManager.setProcessDefaultNetwork(null)
+            legacyProcessNetworkBound = false
+        }
         server?.stop()
         server = null
         multicastLock?.let { lock -> if (lock.isHeld) lock.release() }
@@ -325,7 +332,17 @@ class DiscoveryManager(
         val transport = findWifiTransport()
         val group = InetAddress.getByName(LocalSendProtocol.MULTICAST_ADDRESS)
         return MulticastSocket(null).apply {
-            transport.network.bindSocket(this)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                // DatagramSocket binding was added in API 22.
+                transport.network.bindSocket(this)
+            } else {
+                // Android 5.0 has no Network.bindSocket(DatagramSocket). Bind the process
+                // before creating/using the multicast socket instead.
+                if (!ConnectivityManager.setProcessDefaultNetwork(transport.network)) {
+                    throw IOException("Unable to bind process to Wi-Fi network")
+                }
+                legacyProcessNetworkBound = true
+            }
             reuseAddress = true
             bind(InetSocketAddress(InetAddress.getByName("0.0.0.0"), LocalSendProtocol.DEFAULT_PORT))
             networkInterface = transport.networkInterface
