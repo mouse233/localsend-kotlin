@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.1.1-alpha] - 2026-08-22
+
+### Fixed
+
+- Fixed file receiving on Android 5.1 by capturing the peer TLS certificate fingerprint after the TLS handshake completes.
+- Added a deterministic TLS fingerprint regression test for the NanoHTTPD/SSL handshake flow.
+
+## 中文说明
+
+### v0.1.1-alpha（2026-08-22）
+
+#### 修复
+
+- 修复 Android 5.1 上接收文件时因 TLS 握手完成监听时序导致请求被错误拒绝的问题。
+- 增加稳定的 TLS 指纹回归测试，覆盖 NanoHTTPD/SSL 握手流程。
+
 ## [v0.1.0-alpha] - 2026-08-22
 
 ### Added
