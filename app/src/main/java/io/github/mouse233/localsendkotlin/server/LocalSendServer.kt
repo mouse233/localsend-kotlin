@@ -122,12 +122,26 @@ class LocalSendServer(
     private fun validIdentity(device: DeviceInfo): Boolean = device.fingerprint.isNotBlank() && device.port in 1..65535 && device.fingerprint.equals(clientFingerprint.get(), true)
 
     override fun createClientHandler(socket: Socket, inputStream: java.io.InputStream): ClientHandler {
-        if (socket is SSLSocket) {
-            socket.addHandshakeCompletedListener { event ->
-                clientFingerprint.set(TlsIdentity.certificateFingerprint(event.session.peerCertificates.first()))
+        return object : ClientHandler(inputStream, socket) {
+            override fun run() {
+                try {
+                    if (socket is SSLSocket) {
+                        // NanoHTTPD 2.3.1 在 accept 线程先调用 socket.getInputStream() 再注册
+                        // handshakeCompletedListener；Android 5.1 的 SSLSocket 会在 getInputStream()
+                        // 时同步完成 TLS 握手，导致监听器永远不会触发、ThreadLocal 指纹恒为 null。
+                        // 改为在本请求线程主动握手（幂等）后直接读取对端证书计算指纹。
+                        socket.startHandshake()
+                        val certificate = socket.session.peerCertificates.firstOrNull()
+                            ?: throw IllegalStateException("Peer did not present a certificate")
+                        clientFingerprint.set(TlsIdentity.certificateFingerprint(certificate))
+                        Log.i(TAG, "TLS peer fingerprint: ${clientFingerprint.get()}")
+                    }
+                } catch (exception: Exception) {
+                    Log.w(TAG, "TLS handshake failed: ${exception.message}")
+                }
+                super.run()
             }
         }
-        return super.createClientHandler(socket, inputStream)
     }
 
     /** NanoHTTPD 2.3.1 defaults JSON without charset to US-ASCII; protocol JSON is UTF-8. */
