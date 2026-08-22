@@ -4,7 +4,7 @@
 
 An unofficial, lightweight native Android LocalSend client written in Kotlin. This project is not affiliated with or endorsed by the official LocalSend project. It aims to interoperate with the official LocalSend clients and provide secure file transfer on local networks, including older Android devices.
 
-> Current version: `v0.1.0-alpha`
+> Current version: `v0.2.0-alpha`
 >
 > The core workflow is usable, but compatibility across Android versions, vendor-specific background policies, and long-running transfers still needs more real-device validation.
 
@@ -28,10 +28,13 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 - Secure transfer
   - HTTPS encryption
   - Mutual identity verification using device certificate fingerprints
+- Background transfer and notifications
+  - Foreground service for background and lock-screen transfers
+  - Notification actions for accepting, rejecting, and cancelling transfers
+  - Progress, completed size, transfer speed, and ETA in transfer notifications
 
 ## Not implemented yet
 
-- Reliable background service and lock-screen transfers
 - Multi-file queues and concurrent transfer management
 - Receive settings
   - Configurable save directory
@@ -136,10 +139,14 @@ LocalSend Kotlin is licensed under the [Apache License 2.0](LICENSE). Third-part
 
 - The main validation environment is Android 16 real devices; older Android versions and additional vendor ROMs still need testing.
 - Android 4.4 (API 19) is not currently supported. It may be considered as an experimental target later, but API 21 remains the current minimum because older systems have greater TLS, certificate, storage, and network-compatibility risks.
-- The app is primarily designed for foreground Activity use. Transfers are not guaranteed to continue after lock screen, backgrounding, or process reclamation.
+- Transfers continue through normal backgrounding and lock-screen use while the foreground service is running. Swiping the app task away intentionally stops the service and active transfers.
 - The current focus is single-file transfer. Resumable transfers, multi-file sessions, and background notifications are not implemented.
 - AP isolation, multicast filtering, or client isolation can prevent devices from communicating.
 
 ## Project status
 
 This is an Alpha project suitable for early-user testing. When reporting an issue, include the Android version, device model, both client versions, and reproducible steps.
+
+## Contributors
+
+- [@FXDaily](https://github.com/FXDaily) — TLS certificate fingerprint handling and Android 5.1 file-receiving fix.

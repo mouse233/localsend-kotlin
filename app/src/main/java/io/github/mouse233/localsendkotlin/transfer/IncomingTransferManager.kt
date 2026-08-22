@@ -22,7 +22,8 @@ class IncomingTransferManager(
 ) {
     private val fileStore = IncomingFileStore(context)
     private val sessions = ConcurrentHashMap<String, Session>()
-    private val cancelledSessions = ConcurrentHashMap.newKeySet<String>()
+    // Use the map keys as a set; ConcurrentHashMap.newKeySet() requires API 24.
+    private val cancelledSessions = ConcurrentHashMap<String, Boolean>()
 
     fun prepare(request: PrepareUploadRequest, remoteAddress: String): PrepareUploadResponse? {
         val decisionLatch = CountDownLatch(1)
@@ -56,7 +57,7 @@ class IncomingTransferManager(
     ): WriteResult {
         val session = sessions[sessionId]
         val target = session?.files?.get(fileId)
-            ?: return if (cancelledSessions.remove(sessionId)) WriteResult.CANCELLED else WriteResult.REJECTED
+            ?: return if (cancelledSessions.remove(sessionId) == true) WriteResult.CANCELLED else WriteResult.REJECTED
         if (target.token != token || contentLength != null && contentLength != target.file.size) return WriteResult.REJECTED
         val digest = MessageDigest.getInstance("SHA-256")
         val source = if (isChunked) ChunkedInputStream(input) else input
@@ -115,7 +116,7 @@ class IncomingTransferManager(
     }
 
     fun cancel(sessionId: String) {
-        cancelledSessions.add(sessionId)
+        cancelledSessions[sessionId] = true
         sessions.remove(sessionId)?.files?.values
             ?.filterNot { it.completed }
             ?.forEach { fileStore.discard(it.destination) }
@@ -125,7 +126,7 @@ class IncomingTransferManager(
     fun cancelCurrent(): Boolean {
         val sessionId = activeSessionId ?: return false
         activeSessionId = null
-        if (!cancelledSessions.add(sessionId)) return false
+        if (cancelledSessions.putIfAbsent(sessionId, true) != null) return false
         val session = sessions.remove(sessionId) ?: return false
         session.files.values.filterNot { it.completed }.forEach { fileStore.discard(it.destination) }
         onTransferCancelRequested(session.info, session.remoteAddress, sessionId)
