@@ -101,15 +101,22 @@ class LocalSendServer(
         val contentLength = session.headers["content-length"]?.toLongOrNull()
         if (!isChunked && contentLength == null) return badRequest("Missing Content-Length or chunked encoding")
         Log.i(TAG, "Receiving file: session=$sessionId file=$fileId bytes=$contentLength chunked=$isChunked")
-        return if (incomingTransfers.write(sessionId, fileId, token, session.inputStream, contentLength, isChunked)) {
-            Log.i(TAG, "Upload completed: session=$sessionId file=$fileId")
-            // LocalSend treats an empty 200 response as a completed upload. 204 is reserved
-            // for prepare-upload when there is no file to transfer.
-            newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "")
-        }
-        else {
-            Log.w(TAG, "Upload rejected: unknown session/file, invalid token, truncated body, or checksum mismatch")
-            newFixedLengthResponse(Response.Status.UNAUTHORIZED, MIME_PLAINTEXT, "Invalid upload")
+        return when (incomingTransfers.write(sessionId, fileId, token, session.inputStream, contentLength, isChunked)) {
+            IncomingTransferManager.WriteResult.COMPLETED -> {
+                Log.i(TAG, "Upload completed: session=$sessionId file=$fileId")
+                newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "")
+            }
+            IncomingTransferManager.WriteResult.CANCELLED -> {
+                Log.i(TAG, "Upload cancelled: session=$sessionId file=$fileId")
+                // Never return 2xx here: LocalSend senders treat 200 as a
+                // completed file. The reference implementation reports an
+                // inactive/cancelled upload as a non-success response.
+                newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "Transfer cancelled")
+            }
+            IncomingTransferManager.WriteResult.REJECTED -> {
+                Log.w(TAG, "Upload rejected: unknown session/file, invalid token, truncated body, or checksum mismatch")
+                newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Invalid upload")
+            }
         }
     }
 

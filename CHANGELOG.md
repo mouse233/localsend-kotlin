@@ -1,10 +1,42 @@
 # Changelog
 
+## [v0.2.0-alpha] - 2026-08-23
+
+### Added
+
+- Background file sending and receiving through a foreground service.
+- Notification actions for accepting, rejecting, and cancelling transfers.
+- Transfer notifications with percentage, completed size, transfer speed, and ETA.
+- Service and transfer state restoration when the Activity returns to the foreground.
+- Reliable cancellation handling without treating cancelled uploads as completed transfers.
+
+### Fixed
+
+- Prevented progress callbacks from flooding the main thread and causing background-transfer ANRs.
+- Kept the receiving service available after cancelling a transfer.
+
+## 中文说明
+
+### v0.2.0-alpha（2026-08-23）
+
+#### 新增
+
+- 通过前台服务支持后台发送和接收文件。
+- 通知栏支持接受、拒绝和取消传输。
+- 传输通知显示百分比、已完成大小、传输速度和预计剩余时间。
+- Activity 回到前台时恢复服务和传输状态。
+- 完善取消处理，避免已取消的上传被误判为已完成。
+
+#### 修复
+
+- 限制进度回调频率，避免后台传输时主线程消息堆积导致 ANR。
+- 取消传输后保留接收服务，仍可继续接收下一次发送。
+
 ## [v0.1.1-alpha] - 2026-08-22
 
 ### Fixed
 
-- Fixed file receiving on Android 5.1 by capturing the peer TLS certificate fingerprint after the TLS handshake completes.
+- Fixed file receiving on Android 5.1 by capturing the peer TLS certificate fingerprint after the TLS handshake completes. Thanks to [**@FXDaily**](https://github.com/FXDaily).
 - Added a deterministic TLS fingerprint regression test for the NanoHTTPD/SSL handshake flow.
 
 ## 中文说明
@@ -15,6 +47,7 @@
 
 - 修复 Android 5.1 上接收文件时因 TLS 握手完成监听时序导致请求被错误拒绝的问题。
 - 增加稳定的 TLS 指纹回归测试，覆盖 NanoHTTPD/SSL 握手流程。
+- 感谢 [**@FXDaily**](https://github.com/FXDaily) 贡献 TLS 证书指纹处理和 Android 5.1 文件接收修复。
 
 ## [v0.1.0-alpha] - 2026-08-22
 

@@ -155,13 +155,11 @@ class DiscoveryManager(
     fun cancelIncomingTransfer(): Boolean = incomingTransfers?.cancelCurrent() == true
 
     private fun cancelRemoteTransfer(protocol: String, address: String, port: Int, fingerprint: String, sessionId: String) {
-        executor?.execute {
-            try {
-                val url = "$protocol://$address:$port${LocalSendProtocol.CANCEL_PATH}?sessionId=$sessionId"
-                val request = Request.Builder().url(url).post(RequestBody.create(null, ByteArray(0))).build()
-                (if (protocol == "https") createHttpsClient(fingerprint) else httpClient).newCall(request).execute().use { }
-            } catch (_: Exception) { }
-        }
+        try {
+            val url = "$protocol://$address:$port${LocalSendProtocol.CANCEL_PATH}?sessionId=$sessionId"
+            val request = Request.Builder().url(url).post(RequestBody.create(null, ByteArray(0))).build()
+            (if (protocol == "https") createHttpsClient(fingerprint) else httpClient).newCall(request).execute().use { }
+        } catch (_: Exception) { }
     }
 
     private fun receiveAnnouncements(multicastSocket: MulticastSocket) {

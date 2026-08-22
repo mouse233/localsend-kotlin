@@ -27,13 +27,24 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Run lint, unit tests, and debug build
-        run: ./gradlew lintDebug test assembleDebug --no-daemon --stacktrace
+      - name: Run lint, unit tests, and builds
+        run: ./gradlew lintDebug test assembleDebug assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare release APK artifact
+        run: cp app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release.apk
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: localsend-kotlin-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: localsend-kotlin-release-${{ github.sha }}
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
