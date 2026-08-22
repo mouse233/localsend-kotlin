@@ -2,7 +2,7 @@
 
 [English](../README.md) | [简体中文](README.zh-CN.md)
 
-一个使用 Kotlin 编写的 Android LocalSend 客户端，目标是与原版 LocalSend 客户端互操作，并支持在局域网内安全地发送和接收文件。
+一个使用 Kotlin 编写的非官方 Android LocalSend 客户端。本项目与原版 LocalSend 项目没有隶属、赞助或官方授权关系，目标是与原版客户端互操作，并支持在局域网内安全地发送和接收文件。
 
 > 当前版本：`v0.1.0-alpha`
 >

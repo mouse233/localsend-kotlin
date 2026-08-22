@@ -2,7 +2,7 @@
 
 [English](README.md) | [简体中文](docs/README.zh-CN.md)
 
-A lightweight native Android LocalSend client written in Kotlin. The project aims to interoperate with the official LocalSend clients and provide secure file transfer on local networks, including older Android devices.
+An unofficial, lightweight native Android LocalSend client written in Kotlin. This project is not affiliated with or endorsed by the official LocalSend project. It aims to interoperate with the official LocalSend clients and provide secure file transfer on local networks, including older Android devices.
 
 > Current version: `v0.1.0-alpha`
 >
