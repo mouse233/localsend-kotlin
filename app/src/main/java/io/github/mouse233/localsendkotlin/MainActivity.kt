@@ -108,7 +108,9 @@ class MainActivity : Activity(), TransferService.Listener {
 
     private fun startTransferService() {
         val intent = Intent(this, TransferService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
+        // This is called while the Activity is visible. Starting normally avoids
+        // Xiaomi Android 16 treating the foreground-service promotion as late.
+        startService(intent)
     }
 
     private fun showAbout() = AlertDialog.Builder(this).setTitle(R.string.about_title).setMessage(R.string.about_message).setPositiveButton(android.R.string.ok, null).show()
