@@ -12,12 +12,15 @@
     <string name="select_file_first">请先选择文件</string>
     <string name="service_starting">后台服务正在启动，请稍后重试</string>
     <string name="file_selected">已选择：%1$s。点击目标设备发送。</string>
+    <string name="files_selected">已选择 %1$d 个文件。点击目标设备发送。</string>
     <string name="upload_progress">正在上传：%1$d%%</string>
+    <string name="upload_file_progress">正在发送第 %1$d/%2$d 个文件：%3$s（%4$d%%）</string>
     <string name="upload_completed">已发送：%1$s</string>
     <string name="cancel_transfer">取消</string>
     <string name="upload_cancelled">已取消发送</string>
     <string name="download_completed">已接收：%1$s</string>
     <string name="received_files">已接收文件</string>
+    <string name="active_transfers">当前传输</string>
     <string name="open_file">打开</string>
     <string name="open_file_failed">无法打开此文件</string>
     <string name="incoming_request_title">%1$s 请求发送文件</string>
@@ -30,6 +33,8 @@
     <string name="notification_service_text">正在等待文件传输</string>
     <string name="notification_uploading">正在发送文件</string>
     <string name="notification_receiving">正在接收：%1$s</string>
+    <string name="notification_receiving_files">正在接收文件</string>
+    <string name="receiving_files_progress">正在接收文件（%1$d%%）</string>
     <string name="notification_progress">进度：%1$d%%</string>
     <string name="notification_upload_completed">已发送：%1$s</string>
     <string name="notification_download_completed">已接收：%1$s</string>

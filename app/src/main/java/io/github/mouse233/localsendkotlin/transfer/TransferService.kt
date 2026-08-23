@@ -21,6 +21,7 @@ import io.github.mouse233.localsendkotlin.discovery.DiscoveryManager
 import io.github.mouse233.localsendkotlin.discovery.LocalIdentity
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
+import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -30,14 +31,16 @@ class TransferService : Service(), DiscoveryListener {
         fun onDevicesChanged(devices: List<RemoteDevice>)
         fun onDiscoveryError(message: String)
         fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (Boolean) -> Unit)
-        fun onFileReceiveProgress(fileName: String, received: Long, total: Long)
-        fun onFileReceiveCancelled(fileName: String)
-        fun onFileReceived(file: ReceivedFile)
+        fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest)
+        fun onFileReceiveProgress(file: ActiveTransferFile)
+        fun onFileReceiveCancelled(file: ActiveTransferFile, sessionComplete: Boolean)
+        fun onFileReceived(sessionId: String, fileId: String, file: ReceivedFile, sessionComplete: Boolean)
+        fun onIncomingSessionCompleted(sessionId: String)
         fun onUploadStatus(message: String)
-        fun onUploadProgress(sent: Long, total: Long)
+        fun onUploadProgress(fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long)
         fun onTransferStateRestored(title: String, percent: Int)
         fun onTransferFinished(message: String)
-        fun onUploadCompleted(name: String)
+        fun onUploadCompleted(names: List<String>)
         fun onUploadError(message: String)
     }
 
@@ -63,9 +66,11 @@ class TransferService : Service(), DiscoveryListener {
     private var activeTotalBytes = -1L
     private var progressStartedAt = 0L
     private var transferSpeedBytesPerSecond = 0L
+    @Volatile private var notificationGeneration = 0L
     @Volatile private var cancellationRequested = false
     private val cancellationInProgress = AtomicBoolean(false)
     @Volatile private var pendingIncoming: PendingIncoming? = null
+    private val incomingFiles = LinkedHashMap<String, LinkedHashMap<String, ActiveTransferFile>>()
 
     override fun onCreate() {
         super.onCreate()
@@ -107,7 +112,12 @@ class TransferService : Service(), DiscoveryListener {
 
     fun announce() = discoveryManager.announce()
 
-    fun send(uri: Uri, device: RemoteDevice) {
+    fun refreshDevices() = discoveryManager.refresh()
+
+    fun send(uri: Uri, device: RemoteDevice) = send(listOf(uri), device)
+
+    fun send(uris: List<Uri>, device: RemoteDevice) {
+        notificationGeneration++
         cancellationRequested = false
         hasActiveTransfer = true
         lastTransferMessage = null
@@ -115,7 +125,7 @@ class TransferService : Service(), DiscoveryListener {
         resetTransferMetrics()
         activeNotificationTitle = getString(R.string.notification_uploading)
         activeNotificationProgress = 0
-        uploadClient.send(uri, device, object : UploadClient.Listener {
+        uploadClient.send(uris, device, object : UploadClient.Listener {
             override fun onStatus(message: String) {
                 if (cancellationRequested) return
                 activeNotificationTitle = message
@@ -123,21 +133,21 @@ class TransferService : Service(), DiscoveryListener {
                 notifyListeners { it.onUploadStatus(message) }
             }
 
-            override fun onProgress(sent: Long, total: Long) {
+            override fun onProgress(fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long) {
                 if (cancellationRequested) return
                 hasActiveTransfer = true
                 activeNotificationTitle = getString(R.string.notification_uploading)
-                activeNotificationProgress = if (total > 0) ((sent * 100L) / total).toInt().coerceIn(0, 100) else 0
-                updateTransferMetrics(sent, total)
-                dispatchProgressIfNeeded(sent, total) { it.onUploadProgress(sent, total) }
+                activeNotificationProgress = if (totalBytes > 0) ((totalSent * 100L) / totalBytes).toInt().coerceIn(0, 100) else 0
+                updateTransferMetrics(totalSent, totalBytes)
+                dispatchProgressIfNeeded(totalSent, totalBytes) { it.onUploadProgress(fileName, fileIndex, fileCount, sent, total, totalSent, totalBytes) }
             }
 
-            override fun onCompleted(name: String) {
+            override fun onCompleted(names: List<String>) {
                 hasActiveTransfer = false
                 cancellationRequested = false
                 resetProgressDispatch()
-                lastTransferMessage = getString(R.string.upload_completed, name)
-                notifyListeners { it.onUploadCompleted(name) }
+                lastTransferMessage = getString(R.string.upload_completed, names.joinToString("、"))
+                notifyListeners { it.onUploadCompleted(names) }
                 clearTransferNotification()
             }
 
@@ -179,6 +189,8 @@ class TransferService : Service(), DiscoveryListener {
         }
     }
 
+    fun cancelIncomingFile(sessionId: String, fileId: String): Boolean = discoveryManager.cancelIncomingFile(sessionId, fileId)
+
     override fun onDevicesChanged(devices: List<RemoteDevice>) {
         currentDevices = devices
         notifyListeners { it.onDevicesChanged(devices) }
@@ -199,30 +211,62 @@ class TransferService : Service(), DiscoveryListener {
         }
     }
 
-    override fun onFileReceiveProgress(fileName: String, received: Long, total: Long) {
+    override fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest) {
+        val files = LinkedHashMap<String, ActiveTransferFile>()
+        request.files.forEach { (fileId, file) ->
+            files[fileId] = ActiveTransferFile(sessionId, fileId, file.fileName, 0L, file.size, ActiveTransferFile.Status.WAITING)
+        }
+        synchronized(incomingFiles) { incomingFiles[sessionId] = files }
+        notifyListeners { it.onIncomingSessionPrepared(sessionId, request) }
+    }
+
+    override fun onFileReceiveProgress(sessionId: String, fileId: String, fileName: String, received: Long, total: Long) {
         if (cancellationRequested) return
+        val state = ActiveTransferFile(sessionId, fileId, fileName, received, total, ActiveTransferFile.Status.TRANSFERRING)
+        synchronized(incomingFiles) { incomingFiles[sessionId]?.set(fileId, state) }
         hasActiveTransfer = true
-        activeNotificationTitle = getString(R.string.notification_receiving, fileName)
-        activeNotificationProgress = if (total > 0) ((received * 100L) / total).toInt().coerceIn(0, 100) else 0
-        updateTransferMetrics(received, total)
-        dispatchProgressIfNeeded(received, total) { it.onFileReceiveProgress(fileName, received, total) }
+        // Multiple files may upload concurrently. Keep the notification title
+        // stable instead of replacing it on every file progress callback.
+        activeNotificationTitle = getString(R.string.notification_receiving_files)
+        val aggregate = incomingProgress(sessionId)
+        activeNotificationProgress = if (aggregate.second > 0) ((aggregate.first * 100L) / aggregate.second).toInt().coerceIn(0, 100) else 0
+        updateTransferMetrics(aggregate.first, aggregate.second)
+        dispatchProgressIfNeeded(aggregate.first, aggregate.second) { it.onFileReceiveProgress(state) }
     }
 
-    override fun onFileReceiveCancelled(fileName: String) {
-        hasActiveTransfer = false
-        resetProgressDispatch()
+    override fun onFileReceiveCancelled(sessionId: String, fileId: String, fileName: String, sessionComplete: Boolean) {
+        val state = ActiveTransferFile(sessionId, fileId, fileName, 0L, 0L, ActiveTransferFile.Status.CANCELLED)
+        synchronized(incomingFiles) { incomingFiles[sessionId]?.set(fileId, state) }
         lastTransferMessage = getString(R.string.download_cancelled, fileName)
-        notifyListeners { it.onFileReceiveCancelled(fileName) }
-        if (!cancellationRequested) clearTransferNotification()
+        notifyListeners { it.onFileReceiveCancelled(state, sessionComplete) }
+        if (sessionComplete) {
+            synchronized(incomingFiles) { incomingFiles.remove(sessionId) }
+            hasActiveTransfer = false
+            resetProgressDispatch()
+            notifyListeners { it.onIncomingSessionCompleted(sessionId) }
+            if (!cancellationRequested) clearTransferNotification()
+        }
     }
 
-    override fun onFileReceived(file: ReceivedFile) {
+    override fun onFileReceived(sessionId: String, fileId: String, file: ReceivedFile, sessionComplete: Boolean) {
         if (cancellationRequested) return
-        hasActiveTransfer = false
-        resetProgressDispatch()
+        synchronized(incomingFiles) {
+            incomingFiles[sessionId]?.get(fileId)?.let { incomingFiles[sessionId]?.set(fileId, it.copy(receivedBytes = it.totalBytes, status = ActiveTransferFile.Status.COMPLETED)) }
+        }
         lastTransferMessage = getString(R.string.download_completed, file.displayName)
-        notifyListeners { it.onFileReceived(file) }
-        clearTransferNotification()
+        notifyListeners { it.onFileReceived(sessionId, fileId, file, sessionComplete) }
+        if (sessionComplete) {
+            synchronized(incomingFiles) { incomingFiles.remove(sessionId) }
+            hasActiveTransfer = false
+            resetProgressDispatch()
+            notifyListeners { it.onIncomingSessionCompleted(sessionId) }
+            clearTransferNotification()
+        }
+    }
+
+    private fun incomingProgress(sessionId: String): Pair<Long, Long> = synchronized(incomingFiles) {
+        val files = incomingFiles[sessionId]?.values ?: return@synchronized 0L to 0L
+        files.sumOf { it.receivedBytes } to files.sumOf { it.totalBytes }
     }
 
     /** Activity callbacks must always run on the main thread because they update Views. */
@@ -319,6 +363,7 @@ class TransferService : Service(), DiscoveryListener {
         discoveryManager.stop()
         stopForeground(true)
         notificationManager().cancel(NOTIFICATION_ID)
+        notificationManager().cancel(PROGRESS_NOTIFICATION_ID)
         notificationManager().cancel(INCOMING_NOTIFICATION_ID)
         super.onDestroy()
     }
@@ -347,36 +392,45 @@ class TransferService : Service(), DiscoveryListener {
         .setContentText(getString(R.string.notification_service_text))
         .setContentIntent(openAppIntent())
         .setOngoing(true)
+        .setProgress(0, 0, false)
         .setOnlyAlertOnce(true)
         .setPriority(NotificationCompat.PRIORITY_LOW)
-        .addAction(0, getString(R.string.cancel_transfer), cancelIntent())
         .build()
 
     private fun notifyProgress() {
-        val firstLine = if (activeTotalBytes > 0L) {
-            "${activeNotificationProgress}% (${formatBytes(activeTransferredBytes)}/${formatBytes(activeTotalBytes)})"
-        } else {
-            "${activeNotificationProgress}% (${formatBytes(activeTransferredBytes)})"
+        val generation = notificationGeneration
+        val title = activeNotificationTitle ?: getString(R.string.notification_service_title)
+        val progress = activeNotificationProgress
+        val transferred = activeTransferredBytes
+        val total = activeTotalBytes
+        val speed = transferSpeedBytesPerSecond
+        mainHandler.post {
+            if (generation != notificationGeneration || !hasActiveTransfer) return@post
+            val firstLine = if (total > 0L) {
+                "${progress}% (${formatBytes(transferred)}/${formatBytes(total)})"
+            } else {
+                "${progress}% (${formatBytes(transferred)})"
+            }
+            val secondLine = if (speed > 0L && total >= transferred) {
+                val remaining = (total - transferred) / speed
+                "ETA: ${formatDuration(remaining)} · ${formatBytes(speed)}/s"
+            } else {
+                "ETA: --:-- · ${formatBytes(speed)}/s"
+            }
+            val builder = NotificationCompat.Builder(this, CHANNEL_TRANSFER)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(title)
+                .setContentText(firstLine)
+                .setSubText(secondLine)
+                .setContentIntent(openAppIntent())
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .addAction(0, getString(R.string.cancel_transfer), cancelIntent())
+                .setStyle(NotificationCompat.BigTextStyle().bigText("$firstLine\n$secondLine"))
+                .setProgress(100, progress, false)
+            startForeground(NOTIFICATION_ID, builder.build())
         }
-        val secondLine = if (transferSpeedBytesPerSecond > 0L && activeTotalBytes >= activeTransferredBytes) {
-            val remaining = (activeTotalBytes - activeTransferredBytes) / transferSpeedBytesPerSecond
-            "ETA: ${formatDuration(remaining)} · ${formatBytes(transferSpeedBytesPerSecond)}/s"
-        } else {
-            "ETA: --:-- · ${formatBytes(transferSpeedBytesPerSecond)}/s"
-        }
-        val builder = NotificationCompat.Builder(this, CHANNEL_TRANSFER)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(activeNotificationTitle ?: getString(R.string.notification_service_title))
-            .setContentText(firstLine)
-            .setSubText(secondLine)
-            .setContentIntent(openAppIntent())
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .addAction(0, getString(R.string.cancel_transfer), cancelIntent())
-            .setStyle(NotificationCompat.BigTextStyle().bigText("$firstLine\n$secondLine"))
-        builder.setProgress(100, activeNotificationProgress, false)
-        notificationManager().notify(NOTIFICATION_ID, builder.build())
     }
 
     private fun formatBytes(bytes: Long): String = when {
@@ -393,14 +447,20 @@ class TransferService : Service(), DiscoveryListener {
     }
 
     private fun clearTransferNotification() {
-        notificationManager().cancel(NOTIFICATION_ID)
-        // Keep the receiver alive after a transfer. Stopping foreground mode
-        // here lets Android reclaim the server while the app is backgrounded.
-        startForeground(NOTIFICATION_ID, baseNotification())
+        val generation = ++notificationGeneration
+        mainHandler.post {
+            if (generation != notificationGeneration) return@post
+            notificationManager().cancel(NOTIFICATION_ID)
+            notificationManager().cancel(PROGRESS_NOTIFICATION_ID)
+            // Return the foreground service to its idle notification after the
+            // transfer progress has been removed.
+            startForeground(NOTIFICATION_ID, baseNotification())
+        }
     }
 
     private fun removeNotificationsAndStopForeground() {
         notificationManager().cancel(NOTIFICATION_ID)
+        notificationManager().cancel(PROGRESS_NOTIFICATION_ID)
         notificationManager().cancel(INCOMING_NOTIFICATION_ID)
         stopForeground(true)
     }
@@ -421,6 +481,7 @@ class TransferService : Service(), DiscoveryListener {
         private const val CHANNEL_TRANSFER = "transfer_progress"
         private const val CHANNEL_INCOMING = "incoming_request"
         private const val NOTIFICATION_ID = 53317
+        private const val PROGRESS_NOTIFICATION_ID = 53319
         private const val INCOMING_NOTIFICATION_ID = 53318
         private const val PROGRESS_INTERVAL_MS = 200L
         private const val METRICS_MIN_SAMPLE_MS = 500L
