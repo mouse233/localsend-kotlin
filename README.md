@@ -4,7 +4,7 @@
 
 An unofficial, lightweight native Android LocalSend client written in Kotlin. This project is not affiliated with or endorsed by the official LocalSend project. It aims to interoperate with the official LocalSend clients and provide secure file transfer on local networks, including older Android devices.
 
-> Current version: `v0.5.0-alpha`
+> Current version: `v0.6.0-alpha`
 >
 > The core workflow is usable, but compatibility across Android versions, vendor-specific background policies, and long-running transfers still needs more real-device validation.
 
@@ -17,18 +17,25 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 - File sending
   - System file picker
   - Multi-file selection and sequential send queue
-  - Upload progress
-  - Sender-side cancellation
+  - Per-file and session progress
+  - Sender-side whole-session cancellation
   - Stops uploading when the receiver cancels
+  - Optional SHA-256 checksum creation
 - File receiving
   - Confirmation dialog before receiving
   - Per-file progress for multi-file sessions
   - Cancel an individual received file or the whole session
-  - Saves files to `Download/LocalSend Kotlin`
+  - Configurable receive directory; defaults to `Download/LocalSend Kotlin`
+  - Optional SHA-256 checksum verification when the sender provides one
   - Receive history with file details, direct opening, and history clearing
 - Secure transfer
   - HTTPS encryption
   - Mutual identity verification using device certificate fingerprints
+  - Visual device-verification screen with matching text codes or Material icon sequences
+- Interface and settings
+  - In-app language choice: System Default, Simplified Chinese, or English
+  - Local device name and bind address on the main screen
+  - Settings for the server, port, encryption, multicast address, receive behavior, and checksums
 - Background transfer and notifications
   - Foreground service for background and lock-screen transfers
   - Notification actions for accepting, rejecting, and cancelling transfers
@@ -36,9 +43,6 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 
 ## Not implemented yet
 
-- Internationalization (i18n)
-  - Move remaining hard-coded UI text into Android string resources.
-  - Add English and Simplified Chinese translations, with the system locale used by default.
 - Resumable transfers after an interrupted connection or app restart.
 - Manual IP connection for networks where multicast and LAN scanning are unavailable.
 - Save received media to the gallery.
@@ -47,11 +51,11 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 - Experimental Android 4.x support.
 - A lightweight command-line core.
 
-## Next milestone: internationalization
+## Next priorities
 
-The next planned feature is i18n. The implementation will keep Android's resource-based
-localization model: all user-facing text moves to `res/values/strings.xml`, translations
-live in locale-specific resource folders, and the app follows the device language by default.
+- Resumable transfer support for interrupted connections and app restarts.
+- Manual IP connection for networks where discovery is unavailable.
+- Trusted-device management and additional real-device compatibility testing.
 
 ## Technology stack
 
@@ -122,8 +126,8 @@ The **Refresh** button clears the current device list and sends another device m
 
 ## File storage and permissions
 
-- Android 10 (API 29) and later: MediaStore saves files to the public Downloads directory without the legacy storage permission.
-- Android 5.0 through Android 9 (API 21–28): files are written to `Download/LocalSend Kotlin` and `WRITE_EXTERNAL_STORAGE` is required.
+- Android 10 (API 29) and later: MediaStore saves files to the public Downloads directory by default without the legacy storage permission; users can choose another receive directory.
+- Android 5.0 through Android 9 (API 21–28): files are written to `Download/LocalSend Kotlin` by default and `WRITE_EXTERNAL_STORAGE` is required.
 
 ## Protocol and security
 
