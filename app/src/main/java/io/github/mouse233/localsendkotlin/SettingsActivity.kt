@@ -172,9 +172,11 @@ class SettingsActivity : Activity() {
         if (requestCode != RECEIVE_DIRECTORY_REQUEST || resultCode != RESULT_OK) return
         val resultData = data ?: return
         val uri = resultData.data ?: return
-        val grantFlags = resultData.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         try {
-            contentResolver.takePersistableUriPermission(uri, grantFlags)
+            contentResolver.takePersistableUriPermission(
+                uri,
+                resultData.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            )
             settings.saveReceiveDirectory(uri, directoryName(uri))
             refreshValues()
         } catch (_: SecurityException) {
