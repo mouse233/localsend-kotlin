@@ -1,6 +1,7 @@
 package io.github.mouse233.localsendkotlin.settings
 
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import java.util.UUID
@@ -28,8 +29,22 @@ class AppSettings(context: Context) {
     fun autoSaveReceivedFiles(): Boolean = preferences.getBoolean(AUTO_SAVE_KEY, false)
     fun setAutoSaveReceivedFiles(enabled: Boolean) = preferences.edit().putBoolean(AUTO_SAVE_KEY, enabled).apply()
 
+    fun receiveDirectoryUri(): Uri? = preferences.getString(RECEIVE_DIRECTORY_URI_KEY, null)?.let(Uri::parse)
+    fun receiveDirectoryName(): String? = preferences.getString(RECEIVE_DIRECTORY_NAME_KEY, null)
+    fun saveReceiveDirectory(uri: Uri, name: String) = preferences.edit()
+        .putString(RECEIVE_DIRECTORY_URI_KEY, uri.toString())
+        .putString(RECEIVE_DIRECTORY_NAME_KEY, name)
+        .apply()
+    fun clearReceiveDirectory() = preferences.edit()
+        .remove(RECEIVE_DIRECTORY_URI_KEY)
+        .remove(RECEIVE_DIRECTORY_NAME_KEY)
+        .apply()
+
     fun saveReceiveHistory(): Boolean = preferences.getBoolean(SAVE_HISTORY_KEY, true)
     fun setSaveReceiveHistory(enabled: Boolean) = preferences.edit().putBoolean(SAVE_HISTORY_KEY, enabled).apply()
+
+    fun verifyReceivedChecksums(): Boolean = preferences.getBoolean(VERIFY_RECEIVED_CHECKSUMS_KEY, true)
+    fun setVerifyReceivedChecksums(enabled: Boolean) = preferences.edit().putBoolean(VERIFY_RECEIVED_CHECKSUMS_KEY, enabled).apply()
 
     fun serverEnabled(): Boolean = preferences.getBoolean(SERVER_ENABLED_KEY, true)
     fun setServerEnabled(enabled: Boolean) = preferences.edit().putBoolean(SERVER_ENABLED_KEY, enabled).apply()
@@ -68,7 +83,10 @@ class AppSettings(context: Context) {
         const val DEVICE_NAME_KEY = "device_name"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"
+        const val RECEIVE_DIRECTORY_URI_KEY = "receive_directory_uri"
+        const val RECEIVE_DIRECTORY_NAME_KEY = "receive_directory_name"
         const val SAVE_HISTORY_KEY = "save_receive_history"
+        const val VERIFY_RECEIVED_CHECKSUMS_KEY = "verify_received_checksums"
         const val SERVER_ENABLED_KEY = "server_enabled"
         const val PORT_KEY = "port"
         const val ENCRYPTION_KEY = "encryption_enabled"

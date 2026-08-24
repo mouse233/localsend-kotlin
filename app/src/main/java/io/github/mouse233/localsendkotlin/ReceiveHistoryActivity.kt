@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.history.ReceiveHistoryStore
 import io.github.mouse233.localsendkotlin.model.ReceiveHistoryEntry
 import io.github.mouse233.localsendkotlin.ui.ReceiveHistoryAdapter
+import io.github.mouse233.localsendkotlin.ui.SystemBars
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -27,6 +28,7 @@ class ReceiveHistoryActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SystemBars.apply(this)
         setContentView(R.layout.activity_receive_history)
         store = ReceiveHistoryStore(this)
         emptyView = findViewById(R.id.receive_history_empty)

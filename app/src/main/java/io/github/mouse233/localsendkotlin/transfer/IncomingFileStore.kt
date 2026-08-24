@@ -7,11 +7,13 @@ import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
 import io.github.mouse233.localsendkotlin.BuildConfig
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
+import io.github.mouse233.localsendkotlin.settings.AppSettings
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -22,9 +24,18 @@ class IncomingFileStore(context: Context) {
     private val appContext = context.applicationContext
     @PublishedApi
     internal val resolver = appContext.contentResolver
+    private val settings = AppSettings(appContext)
 
     fun create(displayName: String, mimeType: String, size: Long): Destination {
         val safeName = File(displayName).name.ifBlank { "received-file" }
+        settings.receiveDirectoryUri()?.let { treeUri ->
+            try {
+                return createInSelectedDirectory(treeUri, safeName, mimeType, size)
+            } catch (_: Exception) {
+                // The user may have revoked access or removed the selected directory.
+                settings.clearReceiveDirectory()
+            }
+        }
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, safeName)
@@ -34,13 +45,23 @@ class IncomingFileStore(context: Context) {
             }
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
                 ?: throw IOException("Unable to create download entry")
-            Destination(ReceivedFile(safeName, uri, mimeType, size), null)
+            Destination(ReceivedFile(safeName, uri, mimeType, size), null, mediaStorePending = true)
         } else {
             val folder = legacyFolder().apply { mkdirs() }
             val file = uniqueFile(folder, safeName)
             val uri = FileProvider.getUriForFile(appContext, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
-            Destination(ReceivedFile(file.name, uri, mimeType, size), file)
+            Destination(ReceivedFile(file.name, uri, mimeType, size), file, mediaStorePending = false)
         }
+    }
+
+    private fun createInSelectedDirectory(treeUri: Uri, displayName: String, mimeType: String, size: Long): Destination {
+        val parentUri = DocumentsContract.buildDocumentUriUsingTree(
+            treeUri,
+            DocumentsContract.getTreeDocumentId(treeUri)
+        )
+        val uri = DocumentsContract.createDocument(resolver, parentUri, mimeType, displayName)
+            ?: throw IOException("Unable to create file in selected directory")
+        return Destination(ReceivedFile(displayName, uri, mimeType, size), null, mediaStorePending = false)
     }
 
     /** Opens the destination, runs the writer, and always closes the stream before returning. */
@@ -53,7 +74,7 @@ class IncomingFileStore(context: Context) {
     }
 
     fun complete(destination: Destination) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (destination.mediaStorePending) {
             resolver.update(destination.file.uri, ContentValues().apply {
                 put(MediaStore.Downloads.IS_PENDING, 0)
             }, null, null)
@@ -129,7 +150,7 @@ class IncomingFileStore(context: Context) {
         return candidate
     }
 
-    data class Destination(val file: ReceivedFile, val legacyFile: File?)
+    data class Destination(val file: ReceivedFile, val legacyFile: File?, val mediaStorePending: Boolean)
 
     private companion object {
         const val FOLDER_NAME = "LocalSend Kotlin"

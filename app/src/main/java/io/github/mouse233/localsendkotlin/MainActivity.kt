@@ -24,6 +24,7 @@ import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
 import io.github.mouse233.localsendkotlin.ui.ActiveTransferAdapter
+import io.github.mouse233.localsendkotlin.ui.SystemBars
 
 class MainActivity : Activity(), TransferService.Listener {
     private lateinit var statusText: TextView
@@ -50,6 +51,7 @@ class MainActivity : Activity(), TransferService.Listener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SystemBars.apply(this)
         setContentView(R.layout.activity_main)
         statusText = findViewById(R.id.discovery_status)
         transferProgress = findViewById(R.id.transfer_progress)

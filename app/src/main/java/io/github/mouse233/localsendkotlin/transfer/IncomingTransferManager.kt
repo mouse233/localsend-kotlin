@@ -3,6 +3,7 @@ package io.github.mouse233.localsendkotlin.transfer
 import android.content.Context
 import io.github.mouse233.localsendkotlin.model.DeviceInfo
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
+import io.github.mouse233.localsendkotlin.settings.AppSettings
 import java.io.InputStream
 import java.security.MessageDigest
 import java.util.UUID
@@ -22,6 +23,7 @@ class IncomingTransferManager(
     private val onFileReceived: (String, String, ReceivedFile, Boolean) -> Unit
 ) {
     private val fileStore = IncomingFileStore(context)
+    private val settings = AppSettings(context)
     private val sessions = ConcurrentHashMap<String, Session>()
     // Use the map keys as a set; ConcurrentHashMap.newKeySet() requires API 24.
     private val cancelledSessions = ConcurrentHashMap<String, Boolean>()
@@ -106,7 +108,7 @@ class IncomingTransferManager(
             return discardAsCancelled(sessionId, target)
         }
         if (!isSessionActive(sessionId, fileId, target)) return discardAsCancelled(sessionId, target)
-        if (target.file.sha256 != null && !target.file.sha256.equals(digest.digest().joinToString("") { "%02x".format(it) }, true)) {
+        if (settings.verifyReceivedChecksums() && target.file.sha256 != null && !target.file.sha256.equals(digest.digest().joinToString("") { "%02x".format(it) }, true)) {
             fileStore.discard(target.destination); return WriteResult.REJECTED
         }
         fileStore.complete(target.destination)
