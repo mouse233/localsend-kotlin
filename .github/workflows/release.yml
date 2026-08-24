@@ -26,14 +26,39 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Run lint, unit tests, and build
-        run: ./gradlew lintDebug test assembleDebug --no-daemon --stacktrace
+      - name: Validate release signing secrets
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_RELEASE_KEYSTORE_BASE64"
+          test -n "$ANDROID_RELEASE_STORE_PASSWORD"
+          test -n "$ANDROID_RELEASE_KEY_ALIAS"
+          test -n "$ANDROID_RELEASE_KEY_PASSWORD"
 
-      - name: Upload debug APK artifact
+      - name: Restore release keystore
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          keystore_path="$RUNNER_TEMP/localsend-kotlin-release.jks"
+          umask 077
+          printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
+          echo "ANDROID_KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
+
+      - name: Run lint, unit tests, and signed release build
+        env:
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew lintDebug test assembleRelease --no-daemon --stacktrace
+
+      - name: Upload signed release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: localsend-kotlin-debug-${{ github.sha }}
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: localsend-kotlin-release-${{ github.sha }}
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
 
@@ -46,10 +71,10 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Download debug APK artifact
+      - name: Download signed release APK artifact
         uses: actions/download-artifact@v4
         with:
-          name: localsend-kotlin-debug-${{ github.sha }}
+          name: localsend-kotlin-release-${{ github.sha }}
           path: release-assets
 
       - name: Extract release notes from CHANGELOG
@@ -75,4 +100,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           body_path: release-notes.md
           prerelease: ${{ contains(github.ref_name, '-') }}
-          files: release-assets/app-debug.apk
+          files: release-assets/app-release.apk
