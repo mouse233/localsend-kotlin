@@ -2,7 +2,7 @@
     <string name="app_name">LocalSend Kotlin</string>
     <string name="about">关于</string>
     <string name="about_title">关于 LocalSend Kotlin</string>
-    <string name="about_message">版本：v0.1.0-alpha\n\n面向旧版 Android 的 LocalSend 兼容客户端。\n\n源码：\nhttps://github.com/mouse233/localsend-kotlin\n\n许可证：Apache License 2.0\n\n本项目致谢 LocalSend 及其协议。文件仅在用户指定的局域网设备之间传输，不会主动上传到第三方服务器。</string>
+    <string name="about_message">版本：v0.3.0-alpha\n\n面向旧版 Android 的 LocalSend 兼容客户端。\n\n源码：\nhttps://github.com/mouse233/localsend-kotlin\n\n许可证：Apache License 2.0\n\n本项目致谢 LocalSend 及其协议。文件仅在用户指定的局域网设备之间传输，不会主动上传到第三方服务器。</string>
     <string name="nearby_devices">附近设备</string>
     <string name="refresh_devices">刷新</string>
     <string name="discovery_scanning">正在查找附近设备…</string>

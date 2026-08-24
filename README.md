@@ -4,7 +4,7 @@
 
 An unofficial, lightweight native Android LocalSend client written in Kotlin. This project is not affiliated with or endorsed by the official LocalSend project. It aims to interoperate with the official LocalSend clients and provide secure file transfer on local networks, including older Android devices.
 
-> Current version: `v0.2.0-alpha`
+> Current version: `v0.3.0-alpha`
 >
 > The core workflow is usable, but compatibility across Android versions, vendor-specific background policies, and long-running transfers still needs more real-device validation.
 
@@ -16,13 +16,14 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
   - Android 5.0 (API 21) network binding compatibility
 - File sending
   - System file picker
+  - Multi-file selection and sequential send queue
   - Upload progress
   - Sender-side cancellation
   - Stops uploading when the receiver cancels
 - File receiving
   - Confirmation dialog before receiving
-  - Receive progress
-  - Receiver-side cancellation with notification to the sender
+  - Per-file progress for multi-file sessions
+  - Cancel an individual received file or the whole session
   - Saves files to `Download/LocalSend Kotlin`
   - Received-file list with an Open action
 - Secure transfer
@@ -35,7 +36,6 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 
 ## Not implemented yet
 
-- Multi-file queues and concurrent transfer management
 - Receive settings
   - Configurable save directory
   - Save to gallery
@@ -115,7 +115,7 @@ The project can also be opened in Android Studio and run with the `app` configur
 5. Accept the confirmation dialog on the receiving device.
 6. Monitor the progress and tap **Cancel** if needed. Received files appear in the received-file list.
 
-The **Refresh** button sends another device multicast announcement. It is useful after connecting to Wi-Fi, when the list is empty, or when you want to trigger discovery manually. It does not clear the existing device list.
+The **Refresh** button clears the current device list and sends another device multicast announcement. It is useful after connecting to Wi-Fi or when you want a fresh nearby-device scan.
 
 ## File storage and permissions
 
@@ -140,7 +140,7 @@ LocalSend Kotlin is licensed under the [Apache License 2.0](LICENSE). Third-part
 - The main validation environment is Android 16 real devices; older Android versions and additional vendor ROMs still need testing.
 - Android 4.4 (API 19) is not currently supported. It may be considered as an experimental target later, but API 21 remains the current minimum because older systems have greater TLS, certificate, storage, and network-compatibility risks.
 - Transfers continue through normal backgrounding and lock-screen use while the foreground service is running. Swiping the app task away intentionally stops the service and active transfers.
-- The current focus is single-file transfer. Resumable transfers, multi-file sessions, and background notifications are not implemented.
+- Resumable transfers and transfer history are not implemented.
 - AP isolation, multicast filtering, or client isolation can prevent devices from communicating.
 
 ## Project status
