@@ -9,10 +9,27 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  validate-wrapper:
+    name: Validate Gradle Wrapper
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
   build:
     name: Lint, test, and build
+    needs: validate-wrapper
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Check out source
@@ -31,9 +48,10 @@ jobs:
         run: ./gradlew lintDebug test assembleDebug --no-daemon --stacktrace
 
       - name: Upload debug APK
+        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v6
         with:
           name: localsend-kotlin-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
