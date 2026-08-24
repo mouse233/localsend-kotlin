@@ -20,11 +20,9 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
-import io.github.mouse233.localsendkotlin.transfer.IncomingFileStore
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
-import io.github.mouse233.localsendkotlin.ui.ReceivedFileAdapter
 import io.github.mouse233.localsendkotlin.ui.ActiveTransferAdapter
 
 class MainActivity : Activity(), TransferService.Listener {
@@ -36,7 +34,6 @@ class MainActivity : Activity(), TransferService.Listener {
     private var transferService: TransferService? = null
     private var bound = false
     private val deviceAdapter = DeviceAdapter(::sendToDevice)
-    private val receivedFileAdapter = ReceivedFileAdapter(::openReceivedFile)
     private val activeTransferFiles = LinkedHashMap<String, ActiveTransferFile>()
     private val activeTransferAdapter = ActiveTransferAdapter { sessionId, fileId -> transferService?.cancelIncomingFile(sessionId, fileId) }
 
@@ -58,6 +55,9 @@ class MainActivity : Activity(), TransferService.Listener {
         transferProgress = findViewById(R.id.transfer_progress)
         cancelTransferButton = findViewById(R.id.cancel_transfer_button)
         activeTransferList = findViewById(R.id.active_transfer_list)
+        findViewById<android.view.View>(R.id.history_button).setOnClickListener {
+            startActivity(Intent(this, ReceiveHistoryActivity::class.java))
+        }
         findViewById<android.view.View>(R.id.about_button).setOnClickListener { showAbout() }
         cancelTransferButton.setOnClickListener {
             transferService?.cancelCurrent()
@@ -65,7 +65,6 @@ class MainActivity : Activity(), TransferService.Listener {
             statusText.text = getString(R.string.upload_cancelled)
         }
         findViewById<RecyclerView>(R.id.device_list).apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = deviceAdapter }
-        findViewById<RecyclerView>(R.id.received_file_list).apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = receivedFileAdapter }
         activeTransferList.apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = activeTransferAdapter }
         findViewById<android.view.View>(R.id.refresh_button).setOnClickListener { transferService?.refreshDevices() }
         findViewById<android.view.View>(R.id.select_file_button).setOnClickListener { chooseFile() }
@@ -73,10 +72,6 @@ class MainActivity : Activity(), TransferService.Listener {
         requestLegacyStoragePermission()
         requestNotificationPermission()
         startTransferService()
-        Thread {
-            val files = IncomingFileStore(this).listReceivedFiles()
-            runOnUiThread { receivedFileAdapter.submitFiles(files) }
-        }.start()
     }
 
     override fun onStart() {
@@ -188,7 +183,6 @@ class MainActivity : Activity(), TransferService.Listener {
         refreshActiveTransfers()
         val message = getString(R.string.download_completed, file.displayName)
         statusText.text = message
-        receivedFileAdapter.addFile(file)
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         if (sessionComplete) cancelTransferButton.visibility = android.view.View.GONE
     }
@@ -202,10 +196,6 @@ class MainActivity : Activity(), TransferService.Listener {
         activeTransferList.visibility = if (activeTransferFiles.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
     }
 
-    private fun openReceivedFile(file: ReceivedFile) {
-        try { startActivity(Intent(Intent.ACTION_VIEW).apply { setDataAndType(file.uri, file.mimeType); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }) }
-        catch (_: Exception) { Toast.makeText(this, R.string.open_file_failed, Toast.LENGTH_SHORT).show() }
-    }
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_PERMISSION_REQUEST)
     }

@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">LocalSend Kotlin</string>
     <string name="about">关于</string>
+    <string name="history">历史</string>
+    <string name="navigate_up">返回</string>
+    <string name="more_actions">更多操作</string>
     <string name="about_title">关于 LocalSend Kotlin</string>
     <string name="about_message">版本：v0.3.0-alpha\n\n面向旧版 Android 的 LocalSend 兼容客户端。\n\n源码：\nhttps://github.com/mouse233/localsend-kotlin\n\n许可证：Apache License 2.0\n\n本项目致谢 LocalSend 及其协议。文件仅在用户指定的局域网设备之间传输，不会主动上传到第三方服务器。</string>
     <string name="nearby_devices">附近设备</string>
@@ -19,10 +22,17 @@
     <string name="cancel_transfer">取消</string>
     <string name="upload_cancelled">已取消发送</string>
     <string name="download_completed">已接收：%1$s</string>
-    <string name="received_files">已接收文件</string>
     <string name="active_transfers">当前传输</string>
     <string name="open_file">打开</string>
     <string name="open_file_failed">无法打开此文件</string>
+    <string name="open_directory">打开目录</string>
+    <string name="open_directory_failed">无法打开接收目录</string>
+    <string name="delete_history_records">删除历史记录</string>
+    <string name="delete_history_item">删除此记录</string>
+    <string name="clear_history_title">删除历史记录？</string>
+    <string name="clear_history_message">这不会删除已接收的文件。</string>
+    <string name="history_empty">还没有接收记录</string>
+    <string name="receive_history_details">%1$s - %2$s - %3$s</string>
     <string name="incoming_request_title">%1$s 请求发送文件</string>
     <string name="incoming_request_accept">接收</string>
     <string name="incoming_request_reject">拒绝</string>

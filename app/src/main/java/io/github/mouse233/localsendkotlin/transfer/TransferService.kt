@@ -19,6 +19,7 @@ import io.github.mouse233.localsendkotlin.R
 import io.github.mouse233.localsendkotlin.discovery.DiscoveryListener
 import io.github.mouse233.localsendkotlin.discovery.DiscoveryManager
 import io.github.mouse233.localsendkotlin.discovery.LocalIdentity
+import io.github.mouse233.localsendkotlin.history.ReceiveHistoryStore
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
@@ -54,6 +55,7 @@ class TransferService : Service(), DiscoveryListener {
     private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var discoveryManager: DiscoveryManager
     private lateinit var uploadClient: UploadClient
+    private lateinit var receiveHistory: ReceiveHistoryStore
     private val cancellationExecutor = Executors.newSingleThreadExecutor()
     private var activeNotificationTitle: String? = null
     private var activeNotificationProgress = 0
@@ -71,6 +73,7 @@ class TransferService : Service(), DiscoveryListener {
     private val cancellationInProgress = AtomicBoolean(false)
     @Volatile private var pendingIncoming: PendingIncoming? = null
     private val incomingFiles = LinkedHashMap<String, LinkedHashMap<String, ActiveTransferFile>>()
+    private val incomingSenders = LinkedHashMap<String, String>()
 
     override fun onCreate() {
         super.onCreate()
@@ -78,6 +81,7 @@ class TransferService : Service(), DiscoveryListener {
         startForeground(NOTIFICATION_ID, baseNotification())
         discoveryManager = DiscoveryManager(this, this)
         uploadClient = UploadClient(this, LocalIdentity(this))
+        receiveHistory = ReceiveHistoryStore(this)
         discoveryManager.start()
     }
 
@@ -216,7 +220,10 @@ class TransferService : Service(), DiscoveryListener {
         request.files.forEach { (fileId, file) ->
             files[fileId] = ActiveTransferFile(sessionId, fileId, file.fileName, 0L, file.size, ActiveTransferFile.Status.WAITING)
         }
-        synchronized(incomingFiles) { incomingFiles[sessionId] = files }
+        synchronized(incomingFiles) {
+            incomingFiles[sessionId] = files
+            incomingSenders[sessionId] = request.info.alias
+        }
         notifyListeners { it.onIncomingSessionPrepared(sessionId, request) }
     }
 
@@ -240,7 +247,10 @@ class TransferService : Service(), DiscoveryListener {
         lastTransferMessage = getString(R.string.download_cancelled, fileName)
         notifyListeners { it.onFileReceiveCancelled(state, sessionComplete) }
         if (sessionComplete) {
-            synchronized(incomingFiles) { incomingFiles.remove(sessionId) }
+            synchronized(incomingFiles) {
+                incomingFiles.remove(sessionId)
+                incomingSenders.remove(sessionId)
+            }
             hasActiveTransfer = false
             resetProgressDispatch()
             notifyListeners { it.onIncomingSessionCompleted(sessionId) }
@@ -252,11 +262,15 @@ class TransferService : Service(), DiscoveryListener {
         if (cancellationRequested) return
         synchronized(incomingFiles) {
             incomingFiles[sessionId]?.get(fileId)?.let { incomingFiles[sessionId]?.set(fileId, it.copy(receivedBytes = it.totalBytes, status = ActiveTransferFile.Status.COMPLETED)) }
+            receiveHistory.add(file, incomingSenders[sessionId])
         }
         lastTransferMessage = getString(R.string.download_completed, file.displayName)
         notifyListeners { it.onFileReceived(sessionId, fileId, file, sessionComplete) }
         if (sessionComplete) {
-            synchronized(incomingFiles) { incomingFiles.remove(sessionId) }
+            synchronized(incomingFiles) {
+                incomingFiles.remove(sessionId)
+                incomingSenders.remove(sessionId)
+            }
             hasActiveTransfer = false
             resetProgressDispatch()
             notifyListeners { it.onIncomingSessionCompleted(sessionId) }
