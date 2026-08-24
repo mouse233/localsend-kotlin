@@ -33,7 +33,7 @@ class VerificationActivity : Activity() {
                 typeface = iconTypeface
                 setFontFeatureSettings("liga")
                 textSize = 32f
-                setTextColor(getColor(R.color.primary_text))
+                setTextColor(resources.getColor(R.color.primary_text))
             })
         }
         findViewById<RadioGroup>(R.id.verification_mode).setOnCheckedChangeListener { _, checkedId ->
