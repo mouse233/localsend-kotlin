@@ -59,16 +59,18 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
-    sourceSets.getByName("main").assets.srcDir(file("$buildDir/generated/assets/changelog"))
+    sourceSets.getByName("main").assets.srcDir(file("$buildDir/generated/assets/documents"))
 }
 
-val copyChangelog by tasks.registering(Copy::class) {
-    from(rootProject.file("CHANGELOG.md"))
-    into(file("$buildDir/generated/assets/changelog"))
+val copyAppDocuments by tasks.registering(Copy::class) {
+    from(rootProject.projectDir) {
+        include("CHANGELOG.md", "LICENSE", "NOTICE")
+    }
+    into(file("$buildDir/generated/assets/documents"))
 }
 
 tasks.named("preBuild").configure {
-    dependsOn(copyChangelog)
+    dependsOn(copyAppDocuments)
 }
 
 dependencies {

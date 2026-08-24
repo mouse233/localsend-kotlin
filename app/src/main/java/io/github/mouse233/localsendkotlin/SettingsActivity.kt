@@ -74,29 +74,30 @@ class SettingsActivity : Activity() {
         }
         findViewById<android.view.View>(R.id.encryption_row).setOnClickListener { encryptionSwitch.toggle() }
         findViewById<android.view.View>(R.id.multicast_address_row).setOnClickListener { showMulticastAddressEditor() }
-        findViewById<android.view.View>(R.id.changelog_row).setOnClickListener {
-            startActivity(Intent(this, ChangelogActivity::class.java))
+        findViewById<TextView>(R.id.version_value).text = BuildConfig.VERSION_NAME
+        findViewById<android.view.View>(R.id.version_row).setOnClickListener { openUrl(RELEASES_URL) }
+        findViewById<android.view.View>(R.id.changelog_row).setOnClickListener { startActivity(Intent(this, ChangelogActivity::class.java)) }
+        findViewById<android.view.View>(R.id.source_code_row).setOnClickListener { openUrl(REPOSITORY_URL) }
+        findViewById<android.view.View>(R.id.license_row).setOnClickListener {
+            openDocument(R.string.settings_license, LICENSE_FILE)
         }
-        findViewById<android.view.View>(R.id.about_settings_row).setOnClickListener { showAbout() }
+        findViewById<android.view.View>(R.id.feedback_row).setOnClickListener { openUrl(ISSUES_URL) }
+        findViewById<android.view.View>(R.id.third_party_licenses_row).setOnClickListener {
+            openDocument(R.string.settings_third_party_licenses, NOTICE_FILE)
+        }
     }
 
     private fun showDeviceNameEditor() {
-        val content = layoutInflater.inflate(R.layout.dialog_edit_device_name, null)
-        val input = content.findViewById<EditText>(R.id.device_name_editor).apply {
-            setText(settings.deviceName())
-            setSelection(length())
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            filters = arrayOf(InputFilter.LengthFilter(64))
+        showEditor(
+            R.string.settings_device_name,
+            settings.deviceName(),
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
+            InputFilter.LengthFilter(64)
+        ) { value ->
+            settings.saveDeviceName(value)
+            refreshValues()
+            true
         }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.settings_device_name)
-            .setView(content)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.save) { _, _ ->
-                settings.saveDeviceName(input.text.toString())
-                refreshValues()
-            }
-            .show()
     }
 
     private fun showPortEditor() = showEditor(R.string.settings_port, settings.port().toString(), InputType.TYPE_CLASS_NUMBER) { value ->
@@ -125,12 +126,19 @@ class SettingsActivity : Activity() {
         true
     }
 
-    private fun showEditor(title: Int, value: String, inputType: Int, onSave: (String) -> Boolean) {
+    private fun showEditor(
+        title: Int,
+        value: String,
+        inputType: Int,
+        lengthFilter: InputFilter? = null,
+        onSave: (String) -> Boolean
+    ) {
         val content = layoutInflater.inflate(R.layout.dialog_edit_device_name, null)
         val input = content.findViewById<EditText>(R.id.device_name_editor).apply {
             setText(value)
             setSelection(length())
             this.inputType = inputType
+            if (lengthFilter != null) filters = arrayOf(lengthFilter)
         }
         val dialog = AlertDialog.Builder(this)
             .setTitle(title)
@@ -138,6 +146,8 @@ class SettingsActivity : Activity() {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .show()
+        val customPanelId = resources.getIdentifier("customPanel", "id", "android")
+        if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             if (onSave(input.text.toString().trim())) dialog.dismiss()
         }
@@ -184,13 +194,24 @@ class SettingsActivity : Activity() {
         startService(Intent(this, TransferService::class.java).setAction(TransferService.ACTION_RELOAD_SETTINGS))
     }
 
-    private fun showAbout() = AlertDialog.Builder(this)
-        .setTitle(R.string.about_title)
-        .setMessage(R.string.about_message)
-        .setPositiveButton(android.R.string.ok, null)
-        .show()
+    private fun openDocument(title: Int, assetName: String) {
+        startActivity(TextDocumentActivity.intent(this, getString(title), assetName))
+    }
+
+    private fun openUrl(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (_: Exception) {
+            Toast.makeText(this, R.string.open_external_link_failed, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private companion object {
         const val RECEIVE_DIRECTORY_REQUEST = 1002
+        const val REPOSITORY_URL = "https://github.com/mouse233/localsend-kotlin"
+        const val RELEASES_URL = "$REPOSITORY_URL/releases"
+        const val ISSUES_URL = "$REPOSITORY_URL/issues"
+        const val LICENSE_FILE = "LICENSE"
+        const val NOTICE_FILE = "NOTICE"
     }
 }
