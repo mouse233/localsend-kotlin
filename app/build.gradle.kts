@@ -59,6 +59,16 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    sourceSets.getByName("main").assets.srcDir(file("$buildDir/generated/assets/changelog"))
+}
+
+val copyChangelog by tasks.registering(Copy::class) {
+    from(rootProject.file("CHANGELOG.md"))
+    into(file("$buildDir/generated/assets/changelog"))
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(copyChangelog)
 }
 
 dependencies {

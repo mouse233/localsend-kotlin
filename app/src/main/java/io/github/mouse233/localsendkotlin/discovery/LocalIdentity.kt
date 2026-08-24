@@ -17,9 +17,9 @@ class LocalIdentity(context: Context) {
         version = LocalSendProtocol.VERSION,
         deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}".trim(),
         deviceType = "mobile",
-        fingerprint = tlsIdentity.fingerprint,
-        port = LocalSendProtocol.DEFAULT_PORT,
-        protocol = "https",
+        fingerprint = if (settings.encryptionEnabled()) tlsIdentity.fingerprint else settings.plainHttpFingerprint(),
+        port = settings.port(),
+        protocol = if (settings.encryptionEnabled()) "https" else "http",
         download = false
     )
 }

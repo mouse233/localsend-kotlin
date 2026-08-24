@@ -28,6 +28,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     private val appContext = context.applicationContext
     private val resolver: ContentResolver = appContext.contentResolver
     private val settings = AppSettings(appContext)
+    private val httpClient = OkHttpClient.Builder().connectTimeout(8, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
     private val gson = Gson()
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val cancelExecutor: ExecutorService = Executors.newCachedThreadPool()
@@ -132,7 +133,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         }
     }
 
-    private fun client(device: RemoteDevice): OkHttpClient = identity.tlsIdentity.createSslContext(device.fingerprint).let { context ->
+    private fun client(device: RemoteDevice): OkHttpClient = if (device.protocol == "http") httpClient else identity.tlsIdentity.createSslContext(device.fingerprint).let { context ->
         OkHttpClient.Builder().sslSocketFactory(context.socketFactory, identity.tlsIdentity.trustManagerFor(device.fingerprint))
             .hostnameVerifier { _, _ -> true }.connectTimeout(8, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
     }

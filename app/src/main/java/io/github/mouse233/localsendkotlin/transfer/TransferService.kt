@@ -23,6 +23,7 @@ import io.github.mouse233.localsendkotlin.history.ReceiveHistoryStore
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
+import io.github.mouse233.localsendkotlin.settings.AppSettings
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -56,6 +57,7 @@ class TransferService : Service(), DiscoveryListener {
     private lateinit var discoveryManager: DiscoveryManager
     private lateinit var uploadClient: UploadClient
     private lateinit var receiveHistory: ReceiveHistoryStore
+    private lateinit var settings: AppSettings
     private val cancellationExecutor = Executors.newSingleThreadExecutor()
     private var activeNotificationTitle: String? = null
     private var activeNotificationProgress = 0
@@ -79,10 +81,10 @@ class TransferService : Service(), DiscoveryListener {
         super.onCreate()
         createNotificationChannels()
         startForeground(NOTIFICATION_ID, baseNotification())
-        discoveryManager = DiscoveryManager(this, this)
+        settings = AppSettings(this)
         uploadClient = UploadClient(this, LocalIdentity(this))
         receiveHistory = ReceiveHistoryStore(this)
-        discoveryManager.start()
+        restartNetwork()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -92,6 +94,7 @@ class TransferService : Service(), DiscoveryListener {
             ACTION_CANCEL -> cancelCurrent()
             ACTION_ACCEPT_INCOMING -> resolveIncoming(true)
             ACTION_REJECT_INCOMING -> resolveIncoming(false)
+            ACTION_RELOAD_SETTINGS -> restartNetwork()
         }
         return START_NOT_STICKY
     }
@@ -117,6 +120,13 @@ class TransferService : Service(), DiscoveryListener {
     fun announce() = discoveryManager.announce()
 
     fun refreshDevices() = discoveryManager.refresh()
+
+    private fun restartNetwork() {
+        if (::discoveryManager.isInitialized) discoveryManager.stop()
+        discoveryManager = DiscoveryManager(this, this)
+        if (settings.serverEnabled()) discoveryManager.start()
+        else onDevicesChanged(emptyList())
+    }
 
     fun send(uri: Uri, device: RemoteDevice) = send(listOf(uri), device)
 
@@ -205,6 +215,10 @@ class TransferService : Service(), DiscoveryListener {
         request: IncomingTransferManager.PrepareUploadRequest,
         decide: (Boolean) -> Unit
     ) {
+        if (settings.autoSaveReceivedFiles()) {
+            decide(true)
+            return
+        }
         val listener = listeners.firstOrNull()
         if (listener == null) {
             pendingIncoming?.decide?.invoke(false)
@@ -262,7 +276,7 @@ class TransferService : Service(), DiscoveryListener {
         if (cancellationRequested) return
         synchronized(incomingFiles) {
             incomingFiles[sessionId]?.get(fileId)?.let { incomingFiles[sessionId]?.set(fileId, it.copy(receivedBytes = it.totalBytes, status = ActiveTransferFile.Status.COMPLETED)) }
-            receiveHistory.add(file, incomingSenders[sessionId])
+            if (settings.saveReceiveHistory()) receiveHistory.add(file, incomingSenders[sessionId])
         }
         lastTransferMessage = getString(R.string.download_completed, file.displayName)
         notifyListeners { it.onFileReceived(sessionId, fileId, file, sessionComplete) }
@@ -490,6 +504,7 @@ class TransferService : Service(), DiscoveryListener {
 
     companion object {
         const val ACTION_CANCEL = "io.github.mouse233.localsendkotlin.CANCEL_TRANSFER"
+        const val ACTION_RELOAD_SETTINGS = "io.github.mouse233.localsendkotlin.RELOAD_SETTINGS"
         private const val ACTION_ACCEPT_INCOMING = "io.github.mouse233.localsendkotlin.ACCEPT_INCOMING"
         private const val ACTION_REJECT_INCOMING = "io.github.mouse233.localsendkotlin.REJECT_INCOMING"
         private const val CHANNEL_TRANSFER = "transfer_progress"

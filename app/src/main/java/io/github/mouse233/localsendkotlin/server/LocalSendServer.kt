@@ -21,18 +21,22 @@ class LocalSendServer(
     private val localDevice: () -> DeviceInfo,
     private val onDeviceRegistered: (DeviceInfo, String) -> Unit,
     private val incomingTransfers: IncomingTransferManager,
+    private val port: Int,
+    private val encryptionEnabled: Boolean,
     private val onTransferCancelled: (String) -> Unit = {}
-) : NanoHTTPD(LocalSendProtocol.DEFAULT_PORT) {
+) : NanoHTTPD(port) {
 
     private val clientFingerprint = ThreadLocal<String?>()
 
     init {
-        val socketFactory = tlsIdentity.createSslContext().serverSocketFactory
-        setServerSocketFactory(object : ServerSocketFactory {
-            override fun create(): ServerSocket = (socketFactory.createServerSocket() as SSLServerSocket).apply {
-                needClientAuth = true
-            }
-        })
+        if (encryptionEnabled) {
+            val socketFactory = tlsIdentity.createSslContext().serverSocketFactory
+            setServerSocketFactory(object : ServerSocketFactory {
+                override fun create(): ServerSocket = (socketFactory.createServerSocket() as SSLServerSocket).apply {
+                    needClientAuth = true
+                }
+            })
+        }
     }
 
     override fun serve(session: IHTTPSession): Response {
@@ -126,7 +130,8 @@ class LocalSendServer(
         return newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "")
     }
 
-    private fun validIdentity(device: DeviceInfo): Boolean = device.fingerprint.isNotBlank() && device.port in 1..65535 && device.fingerprint.equals(clientFingerprint.get(), true)
+    private fun validIdentity(device: DeviceInfo): Boolean = device.fingerprint.isNotBlank() && device.port in 1..65535 &&
+        (!encryptionEnabled || device.fingerprint.equals(clientFingerprint.get(), true))
 
     override fun createClientHandler(socket: Socket, inputStream: java.io.InputStream): ClientHandler {
         return object : ClientHandler(inputStream, socket) {
