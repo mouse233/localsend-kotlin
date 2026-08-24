@@ -58,7 +58,9 @@ class MainActivity : Activity(), TransferService.Listener {
         findViewById<android.view.View>(R.id.history_button).setOnClickListener {
             startActivity(Intent(this, ReceiveHistoryActivity::class.java))
         }
-        findViewById<android.view.View>(R.id.about_button).setOnClickListener { showAbout() }
+        findViewById<android.view.View>(R.id.settings_button).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
         cancelTransferButton.setOnClickListener {
             transferService?.cancelCurrent()
             cancelTransferButton.visibility = android.view.View.GONE
@@ -118,8 +120,6 @@ class MainActivity : Activity(), TransferService.Listener {
         // Xiaomi Android 16 treating the foreground-service promotion as late.
         startService(intent)
     }
-
-    private fun showAbout() = AlertDialog.Builder(this).setTitle(R.string.about_title).setMessage(R.string.about_message).setPositiveButton(android.R.string.ok, null).show()
 
     override fun onDevicesChanged(devices: List<RemoteDevice>) {
         deviceAdapter.submitDevices(devices)

@@ -8,6 +8,7 @@ import com.google.gson.Gson
 import io.github.mouse233.localsendkotlin.discovery.LocalIdentity
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
+import io.github.mouse233.localsendkotlin.settings.AppSettings
 import okhttp3.HttpUrl
 import okhttp3.MediaType
 import okhttp3.OkHttpClient
@@ -24,7 +25,9 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 class UploadClient(context: Context, private val identity: LocalIdentity) {
-    private val resolver: ContentResolver = context.applicationContext.contentResolver
+    private val appContext = context.applicationContext
+    private val resolver: ContentResolver = appContext.contentResolver
+    private val settings = AppSettings(appContext)
     private val gson = Gson()
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val cancelExecutor: ExecutorService = Executors.newCachedThreadPool()
@@ -45,7 +48,10 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 val files = uris.mapIndexed { index, uri ->
                     listener.onStatus("正在准备文件 ${index + 1}/${uris.size}…")
                     val file = readFile(uri)
-                    file.copy(id = UUID.randomUUID().toString(), sha256 = sha256(uri) { cancelled.get() })
+                    file.copy(
+                        id = UUID.randomUUID().toString(),
+                        sha256 = if (settings.createChecksums()) sha256(uri) { cancelled.get() } else null
+                    )
                 }
                 listener.onStatus("正在请求 ${device.alias} 接收文件…")
                 val prepared = prepare(device, files)

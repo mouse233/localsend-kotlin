@@ -1,6 +1,14 @@
 <resources>
     <string name="app_name">LocalSend Kotlin</string>
     <string name="about">关于</string>
+    <string name="settings">设置</string>
+    <string name="save">保存</string>
+    <string name="settings_device_section">设备</string>
+    <string name="settings_device_name">设备名称</string>
+    <string name="settings_transfer_section">传输</string>
+    <string name="settings_checksum">创建 SHA-256 校验和</string>
+    <string name="settings_checksum_summary">发送前验证文件完整性。关闭后可更快开始发送。</string>
+    <string name="settings_about_summary">版本、许可证和项目信息</string>
     <string name="history">历史</string>
     <string name="navigate_up">返回</string>
     <string name="more_actions">更多操作</string>
