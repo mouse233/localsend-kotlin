@@ -9,7 +9,13 @@ import io.github.mouse233.localsendkotlin.settings.AppSettings
 
 class LocalIdentity(context: Context) {
     private val appContext = context.applicationContext
-    val tlsIdentity = TlsIdentity(appContext)
+    /**
+     * Loading the PKCS#12 store can generate a certificate on first launch and
+     * takes noticeable time on older devices. Keep one process-wide identity
+     * and create it only on the worker that actually needs TLS.
+     */
+    val tlsIdentity: TlsIdentity
+        get() = sharedTlsIdentity(appContext)
     private val settings = AppSettings(appContext)
 
     fun deviceInfo(): DeviceInfo = DeviceInfo(
@@ -22,4 +28,13 @@ class LocalIdentity(context: Context) {
         protocol = if (settings.encryptionEnabled()) "https" else "http",
         download = false
     )
+
+    private companion object {
+        @Volatile private var cachedTlsIdentity: TlsIdentity? = null
+
+        private fun sharedTlsIdentity(context: Context): TlsIdentity = cachedTlsIdentity
+            ?: synchronized(this) {
+                cachedTlsIdentity ?: TlsIdentity(context.applicationContext).also { cachedTlsIdentity = it }
+            }
+    }
 }
