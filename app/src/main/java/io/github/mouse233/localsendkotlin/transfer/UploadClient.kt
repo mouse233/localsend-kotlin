@@ -58,6 +58,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 val prepared = prepare(device, files)
                 activeTransfers[prepared.sessionId] = cancelled
                 activeSessionId = prepared.sessionId
+                listener.onSessionPrepared(prepared.sessionId, files.map { it.toQueueFile() })
                 try {
                     var totalSent = 0L
                     val totalBytes = files.sumOf { it.size }
@@ -65,9 +66,10 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                         val token = prepared.files[file.id] ?: throw IllegalStateException("接收方未接受文件：${file.fileName}")
                         listener.onStatus("正在发送 ${index + 1}/${files.size}：${file.fileName}")
                         upload(device, prepared.sessionId, file.id, token, file, cancelled) { sent ->
-                            listener.onProgress(file.fileName, index, files.size, sent, file.size, totalSent + sent, totalBytes)
+                            listener.onProgress(prepared.sessionId, file.id, file.fileName, index, files.size, sent, file.size, totalSent + sent, totalBytes)
                         }
                         totalSent += file.size
+                        listener.onFileCompleted(prepared.sessionId, file.id)
                     }
                 } finally {
                     activeTransfers.remove(prepared.sessionId, cancelled)
@@ -167,13 +169,17 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
 
     interface Listener {
         fun onStatus(message: String)
-        fun onProgress(fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long)
+        fun onSessionPrepared(sessionId: String, files: List<QueueFile>)
+        fun onProgress(sessionId: String, fileId: String, fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long)
+        fun onFileCompleted(sessionId: String, fileId: String)
         fun onCompleted(names: List<String>)
         fun onError(message: String)
     }
+    data class QueueFile(val id: String, val fileName: String, val size: Long)
     private data class PrepareRequest(val info: Any, val files: Map<String, FileInfo>)
     private data class PrepareResponse(val sessionId: String, val files: Map<String, String>)
     private data class FileInfo(val id: String, val uri: Uri, val fileName: String, val size: Long, val fileType: String, val sha256: String?)
+    private fun FileInfo.toQueueFile() = QueueFile(id, fileName, size)
     private class StreamBody(private val type: String, private val length: Long, private val source: () -> java.io.InputStream, private val progress: (Long) -> Unit, private val shouldCancel: () -> Boolean) : RequestBody() {
         override fun contentType(): MediaType? = MediaType.parse(type)
         override fun contentLength(): Long = length

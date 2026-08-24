@@ -13,12 +13,14 @@ import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import io.github.mouse233.localsendkotlin.settings.AppSettings
+import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 
 class SettingsActivity : Activity() {
     private lateinit var settings: AppSettings
     private lateinit var deviceNameValue: TextView
+    private lateinit var languageValue: TextView
     private lateinit var portValue: TextView
     private lateinit var multicastAddressValue: TextView
     private lateinit var receiveDirectoryValue: TextView
@@ -29,11 +31,13 @@ class SettingsActivity : Activity() {
         setContentView(R.layout.activity_settings)
         settings = AppSettings(this)
         deviceNameValue = findViewById(R.id.device_name_value)
+        languageValue = findViewById(R.id.language_value)
         portValue = findViewById(R.id.port_value)
         multicastAddressValue = findViewById(R.id.multicast_address_value)
         receiveDirectoryValue = findViewById(R.id.receive_directory_value)
         refreshValues()
         findViewById<android.view.View>(R.id.settings_back_button).setOnClickListener { finish() }
+        findViewById<android.view.View>(R.id.language_row).setOnClickListener { showLanguagePicker() }
         findViewById<android.view.View>(R.id.device_name_row).setOnClickListener { showDeviceNameEditor() }
         val checksumSwitch = findViewById<Switch>(R.id.checksum_switch).apply {
             isChecked = settings.createChecksums()
@@ -100,6 +104,23 @@ class SettingsActivity : Activity() {
         }
     }
 
+    private fun showLanguagePicker() {
+        val languages = arrayOf(
+            getString(R.string.language_system), getString(R.string.language_chinese), getString(R.string.language_english)
+        )
+        val codes = arrayOf(AppLocale.SYSTEM, AppLocale.CHINESE, AppLocale.ENGLISH)
+        val selected = codes.indexOf(settings.language()).coerceAtLeast(0)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_language)
+            .setSingleChoiceItems(languages, selected) { dialog, which ->
+                settings.setLanguage(codes[which])
+                AppLocale.apply(this, codes[which])
+                dialog.dismiss()
+                recreate()
+            }
+            .show()
+    }
+
     private fun showPortEditor() = showEditor(R.string.settings_port, settings.port().toString(), InputType.TYPE_CLASS_NUMBER) { value ->
         val port = value.toIntOrNull()
         if (port == null || port !in 1..65535) {
@@ -155,6 +176,11 @@ class SettingsActivity : Activity() {
 
     private fun refreshValues() {
         deviceNameValue.text = settings.deviceName()
+        languageValue.text = when (settings.language()) {
+            AppLocale.CHINESE -> getString(R.string.language_chinese)
+            AppLocale.ENGLISH -> getString(R.string.language_english)
+            else -> getString(R.string.language_system)
+        }
         portValue.text = settings.port().toString()
         multicastAddressValue.text = settings.multicastAddress()
         receiveDirectoryValue.text = settings.receiveDirectoryName() ?: getString(R.string.settings_default_receive_directory)

@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -15,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.history.ReceiveHistoryStore
 import io.github.mouse233.localsendkotlin.model.ReceiveHistoryEntry
+import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.ui.ReceiveHistoryAdapter
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 import java.text.SimpleDateFormat
@@ -23,6 +25,7 @@ import java.util.Locale
 
 class ReceiveHistoryActivity : Activity() {
     private lateinit var store: ReceiveHistoryStore
+    private lateinit var settings: AppSettings
     private lateinit var adapter: ReceiveHistoryAdapter
     private lateinit var emptyView: TextView
 
@@ -31,6 +34,7 @@ class ReceiveHistoryActivity : Activity() {
         SystemBars.apply(this)
         setContentView(R.layout.activity_receive_history)
         store = ReceiveHistoryStore(this)
+        settings = AppSettings(this)
         emptyView = findViewById(R.id.receive_history_empty)
         adapter = ReceiveHistoryAdapter(::openFile, ::showDetails, ::deleteEntry)
         findViewById<RecyclerView>(R.id.receive_history_list).apply {
@@ -73,7 +77,10 @@ class ReceiveHistoryActivity : Activity() {
     }
 
     private fun openDirectory() {
-        val folderUri = DocumentsContract.buildDocumentUri(
+        val selectedTree = settings.receiveDirectoryUri()
+        val folderUri = selectedTree?.let { tree ->
+            DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+        } ?: DocumentsContract.buildDocumentUri(
             EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY,
             "primary:Download/LocalSend Kotlin"
         )
@@ -88,7 +95,7 @@ class ReceiveHistoryActivity : Activity() {
                 startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        putExtra(DocumentsContract.EXTRA_INITIAL_URI, folderUri)
+                        putExtra(DocumentsContract.EXTRA_INITIAL_URI, selectedTree ?: folderUri)
                     }
                 })
             } catch (_: Exception) {
@@ -104,10 +111,9 @@ class ReceiveHistoryActivity : Activity() {
     }
 
     private fun showDetails(entry: ReceiveHistoryEntry) {
-        val path = "${downloadsPath()}/LocalSend Kotlin/${entry.displayName}"
         val detailsView = layoutInflater.inflate(R.layout.dialog_receive_file_details, null)
         detailsView.findViewById<TextView>(R.id.file_info_name).text = entry.displayName
-        detailsView.findViewById<TextView>(R.id.file_info_path).text = path
+        detailsView.findViewById<TextView>(R.id.file_info_path).text = displayPath(entry)
         detailsView.findViewById<TextView>(R.id.file_info_size).text = formatBytes(entry.size)
         detailsView.findViewById<TextView>(R.id.file_info_sender).text = entry.senderAlias
         detailsView.findViewById<TextView>(R.id.file_info_time).text = DATE_FORMAT.format(Date(entry.receivedAt))
@@ -141,10 +147,30 @@ class ReceiveHistoryActivity : Activity() {
     }
 
     @Suppress("DEPRECATION")
-    private fun downloadsPath(): String = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        "/storage/emulated/0/Download"
-    } else {
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath
+    private fun displayPath(entry: ReceiveHistoryEntry): String {
+        if (DocumentsContract.isDocumentUri(this, entry.uri)) {
+            val documentId = DocumentsContract.getDocumentId(entry.uri)
+            if (documentId.startsWith("primary:")) {
+                return "${Environment.getExternalStorageDirectory().absolutePath}/${documentId.removePrefix("primary:")}"
+            }
+            return documentId
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            contentResolver.query(
+                entry.uri,
+                arrayOf(MediaStore.MediaColumns.RELATIVE_PATH, MediaStore.MediaColumns.DISPLAY_NAME),
+                null, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val relativePath = cursor.getString(0)
+                    val displayName = cursor.getString(1) ?: entry.displayName
+                    if (!relativePath.isNullOrBlank()) {
+                        return "/storage/emulated/0/$relativePath$displayName"
+                    }
+                }
+            }
+        }
+        return entry.uri.toString()
     }
 
     private companion object {

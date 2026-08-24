@@ -34,10 +34,13 @@ class TransferService : Service(), DiscoveryListener {
         fun onDiscoveryError(message: String)
         fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (Boolean) -> Unit)
         fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest)
+        fun onOutgoingSessionPrepared(sessionId: String, files: List<ActiveTransferFile>)
         fun onFileReceiveProgress(file: ActiveTransferFile)
+        fun onFileSendProgress(file: ActiveTransferFile)
         fun onFileReceiveCancelled(file: ActiveTransferFile, sessionComplete: Boolean)
         fun onFileReceived(sessionId: String, fileId: String, file: ReceivedFile, sessionComplete: Boolean)
         fun onIncomingSessionCompleted(sessionId: String)
+        fun onOutgoingSessionCompleted(sessionId: String)
         fun onUploadStatus(message: String)
         fun onUploadProgress(fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long)
         fun onTransferStateRestored(title: String, percent: Int)
@@ -78,6 +81,7 @@ class TransferService : Service(), DiscoveryListener {
     @Volatile private var pendingIncoming: PendingIncoming? = null
     private val incomingFiles = LinkedHashMap<String, LinkedHashMap<String, ActiveTransferFile>>()
     private val incomingSenders = LinkedHashMap<String, String>()
+    private val outgoingFiles = LinkedHashMap<String, LinkedHashMap<String, ActiveTransferFile>>()
 
     override fun onCreate() {
         super.onCreate()
@@ -111,6 +115,11 @@ class TransferService : Service(), DiscoveryListener {
             else lastTransferMessage?.let(listener::onTransferFinished)
             pendingIncoming?.let { pending ->
                 listener.onIncomingTransferRequest(pending.request) { accepted -> resolveIncoming(accepted) }
+            }
+            synchronized(outgoingFiles) {
+                outgoingFiles.forEach { (sessionId, files) ->
+                    listener.onOutgoingSessionPrepared(sessionId, files.values.toList())
+                }
             }
         }
     }
@@ -153,13 +162,47 @@ class TransferService : Service(), DiscoveryListener {
                 notifyListeners { it.onUploadStatus(message) }
             }
 
-            override fun onProgress(fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long) {
+            override fun onSessionPrepared(sessionId: String, files: List<UploadClient.QueueFile>) {
+                val queue = LinkedHashMap<String, ActiveTransferFile>()
+                files.forEach { file ->
+                    queue[file.id] = ActiveTransferFile(
+                        sessionId, file.id, file.fileName, 0L, file.size,
+                        ActiveTransferFile.Status.WAITING, ActiveTransferFile.Direction.OUTGOING
+                    )
+                }
+                synchronized(outgoingFiles) { outgoingFiles[sessionId] = queue }
+                notifyListeners { it.onOutgoingSessionPrepared(sessionId, queue.values.toList()) }
+            }
+
+            override fun onProgress(sessionId: String, fileId: String, fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long) {
                 if (cancellationRequested) return
                 hasActiveTransfer = true
                 activeNotificationTitle = getString(R.string.notification_uploading)
                 activeNotificationProgress = if (totalBytes > 0) ((totalSent * 100L) / totalBytes).toInt().coerceIn(0, 100) else 0
                 updateTransferMetrics(totalSent, totalBytes)
-                dispatchProgressIfNeeded(totalSent, totalBytes) { it.onUploadProgress(fileName, fileIndex, fileCount, sent, total, totalSent, totalBytes) }
+                dispatchProgressIfNeeded(totalSent, totalBytes) { listener ->
+                    val state = synchronized(outgoingFiles) {
+                        outgoingFiles[sessionId]?.get(fileId)?.copy(
+                            receivedBytes = sent,
+                            totalBytes = total,
+                            status = ActiveTransferFile.Status.TRANSFERRING
+                        )?.also { outgoingFiles[sessionId]?.set(fileId, it) }
+                    }
+                    if (state != null) {
+                        listener.onFileSendProgress(state)
+                    }
+                    listener.onUploadProgress(fileName, fileIndex, fileCount, sent, total, totalSent, totalBytes)
+                }
+            }
+
+            override fun onFileCompleted(sessionId: String, fileId: String) {
+                val state = synchronized(outgoingFiles) {
+                    outgoingFiles[sessionId]?.get(fileId)?.copy(
+                        receivedBytes = outgoingFiles[sessionId]?.get(fileId)?.totalBytes ?: 0L,
+                        status = ActiveTransferFile.Status.COMPLETED
+                    )?.also { outgoingFiles[sessionId]?.set(fileId, it) }
+                }
+                if (state != null) notifyListeners { it.onFileSendProgress(state) }
             }
 
             override fun onCompleted(names: List<String>) {
@@ -168,6 +211,7 @@ class TransferService : Service(), DiscoveryListener {
                 resetProgressDispatch()
                 lastTransferMessage = getString(R.string.upload_completed, names.joinToString("、"))
                 notifyListeners { it.onUploadCompleted(names) }
+                clearOutgoingQueue()
                 clearTransferNotification()
             }
 
@@ -177,6 +221,7 @@ class TransferService : Service(), DiscoveryListener {
                 resetProgressDispatch()
                 lastTransferMessage = message
                 notifyListeners { it.onUploadError(message) }
+                clearOutgoingQueue()
                 clearTransferNotification()
             }
         })
@@ -303,6 +348,13 @@ class TransferService : Service(), DiscoveryListener {
         files.sumOf { it.receivedBytes } to files.sumOf { it.totalBytes }
     }
 
+    private fun clearOutgoingQueue() {
+        val sessions = synchronized(outgoingFiles) {
+            outgoingFiles.keys.toList().also { outgoingFiles.clear() }
+        }
+        sessions.forEach { sessionId -> notifyListeners { it.onOutgoingSessionCompleted(sessionId) } }
+    }
+
     /** Activity callbacks must always run on the main thread because they update Views. */
     private fun notifyListeners(callback: (Listener) -> Unit) {
         val snapshot = synchronized(listenerLock) { listeners.toList() }
@@ -369,7 +421,7 @@ class TransferService : Service(), DiscoveryListener {
     private fun showIncomingRequestNotification(request: IncomingTransferManager.PrepareUploadRequest) {
         val files = request.files.values.joinToString(", ") { it.fileName }
         val notification = NotificationCompat.Builder(this, CHANNEL_INCOMING)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(getString(R.string.notification_incoming_title, request.info.alias))
             .setContentText(files)
             .setContentIntent(openAppIntent())
@@ -423,7 +475,7 @@ class TransferService : Service(), DiscoveryListener {
     }
 
     private fun baseNotification(): Notification = NotificationCompat.Builder(this, CHANNEL_TRANSFER)
-        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setSmallIcon(R.drawable.ic_notification)
         .setContentTitle(getString(R.string.notification_service_title))
         .setContentText(getString(R.string.notification_service_text))
         .setContentIntent(openAppIntent())
@@ -454,7 +506,7 @@ class TransferService : Service(), DiscoveryListener {
                 "ETA: --:-- · ${formatBytes(speed)}/s"
             }
             val builder = NotificationCompat.Builder(this, CHANNEL_TRANSFER)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(title)
                 .setContentText(firstLine)
                 .setSubText(secondLine)
