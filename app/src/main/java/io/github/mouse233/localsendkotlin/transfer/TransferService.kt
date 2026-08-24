@@ -54,11 +54,12 @@ class TransferService : Service(), DiscoveryListener {
     private val listenerLock = Any()
     private val listeners = LinkedHashSet<Listener>()
     private val mainHandler = Handler(Looper.getMainLooper())
-    private lateinit var discoveryManager: DiscoveryManager
+    @Volatile private var discoveryManager: DiscoveryManager? = null
     private lateinit var uploadClient: UploadClient
     private lateinit var receiveHistory: ReceiveHistoryStore
     private lateinit var settings: AppSettings
     private val cancellationExecutor = Executors.newSingleThreadExecutor()
+    private val networkExecutor = Executors.newSingleThreadExecutor()
     private var activeNotificationTitle: String? = null
     private var activeNotificationProgress = 0
     private var hasActiveTransfer = false
@@ -72,6 +73,7 @@ class TransferService : Service(), DiscoveryListener {
     private var transferSpeedBytesPerSecond = 0L
     @Volatile private var notificationGeneration = 0L
     @Volatile private var cancellationRequested = false
+    @Volatile private var serviceDestroyed = false
     private val cancellationInProgress = AtomicBoolean(false)
     @Volatile private var pendingIncoming: PendingIncoming? = null
     private val incomingFiles = LinkedHashMap<String, LinkedHashMap<String, ActiveTransferFile>>()
@@ -117,15 +119,19 @@ class TransferService : Service(), DiscoveryListener {
         synchronized(listenerLock) { listeners -= listener }
     }
 
-    fun announce() = discoveryManager.announce()
+    fun announce() = discoveryManager?.announce()
 
-    fun refreshDevices() = discoveryManager.refresh()
+    fun refreshDevices() = discoveryManager?.refresh()
 
     private fun restartNetwork() {
-        if (::discoveryManager.isInitialized) discoveryManager.stop()
-        discoveryManager = DiscoveryManager(this, this)
-        if (settings.serverEnabled()) discoveryManager.start()
-        else onDevicesChanged(emptyList())
+        if (serviceDestroyed) return
+        networkExecutor.execute {
+            discoveryManager?.stop()
+            if (serviceDestroyed) return@execute
+            val manager = DiscoveryManager(this, this)
+            discoveryManager = manager
+            if (settings.serverEnabled()) manager.start() else onDevicesChanged(emptyList())
+        }
     }
 
     fun send(uri: Uri, device: RemoteDevice) = send(listOf(uri), device)
@@ -187,7 +193,7 @@ class TransferService : Service(), DiscoveryListener {
             uploadClient.cancelCurrent()
             // DiscoveryManager performs the peer cancellation synchronously
             // on this worker, before the local session is removed.
-            discoveryManager.cancelIncomingTransfer()
+            discoveryManager?.cancelIncomingTransfer()
             mainHandler.post {
                 lastTransferMessage = getString(R.string.upload_cancelled)
                 if (!stopService) {
@@ -203,7 +209,7 @@ class TransferService : Service(), DiscoveryListener {
         }
     }
 
-    fun cancelIncomingFile(sessionId: String, fileId: String): Boolean = discoveryManager.cancelIncomingFile(sessionId, fileId)
+    fun cancelIncomingFile(sessionId: String, fileId: String): Boolean = discoveryManager?.cancelIncomingFile(sessionId, fileId) == true
 
     override fun onDevicesChanged(devices: List<RemoteDevice>) {
         currentDevices = devices
@@ -386,9 +392,11 @@ class TransferService : Service(), DiscoveryListener {
     }
 
     override fun onDestroy() {
+        serviceDestroyed = true
         resolveIncoming(false)
         cancellationExecutor.shutdownNow()
-        discoveryManager.stop()
+        networkExecutor.shutdownNow()
+        discoveryManager?.stop()
         stopForeground(true)
         notificationManager().cancel(NOTIFICATION_ID)
         notificationManager().cancel(PROGRESS_NOTIFICATION_ID)

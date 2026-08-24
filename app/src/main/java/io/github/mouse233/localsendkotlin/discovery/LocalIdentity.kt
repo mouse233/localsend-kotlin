@@ -15,7 +15,7 @@ class LocalIdentity(context: Context) {
     fun deviceInfo(): DeviceInfo = DeviceInfo(
         alias = settings.deviceName(),
         version = LocalSendProtocol.VERSION,
-        deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}".trim(),
+        deviceModel = Build.MANUFACTURER.ifBlank { Build.MODEL.ifBlank { "Android" } },
         deviceType = "mobile",
         fingerprint = if (settings.encryptionEnabled()) tlsIdentity.fingerprint else settings.plainHttpFingerprint(),
         port = settings.port(),
