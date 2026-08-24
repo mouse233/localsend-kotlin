@@ -39,7 +39,9 @@ class MainActivity : Activity(), TransferService.Listener {
     private var appliedLanguage: String? = null
     private var transferService: TransferService? = null
     private var bound = false
-    private val deviceAdapter = DeviceAdapter(::sendToDevice)
+    private val deviceAdapter = DeviceAdapter(::sendToDevice, ::verifyDevice)
+    private var pendingVerificationRequest: IncomingTransferManager.PrepareUploadRequest? = null
+    private var pendingVerificationDecision: ((Boolean) -> Unit)? = null
     private val activeTransferFiles = LinkedHashMap<String, ActiveTransferFile>()
     private val activeTransferAdapter = ActiveTransferAdapter { sessionId, fileId ->
         transferService?.cancelIncomingFile(sessionId, fileId)
@@ -120,6 +122,14 @@ class MainActivity : Activity(), TransferService.Listener {
     @Deprecated("Legacy Activity result API supports Android 5.0")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == VERIFICATION_REQUEST) {
+            val request = pendingVerificationRequest
+            val decide = pendingVerificationDecision
+            pendingVerificationRequest = null
+            pendingVerificationDecision = null
+            if (request != null && decide != null) showIncomingRequest(request, decide)
+            return
+        }
         if (requestCode == FILE_REQUEST && resultCode == RESULT_OK) {
             selectedFiles = buildList {
                 data?.clipData?.let { clips -> for (index in 0 until clips.itemCount) add(clips.getItemAt(index).uri) }
@@ -142,6 +152,10 @@ class MainActivity : Activity(), TransferService.Listener {
     private fun sendToDevice(device: RemoteDevice) {
         if (selectedFiles.isEmpty()) { Toast.makeText(this, R.string.select_file_first, Toast.LENGTH_SHORT).show(); return }
         transferService?.send(selectedFiles, device) ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun verifyDevice(device: RemoteDevice) {
+        startActivity(Intent(this, VerificationActivity::class.java).putExtra(VerificationActivity.EXTRA_FINGERPRINT, device.fingerprint))
     }
 
     private fun startTransferService() {
@@ -189,10 +203,19 @@ class MainActivity : Activity(), TransferService.Listener {
 
     override fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (Boolean) -> Unit) {
         if (isFinishing || isDestroyed) { decide(false); return }
+        showIncomingRequest(request, decide)
+    }
+
+    private fun showIncomingRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (Boolean) -> Unit) {
         val files = request.files.values.joinToString("\n") { "${it.fileName} (${formatBytes(it.size)})" }
         AlertDialog.Builder(this).setTitle(getString(R.string.incoming_request_title, request.info.alias)).setMessage(files)
             .setNegativeButton(R.string.incoming_request_reject) { _, _ -> decide(false) }
             .setPositiveButton(R.string.incoming_request_accept) { _, _ -> decide(true) }
+            .setNeutralButton(R.string.verification_title) { _, _ ->
+                pendingVerificationRequest = request
+                pendingVerificationDecision = decide
+                startActivityForResult(Intent(this, VerificationActivity::class.java).putExtra(VerificationActivity.EXTRA_FINGERPRINT, request.info.fingerprint), VERIFICATION_REQUEST)
+            }
             .setOnCancelListener { decide(false) }.show()
     }
     override fun onFileReceiveProgress(file: ActiveTransferFile) {
@@ -258,5 +281,5 @@ class MainActivity : Activity(), TransferService.Listener {
     }
     private fun formatBytes(bytes: Long): String = when { bytes < 1024 -> "$bytes B"; bytes < 1024 * 1024 -> "%.1f KB".format(bytes / 1024.0); bytes < 1024 * 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024.0)); else -> "%.1f GB".format(bytes / (1024.0 * 1024.0 * 1024.0)) }
 
-    private companion object { const val FILE_REQUEST = 1001; const val LEGACY_STORAGE_PERMISSION_REQUEST = 1002; const val NOTIFICATION_PERMISSION_REQUEST = 1003 }
+    private companion object { const val FILE_REQUEST = 1001; const val LEGACY_STORAGE_PERMISSION_REQUEST = 1002; const val NOTIFICATION_PERMISSION_REQUEST = 1003; const val VERIFICATION_REQUEST = 1004 }
 }

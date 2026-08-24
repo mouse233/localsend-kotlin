@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/window_background" android:orientation="vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:background="@color/brand_primary" android:elevation="4dp" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="8dp" android:paddingEnd="16dp">
+        <ImageButton android:id="@+id/verification_back_button" android:layout_width="48dp" android:layout_height="48dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:contentDescription="@string/navigate_up" android:padding="12dp" android:src="?android:attr/homeAsUpIndicator" android:tint="@android:color/white" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/verification_title" android:textColor="@android:color/white" android:textSize="20sp" android:textStyle="bold" />
+    </LinearLayout>
+    <RadioGroup android:id="@+id/verification_mode" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:layout_marginTop="28dp" android:orientation="horizontal">
+        <RadioButton android:id="@+id/verification_icons" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checked="true" android:text="@string/verification_icons" />
+        <RadioButton android:id="@+id/verification_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="24dp" android:text="@string/verification_text" />
+    </RadioGroup>
+    <GridLayout android:id="@+id/verification_icon_grid" android:layout_width="240dp" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:layout_marginTop="28dp" android:columnCount="4" android:rowCount="4" />
+    <TextView android:id="@+id/verification_text_code" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="28dp" android:fontFamily="monospace" android:textColor="@color/primary_text" android:textIsSelectable="true" android:textSize="16sp" android:visibility="gone" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="24dp" android:layout_marginTop="24dp" android:layout_marginEnd="24dp" android:gravity="center" android:text="@string/verification_question" android:textColor="@color/secondary_text" android:textSize="15sp" />
+</LinearLayout>
