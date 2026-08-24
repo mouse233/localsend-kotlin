@@ -1,5 +1,33 @@
 # Changelog
 
+## [v0.3.0-alpha] - 2026-08-24
+
+### Added
+
+- Multi-file selection and sequential send queues.
+- Multi-file receive sessions with independent per-file progress rows.
+- Individual-file cancellation as well as whole-session cancellation while receiving.
+
+### Changed
+
+- Refresh now clears the existing nearby-device list before sending a fresh discovery announcement.
+- Receiving status uses aggregate session progress instead of repeatedly switching between file names.
+
+## 中文说明
+
+### v0.3.0-alpha（2026-08-24）
+
+#### 新增
+
+- 支持多选文件并按队列依次发送。
+- 支持多文件接收会话，并为每个文件显示独立进度。
+- 接收时支持取消单个文件或整个会话。
+
+#### 调整
+
+- 刷新设备时先清空现有附近设备列表，再发送新的发现广播。
+- 接收状态改为显示整个会话的总进度，不再在多个文件名之间反复切换。
+
 ## [v0.2.0-alpha] - 2026-08-23
 
 ### Added

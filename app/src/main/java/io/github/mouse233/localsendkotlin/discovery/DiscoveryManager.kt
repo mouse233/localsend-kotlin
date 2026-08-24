@@ -85,6 +85,13 @@ class DiscoveryManager(
         }
     }
 
+    /** Clear the current peer snapshot before asking the network for fresh announcements. */
+    fun refresh() {
+        devices.clear()
+        publishDevices()
+        announce()
+    }
+
     fun stop() {
         if (!running.compareAndSet(true, false)) return
         socket?.close()
@@ -112,17 +119,20 @@ class DiscoveryManager(
                 onTransferRequested = { request, decide ->
                     mainHandler.post { listener.onIncomingTransferRequest(request, decide) }
                 },
+                onSessionPrepared = { sessionId, request ->
+                    mainHandler.post { listener.onIncomingSessionPrepared(sessionId, request) }
+                },
                 onTransferCancelRequested = { info, address, sessionId ->
                     cancelRemoteTransfer(info.protocol, address, info.port, info.fingerprint, sessionId)
                 },
-                onFileProgress = { fileName, received, total ->
-                    mainHandler.post { listener.onFileReceiveProgress(fileName, received, total) }
+                onFileProgress = { sessionId, fileId, fileName, received, total ->
+                    mainHandler.post { listener.onFileReceiveProgress(sessionId, fileId, fileName, received, total) }
                 },
-                onFileReceiveCancelled = { fileName ->
-                    mainHandler.post { listener.onFileReceiveCancelled(fileName) }
+                onFileReceiveCancelled = { sessionId, fileId, fileName, sessionComplete ->
+                    mainHandler.post { listener.onFileReceiveCancelled(sessionId, fileId, fileName, sessionComplete) }
                 },
-                onFileReceived = { file ->
-                    mainHandler.post { listener.onFileReceived(file) }
+                onFileReceived = { sessionId, fileId, file, sessionComplete ->
+                    mainHandler.post { listener.onFileReceived(sessionId, fileId, file, sessionComplete) }
                 }
             )
             incomingTransfers = transferManager
@@ -153,6 +163,8 @@ class DiscoveryManager(
     }
 
     fun cancelIncomingTransfer(): Boolean = incomingTransfers?.cancelCurrent() == true
+
+    fun cancelIncomingFile(sessionId: String, fileId: String): Boolean = incomingTransfers?.cancelFile(sessionId, fileId) == true
 
     private fun cancelRemoteTransfer(protocol: String, address: String, port: Int, fingerprint: String, sessionId: String) {
         try {

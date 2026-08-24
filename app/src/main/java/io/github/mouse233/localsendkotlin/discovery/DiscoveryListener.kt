@@ -9,7 +9,8 @@ interface DiscoveryListener {
     fun onDevicesChanged(devices: List<RemoteDevice>)
     fun onDiscoveryError(message: String)
     fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (Boolean) -> Unit)
-    fun onFileReceiveProgress(fileName: String, received: Long, total: Long)
-    fun onFileReceiveCancelled(fileName: String)
-    fun onFileReceived(file: ReceivedFile)
+    fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest)
+    fun onFileReceiveProgress(sessionId: String, fileId: String, fileName: String, received: Long, total: Long)
+    fun onFileReceiveCancelled(sessionId: String, fileId: String, fileName: String, sessionComplete: Boolean)
+    fun onFileReceived(sessionId: String, fileId: String, file: ReceivedFile, sessionComplete: Boolean)
 }

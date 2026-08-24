@@ -15,10 +15,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 class IncomingTransferManager(
     context: Context,
     private val onTransferRequested: (PrepareUploadRequest, (Boolean) -> Unit) -> Unit,
+    private val onSessionPrepared: (String, PrepareUploadRequest) -> Unit,
     private val onTransferCancelRequested: (DeviceInfo, String, String) -> Unit,
-    private val onFileProgress: (String, Long, Long) -> Unit,
-    private val onFileReceiveCancelled: (String) -> Unit,
-    private val onFileReceived: (ReceivedFile) -> Unit
+    private val onFileProgress: (String, String, String, Long, Long) -> Unit,
+    private val onFileReceiveCancelled: (String, String, String, Boolean) -> Unit,
+    private val onFileReceived: (String, String, ReceivedFile, Boolean) -> Unit
 ) {
     private val fileStore = IncomingFileStore(context)
     private val sessions = ConcurrentHashMap<String, Session>()
@@ -44,6 +45,7 @@ class IncomingTransferManager(
         }
         sessions[sessionId] = Session(targets, request.info, remoteAddress)
         activeSessionId = sessionId
+        onSessionPrepared(sessionId, request)
         return PrepareUploadResponse(sessionId, targets.mapValues { it.value.token })
     }
 
@@ -78,7 +80,7 @@ class IncomingTransferManager(
                         output.write(buffer, 0, count)
                         digest.update(buffer, 0, count)
                         received += count
-                        onFileProgress(target.file.fileName, received, target.file.size)
+                        onFileProgress(sessionId, fileId, target.file.fileName, received, target.file.size)
                     }
                 } else {
                     // A keep-alive HTTP connection does not close after the request body.
@@ -92,7 +94,7 @@ class IncomingTransferManager(
                         output.write(buffer, 0, count)
                         digest.update(buffer, 0, count)
                         received += count
-                        onFileProgress(target.file.fileName, received, target.file.size)
+                        onFileProgress(sessionId, fileId, target.file.fileName, received, target.file.size)
                     }
                 }
                 if (received != target.file.size) {
@@ -109,18 +111,35 @@ class IncomingTransferManager(
         }
         fileStore.complete(target.destination)
         target.completed = true
-        if (sessions[sessionId]?.files?.values?.all { it.completed } == true) sessions.remove(sessionId)
-        if (sessions[sessionId] == null) activeSessionId = null
-        onFileReceived(target.destination.file)
+        val sessionComplete = sessions[sessionId]?.files?.values?.all { it.completed || it.cancelled } == true
+        if (sessionComplete) sessions.remove(sessionId)
+        if (sessionComplete && activeSessionId == sessionId) activeSessionId = null
+        onFileReceived(sessionId, fileId, target.destination.file, sessionComplete)
         return WriteResult.COMPLETED
     }
 
     fun cancel(sessionId: String) {
         cancelledSessions[sessionId] = true
-        sessions.remove(sessionId)?.files?.values
-            ?.filterNot { it.completed }
-            ?.forEach { fileStore.discard(it.destination) }
+        sessions.remove(sessionId)?.files?.values?.filterNot { it.completed }?.forEach {
+            it.cancelled = true
+            fileStore.discard(it.destination)
+            onFileReceiveCancelled(sessionId, it.file.id, it.file.fileName, true)
+        }
         if (activeSessionId == sessionId) activeSessionId = null
+    }
+
+    fun cancelFile(sessionId: String, fileId: String): Boolean {
+        val target = sessions[sessionId]?.files?.get(fileId) ?: return false
+        if (target.completed || target.cancelled) return false
+        target.cancelled = true
+        fileStore.discard(target.destination)
+        val sessionComplete = sessions[sessionId]?.files?.values?.all { it.completed || it.cancelled } == true
+        onFileReceiveCancelled(sessionId, fileId, target.file.fileName, sessionComplete)
+        if (sessionComplete) {
+            sessions.remove(sessionId)
+            if (activeSessionId == sessionId) activeSessionId = null
+        }
+        return true
     }
 
     fun cancelCurrent(): Boolean {
@@ -128,19 +147,23 @@ class IncomingTransferManager(
         activeSessionId = null
         if (cancelledSessions.putIfAbsent(sessionId, true) != null) return false
         val session = sessions.remove(sessionId) ?: return false
-        session.files.values.filterNot { it.completed }.forEach { fileStore.discard(it.destination) }
+        session.files.values.filterNot { it.completed }.forEach {
+            it.cancelled = true
+            fileStore.discard(it.destination)
+            onFileReceiveCancelled(sessionId, it.file.id, it.file.fileName, true)
+        }
         onTransferCancelRequested(session.info, session.remoteAddress, sessionId)
-        session.files.values.firstOrNull { !it.completed }?.let { onFileReceiveCancelled(it.file.fileName) }
         return true
     }
 
     private fun isSessionActive(sessionId: String, fileId: String, target: Target): Boolean =
-        sessions[sessionId]?.files?.get(fileId) === target
+        sessions[sessionId]?.files?.get(fileId) === target && !target.cancelled
 
     private fun discardAsCancelled(sessionId: String, target: Target): WriteResult {
         fileStore.discard(target.destination)
         cancelledSessions.remove(sessionId)
-        onFileReceiveCancelled(target.file.fileName)
+        target.cancelled = true
+        onFileReceiveCancelled(sessionId, target.file.id, target.file.fileName, false)
         return WriteResult.CANCELLED
     }
 
@@ -150,7 +173,7 @@ class IncomingTransferManager(
     enum class WriteResult { COMPLETED, CANCELLED, REJECTED }
     @Volatile private var activeSessionId: String? = null
     private data class Session(val files: Map<String, Target>, val info: DeviceInfo, val remoteAddress: String)
-    private data class Target(val token: String, val file: IncomingFile, val destination: IncomingFileStore.Destination, var completed: Boolean = false)
+    private data class Target(val token: String, val file: IncomingFile, val destination: IncomingFileStore.Destination, var completed: Boolean = false, @Volatile var cancelled: Boolean = false)
     private companion object {
         const val BUFFER_SIZE = 32 * 1024
         const val DECISION_TIMEOUT_SECONDS = 60L

@@ -19,21 +19,26 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
+import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
 import io.github.mouse233.localsendkotlin.transfer.IncomingFileStore
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
 import io.github.mouse233.localsendkotlin.ui.ReceivedFileAdapter
+import io.github.mouse233.localsendkotlin.ui.ActiveTransferAdapter
 
 class MainActivity : Activity(), TransferService.Listener {
     private lateinit var statusText: TextView
     private lateinit var transferProgress: ProgressBar
     private lateinit var cancelTransferButton: android.widget.Button
-    private var selectedFile: Uri? = null
+    private lateinit var activeTransferList: RecyclerView
+    private var selectedFiles: List<Uri> = emptyList()
     private var transferService: TransferService? = null
     private var bound = false
     private val deviceAdapter = DeviceAdapter(::sendToDevice)
     private val receivedFileAdapter = ReceivedFileAdapter(::openReceivedFile)
+    private val activeTransferFiles = LinkedHashMap<String, ActiveTransferFile>()
+    private val activeTransferAdapter = ActiveTransferAdapter { sessionId, fileId -> transferService?.cancelIncomingFile(sessionId, fileId) }
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -52,6 +57,7 @@ class MainActivity : Activity(), TransferService.Listener {
         statusText = findViewById(R.id.discovery_status)
         transferProgress = findViewById(R.id.transfer_progress)
         cancelTransferButton = findViewById(R.id.cancel_transfer_button)
+        activeTransferList = findViewById(R.id.active_transfer_list)
         findViewById<android.view.View>(R.id.about_button).setOnClickListener { showAbout() }
         cancelTransferButton.setOnClickListener {
             transferService?.cancelCurrent()
@@ -60,7 +66,8 @@ class MainActivity : Activity(), TransferService.Listener {
         }
         findViewById<RecyclerView>(R.id.device_list).apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = deviceAdapter }
         findViewById<RecyclerView>(R.id.received_file_list).apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = receivedFileAdapter }
-        findViewById<android.view.View>(R.id.refresh_button).setOnClickListener { transferService?.announce() }
+        activeTransferList.apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = activeTransferAdapter }
+        findViewById<android.view.View>(R.id.refresh_button).setOnClickListener { transferService?.refreshDevices() }
         findViewById<android.view.View>(R.id.select_file_button).setOnClickListener { chooseFile() }
         onDevicesChanged(emptyList())
         requestLegacyStoragePermission()
@@ -87,23 +94,27 @@ class MainActivity : Activity(), TransferService.Listener {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == FILE_REQUEST && resultCode == RESULT_OK) {
-            selectedFile = data?.data
-            selectedFile?.let { uri ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
-                statusText.text = getString(R.string.file_selected, uri.lastPathSegment ?: "文件")
+            selectedFiles = buildList {
+                data?.clipData?.let { clips -> for (index in 0 until clips.itemCount) add(clips.getItemAt(index).uri) }
+                    ?: data?.data?.let(::add)
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) selectedFiles.forEach { uri ->
+                try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
+            }
+            if (selectedFiles.isNotEmpty()) statusText.text = getString(R.string.files_selected, selectedFiles.size)
         }
     }
 
     private fun chooseFile() = startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
         addCategory(Intent.CATEGORY_OPENABLE)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         type = "*/*"
     }, FILE_REQUEST)
 
     private fun sendToDevice(device: RemoteDevice) {
-        val uri = selectedFile ?: run { Toast.makeText(this, R.string.select_file_first, Toast.LENGTH_SHORT).show(); return }
-        transferService?.send(uri, device) ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
+        if (selectedFiles.isEmpty()) { Toast.makeText(this, R.string.select_file_first, Toast.LENGTH_SHORT).show(); return }
+        transferService?.send(selectedFiles, device) ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
     }
 
     private fun startTransferService() {
@@ -117,9 +128,15 @@ class MainActivity : Activity(), TransferService.Listener {
 
     override fun onDevicesChanged(devices: List<RemoteDevice>) {
         deviceAdapter.submitDevices(devices)
-        if (selectedFile == null) statusText.text = if (devices.isEmpty()) getString(R.string.discovery_scanning) else resources.getQuantityString(R.plurals.device_count, devices.size, devices.size)
+        if (selectedFiles.isEmpty()) statusText.text = if (devices.isEmpty()) getString(R.string.discovery_scanning) else resources.getQuantityString(R.plurals.device_count, devices.size, devices.size)
     }
     override fun onDiscoveryError(message: String) { statusText.text = getString(R.string.discovery_error, message) }
+    override fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest) {
+        request.files.forEach { (fileId, file) ->
+            activeTransferFiles["$sessionId:$fileId"] = ActiveTransferFile(sessionId, fileId, file.fileName, 0L, file.size, ActiveTransferFile.Status.WAITING)
+        }
+        refreshActiveTransfers()
+    }
     override fun onUploadStatus(message: String) { statusText.text = message }
     override fun onTransferStateRestored(title: String, percent: Int) {
         transferProgress.visibility = android.view.View.VISIBLE
@@ -127,12 +144,12 @@ class MainActivity : Activity(), TransferService.Listener {
         cancelTransferButton.visibility = android.view.View.VISIBLE
         statusText.text = title
     }
-    override fun onUploadProgress(sent: Long, total: Long) {
-        val percent = if (total > 0) ((sent * 100L) / total).toInt().coerceIn(0, 100) else 0
+    override fun onUploadProgress(fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long) {
+        val percent = if (totalBytes > 0) ((totalSent * 100L) / totalBytes).toInt().coerceIn(0, 100) else 0
         transferProgress.visibility = android.view.View.VISIBLE; transferProgress.progress = percent; cancelTransferButton.visibility = android.view.View.VISIBLE
-        statusText.text = getString(R.string.upload_progress, percent)
+        statusText.text = getString(R.string.upload_file_progress, fileIndex + 1, fileCount, fileName, percent)
     }
-    override fun onUploadCompleted(name: String) { transferProgress.visibility = android.view.View.GONE; cancelTransferButton.visibility = android.view.View.GONE; statusText.text = getString(R.string.upload_completed, name) }
+    override fun onUploadCompleted(names: List<String>) { transferProgress.visibility = android.view.View.GONE; cancelTransferButton.visibility = android.view.View.GONE; statusText.text = getString(R.string.upload_completed, names.joinToString("、")) }
     override fun onUploadError(message: String) { transferProgress.visibility = android.view.View.GONE; cancelTransferButton.visibility = android.view.View.GONE; statusText.text = message }
     override fun onTransferFinished(message: String) {
         transferProgress.progress = 100
@@ -149,16 +166,40 @@ class MainActivity : Activity(), TransferService.Listener {
             .setPositiveButton(R.string.incoming_request_accept) { _, _ -> decide(true) }
             .setOnCancelListener { decide(false) }.show()
     }
-    override fun onFileReceiveProgress(fileName: String, received: Long, total: Long) {
-        val percent = if (total > 0) ((received * 100L) / total).toInt().coerceIn(0, 100) else 0
-        transferProgress.visibility = android.view.View.VISIBLE; transferProgress.progress = percent; cancelTransferButton.visibility = android.view.View.VISIBLE
-        statusText.text = getString(R.string.download_progress, fileName, percent)
+    override fun onFileReceiveProgress(file: ActiveTransferFile) {
+        activeTransferFiles["${file.sessionId}:${file.fileId}"] = file
+        refreshActiveTransfers()
+        transferProgress.visibility = android.view.View.GONE
+        cancelTransferButton.visibility = android.view.View.VISIBLE
+        val totalReceived = activeTransferFiles.values.sumOf { it.receivedBytes }
+        val totalBytes = activeTransferFiles.values.sumOf { it.totalBytes }
+        val percent = if (totalBytes > 0L) ((totalReceived * 100L) / totalBytes).toInt().coerceIn(0, 100) else 0
+        statusText.text = getString(R.string.receiving_files_progress, percent)
     }
-    override fun onFileReceiveCancelled(fileName: String) { transferProgress.visibility = android.view.View.GONE; cancelTransferButton.visibility = android.view.View.GONE; statusText.text = getString(R.string.download_cancelled, fileName) }
-    override fun onFileReceived(file: ReceivedFile) {
+    override fun onFileReceiveCancelled(file: ActiveTransferFile, sessionComplete: Boolean) {
+        activeTransferFiles["${file.sessionId}:${file.fileId}"] = file
+        refreshActiveTransfers()
+        statusText.text = getString(R.string.download_cancelled, file.fileName)
+        if (sessionComplete) cancelTransferButton.visibility = android.view.View.GONE
+    }
+    override fun onFileReceived(sessionId: String, fileId: String, file: ReceivedFile, sessionComplete: Boolean) {
+        val key = "$sessionId:$fileId"
+        activeTransferFiles[key]?.let { activeTransferFiles[key] = it.copy(receivedBytes = it.totalBytes, status = ActiveTransferFile.Status.COMPLETED) }
+        refreshActiveTransfers()
         val message = getString(R.string.download_completed, file.displayName)
-        transferProgress.visibility = android.view.View.GONE; cancelTransferButton.visibility = android.view.View.GONE; statusText.text = message
-        receivedFileAdapter.addFile(file); Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        statusText.text = message
+        receivedFileAdapter.addFile(file)
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        if (sessionComplete) cancelTransferButton.visibility = android.view.View.GONE
+    }
+    override fun onIncomingSessionCompleted(sessionId: String) {
+        activeTransferFiles.keys.filter { it.startsWith("$sessionId:") }.toList().forEach(activeTransferFiles::remove)
+        refreshActiveTransfers()
+    }
+
+    private fun refreshActiveTransfers() {
+        activeTransferAdapter.submitFiles(activeTransferFiles.values.toList())
+        activeTransferList.visibility = if (activeTransferFiles.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
     }
 
     private fun openReceivedFile(file: ReceivedFile) {

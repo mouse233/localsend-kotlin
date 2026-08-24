@@ -1,0 +1,78 @@
+name: Publish Android release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Validate and build release assets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run lint, unit tests, and build
+        run: ./gradlew lintDebug test assembleDebug --no-daemon --stacktrace
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: localsend-kotlin-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Create GitHub pre-release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Download debug APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: localsend-kotlin-debug-${{ github.sha }}
+          path: release-assets
+
+      - name: Extract release notes from CHANGELOG
+        shell: bash
+        run: |
+          tag_name="${GITHUB_REF_NAME}"
+          awk -v tag="$tag_name" '
+            $0 ~ "^## \\[" tag "\\]" { in_section = 1; next }
+            in_section && /^## \[/ { exit }
+            in_section {
+              if ($0 ~ "^### " tag "（") next
+              sub(/^### /, "## ")
+              sub(/^#### /, "### ")
+              print
+            }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          body_path: release-notes.md
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: release-assets/app-debug.apk
