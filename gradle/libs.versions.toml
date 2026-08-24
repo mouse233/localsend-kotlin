@@ -1,6 +1,6 @@
 [versions]
 agp = "9.3.2"
-coreKtx = "1.13.1"
+coreKtx = "1.17.0"
 recyclerview = "1.4.0"
 gson = "2.14.0"
 nanhttpd = "2.3.1"

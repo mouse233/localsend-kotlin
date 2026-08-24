@@ -52,13 +52,14 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 
 ## Technology stack
 
-- Kotlin 1.6.21, Android SDK, AndroidX Core KTX
+- Android Gradle Plugin 9.3.2, Gradle 9.7.1, and AGP built-in Kotlin (2.2.x)
+- Android SDK API 36; AndroidX Core KTX 1.17.0 and RecyclerView 1.4.0
 - Classic Android Views/XML layouts
 - Activity, RecyclerView, and the system file picker
-- Gradle Kotlin DSL and Android Gradle Plugin
-- OkHttp 3.12: HTTPS requests and streaming uploads
+- Gradle Kotlin DSL
+- OkHttp 5.4: HTTPS requests and streaming uploads
 - NanoHTTPD: embedded HTTP/HTTPS server
-- Gson: LocalSend JSON encoding and decoding
+- Gson 2.14: LocalSend JSON encoding and decoding
 - Bouncy Castle: TLS certificates and cryptography
 - UDP multicast and IPv4 LAN scanning: device discovery
 - MediaStore: public Downloads storage on Android 10 and later
@@ -68,9 +69,9 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 | Item | Current setting |
 | --- | --- |
 | Minimum Android version | Android 5.0 (API 21) |
-| Compile SDK | Android 13 (API 33) |
+| Compile SDK | Android 16 (API 36) |
 | Target SDK | API 33 |
-| Java/Kotlin JVM | Java 8 language level; JDK 17 recommended for builds |
+| Java/Kotlin JVM | Java 8 language level; JDK 17 required for builds |
 | Default port | TCP/UDP `53317` |
 | Protocol | LocalSend Protocol v2.2 / version `2.0` |
 
@@ -81,7 +82,7 @@ Both devices must be on the same local network. Guest networks, AP/client isolat
 Requirements:
 
 - Android Studio (a recent stable release is recommended)
-- Android SDK Platform 33
+- Android SDK Platform 36
 - JDK 17
 
 From the project root:
@@ -97,6 +98,8 @@ Before submitting changes, run the validation suite:
 ```
 
 The build currently completes without lint errors. A small number of non-blocking warnings remain for legacy Android compatibility, AndroidManifest attributes, the Bouncy Castle dependency, and a root-layout overdraw check.
+
+`Android CI` runs lint, unit tests, and a debug build for pull requests. The separate `API 21 Compatibility` workflow is manually triggered when an Android 5.0 emulator verification is needed.
 
 The debug APK is generated at:
 
