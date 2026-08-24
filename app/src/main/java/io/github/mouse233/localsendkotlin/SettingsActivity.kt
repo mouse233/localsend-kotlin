@@ -173,6 +173,7 @@ class SettingsActivity : Activity() {
         val resultData = data ?: return
         val uri = resultData.data ?: return
         try {
+            @Suppress("WrongConstant")
             contentResolver.takePersistableUriPermission(
                 uri,
                 resultData.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
