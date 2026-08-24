@@ -40,7 +40,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/secondary_text"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
     </LinearLayout>
 
     <ImageButton

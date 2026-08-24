@@ -17,6 +17,7 @@ import java.util.Locale
 
 class ReceiveHistoryAdapter(
     private val onOpen: (ReceiveHistoryEntry) -> Unit,
+    private val onDetails: (ReceiveHistoryEntry) -> Unit,
     private val onDelete: (ReceiveHistoryEntry) -> Unit
 ) : RecyclerView.Adapter<ReceiveHistoryAdapter.ViewHolder>() {
     private val entries = mutableListOf<ReceiveHistoryEntry>()
@@ -38,7 +39,7 @@ class ReceiveHistoryAdapter(
         LayoutInflater.from(parent.context).inflate(R.layout.item_receive_history, parent, false)
     )
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(entries[position], onOpen, onDelete)
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(entries[position], onOpen, onDetails, onDelete)
     override fun getItemCount() = entries.size
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -47,7 +48,12 @@ class ReceiveHistoryAdapter(
         private val details: TextView = itemView.findViewById(R.id.history_file_details)
         private val more: View = itemView.findViewById(R.id.history_more_button)
 
-        fun bind(entry: ReceiveHistoryEntry, onOpen: (ReceiveHistoryEntry) -> Unit, onDelete: (ReceiveHistoryEntry) -> Unit) {
+        fun bind(
+            entry: ReceiveHistoryEntry,
+            onOpen: (ReceiveHistoryEntry) -> Unit,
+            onDetails: (ReceiveHistoryEntry) -> Unit,
+            onDelete: (ReceiveHistoryEntry) -> Unit
+        ) {
             icon.setImageResource(iconFor(entry.mimeType))
             name.text = entry.displayName
             details.text = itemView.context.getString(
@@ -60,10 +66,12 @@ class ReceiveHistoryAdapter(
             more.setOnClickListener { anchor ->
                 PopupMenu(anchor.context, anchor).apply {
                     menu.add(0, MENU_OPEN, 0, R.string.open_file)
-                    menu.add(0, MENU_DELETE, 1, R.string.delete_history_item)
+                    menu.add(0, MENU_DETAILS, 1, R.string.file_details)
+                    menu.add(0, MENU_DELETE, 2, R.string.delete_history_item)
                     setOnMenuItemClickListener { item: MenuItem ->
                         when (item.itemId) {
                             MENU_OPEN -> onOpen(entry)
+                            MENU_DETAILS -> onDetails(entry)
                             MENU_DELETE -> onDelete(entry)
                         }
                         true
@@ -81,7 +89,8 @@ class ReceiveHistoryAdapter(
 
     private companion object {
         const val MENU_OPEN = 1
-        const val MENU_DELETE = 2
+        const val MENU_DETAILS = 2
+        const val MENU_DELETE = 3
         val DATE_FORMAT = SimpleDateFormat("yyyy/M/d HH:mm", Locale.CHINA)
         fun formatBytes(bytes: Long): String = when {
             bytes < 1024L -> "$bytes B"

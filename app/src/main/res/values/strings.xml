@@ -24,6 +24,15 @@
     <string name="download_completed">已接收：%1$s</string>
     <string name="active_transfers">当前传输</string>
     <string name="open_file">打开</string>
+    <string name="file_details">详细信息</string>
+    <string name="file_info_title">文件信息</string>
+    <string name="file_info_message">文件名：%1$s\n路径：%2$s\n大小：%3$s\n发送者：%4$s\n时间：%5$s</string>
+    <string name="file_info_name_label">文件名：</string>
+    <string name="file_info_path_label">路径：</string>
+    <string name="file_info_size_label">大小：</string>
+    <string name="file_info_sender_label">发送者：</string>
+    <string name="file_info_time_label">时间：</string>
+    <string name="close">关闭</string>
     <string name="open_file_failed">无法打开此文件</string>
     <string name="open_directory">打开目录</string>
     <string name="open_directory_failed">无法打开接收目录</string>
