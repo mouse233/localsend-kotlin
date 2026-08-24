@@ -4,6 +4,10 @@
     <string name="settings">设置</string>
     <string name="save">保存</string>
     <string name="settings_device_section">设备</string>
+    <string name="settings_language">语言</string>
+    <string name="language_system">系统默认</string>
+    <string name="language_chinese">简体中文</string>
+    <string name="language_english">English</string>
     <string name="settings_device_name">设备名称</string>
     <string name="settings_send_section">发送</string>
     <string name="settings_verify_file_integrity">发送文件时创建校验和</string>
@@ -51,6 +55,9 @@
     <string name="discovery_error">发现失败：%1$s</string>
     <string name="device_details_format">%1$s · %2$s:%3$d</string>
     <string name="select_file">选择文件</string>
+    <string name="local_endpoint_format">设备名称：%1$s\n绑定地址：%2$s:%3$d</string>
+    <string name="local_endpoint_waiting_for_network">设备名称：%1$s\n绑定地址：等待网络连接（端口 %2$d）</string>
+    <string name="local_endpoint_server_disabled">设备名称：%1$s\n绑定地址：已关闭</string>
     <string name="select_file_first">请先选择文件</string>
     <string name="service_starting">后台服务正在启动，请稍后重试</string>
     <string name="file_selected">已选择：%1$s。点击目标设备发送。</string>
@@ -58,7 +65,8 @@
     <string name="upload_progress">正在上传：%1$d%%</string>
     <string name="upload_file_progress">正在发送第 %1$d/%2$d 个文件：%3$s（%4$d%%）</string>
     <string name="upload_completed">已发送：%1$s</string>
-    <string name="cancel_transfer">取消</string>
+    <string name="cancel_transfer">取消全部</string>
+    <string name="cancel_file">取消</string>
     <string name="upload_cancelled">已取消发送</string>
     <string name="download_completed">已接收：%1$s</string>
     <string name="active_transfers">当前传输</string>
@@ -107,6 +115,14 @@
     <string name="notification_channel_incoming">接收请求</string>
     <string name="notification_channel_incoming_description">处理后台文件接收请求</string>
     <string name="notification_channel_result">传输结果</string>
+    <string name="transfer_waiting">等待</string>
+    <string name="transfer_waiting_to_send">等待发送</string>
+    <string name="transfer_sending">正在发送</string>
+    <string name="transfer_receiving">正在接收</string>
+    <string name="transfer_sent">已发送</string>
+    <string name="transfer_completed">完成</string>
+    <string name="transfer_cancelled">已取消</string>
+    <string name="transfer_failed">失败</string>
     <plurals name="device_count">
         <item quantity="one">发现 1 台设备</item>
         <item quantity="other">发现 %d 台设备</item>

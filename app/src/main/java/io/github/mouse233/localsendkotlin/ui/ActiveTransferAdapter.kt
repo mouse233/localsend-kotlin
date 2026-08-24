@@ -51,14 +51,17 @@ class ActiveTransferAdapter(private val onCancelFile: (String, String) -> Unit) 
         fun bind(file: ActiveTransferFile, onCancelFile: (String, String) -> Unit) {
             name.text = file.fileName
             status.text = when (file.status) {
-                ActiveTransferFile.Status.WAITING -> "等待"
-                ActiveTransferFile.Status.TRANSFERRING -> "传输中"
-                ActiveTransferFile.Status.COMPLETED -> "完成"
-                ActiveTransferFile.Status.CANCELLED -> "已取消"
-                ActiveTransferFile.Status.FAILED -> "失败"
+                ActiveTransferFile.Status.WAITING -> itemView.context.getString(if (file.direction == ActiveTransferFile.Direction.OUTGOING) R.string.transfer_waiting_to_send else R.string.transfer_waiting)
+                ActiveTransferFile.Status.TRANSFERRING -> itemView.context.getString(if (file.direction == ActiveTransferFile.Direction.OUTGOING) R.string.transfer_sending else R.string.transfer_receiving)
+                ActiveTransferFile.Status.COMPLETED -> itemView.context.getString(if (file.direction == ActiveTransferFile.Direction.OUTGOING) R.string.transfer_sent else R.string.transfer_completed)
+                ActiveTransferFile.Status.CANCELLED -> itemView.context.getString(R.string.transfer_cancelled)
+                ActiveTransferFile.Status.FAILED -> itemView.context.getString(R.string.transfer_failed)
             }
             progress.progress = if (file.totalBytes > 0) ((file.receivedBytes * 100L) / file.totalBytes).toInt().coerceIn(0, 100) else 0
-            cancel.visibility = if (file.status == ActiveTransferFile.Status.WAITING || file.status == ActiveTransferFile.Status.TRANSFERRING) View.VISIBLE else View.GONE
+            val canCancelThisFile = file.direction == ActiveTransferFile.Direction.INCOMING &&
+                (file.status == ActiveTransferFile.Status.WAITING || file.status == ActiveTransferFile.Status.TRANSFERRING)
+            cancel.visibility = if (canCancelThisFile) View.VISIBLE else View.GONE
+            cancel.setText(R.string.cancel_file)
             cancel.setOnClickListener { onCancelFile(file.sessionId, file.fileId) }
         }
     }

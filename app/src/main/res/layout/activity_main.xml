@@ -10,6 +10,7 @@
         android:layout_height="56dp"
         android:gravity="center_vertical"
         android:background="@color/brand_primary"
+        android:elevation="4dp"
         android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingEnd="8dp">
@@ -46,12 +47,22 @@
             android:tint="@android:color/white" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/local_endpoint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="16dp"
+        android:textColor="@color/secondary_text"
+        android:textSize="14sp" />
+
     <Button
         android:id="@+id/select_file_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:layout_marginBottom="4dp"
         android:text="@string/select_file" />
 

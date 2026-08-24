@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
             android:minHeight="0dp"
-            android:text="@string/cancel_transfer"
+            android:text="@string/cancel_file"
             android:textAllCaps="false" />
     </LinearLayout>
 

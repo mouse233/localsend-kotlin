@@ -20,6 +20,9 @@ class AppSettings(context: Context) {
         }.apply()
     }
 
+    fun language(): String = preferences.getString(LANGUAGE_KEY, AppLocale.SYSTEM) ?: AppLocale.SYSTEM
+    fun setLanguage(language: String) = preferences.edit().putString(LANGUAGE_KEY, language).apply()
+
     fun createChecksums(): Boolean = preferences.getBoolean(CREATE_CHECKSUMS_KEY, true)
 
     fun setCreateChecksums(enabled: Boolean) {
@@ -81,6 +84,7 @@ class AppSettings(context: Context) {
     private companion object {
         const val PREFERENCES_NAME = "app_settings"
         const val DEVICE_NAME_KEY = "device_name"
+        const val LANGUAGE_KEY = "language"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"
         const val RECEIVE_DIRECTORY_URI_KEY = "receive_directory_uri"

@@ -327,16 +327,26 @@ Priority:
 
 ------------------------------------------------------------------------
 
-# 13. Future Roadmap
+# 13. Roadmap
+
+Completed:
+
+-   Foreground background-transfer service
+-   Multiple-file sending and receiving
+-   Receive history
+
+Next milestone:
+
+-   Internationalization (i18n): move all user-visible strings to Android resources and provide Simplified Chinese and English translations that follow the system locale.
 
 Possible future:
 
+-   Resumable transfers
+-   Manual IP connection
+-   Save received media to the gallery
+-   Trusted devices
 -   Android 4.x support
--   background receiver service
--   trusted devices
--   multiple file transfer
--   transfer history
--   lightweight CLI core
+-   Lightweight CLI core
 
 ------------------------------------------------------------------------
 

@@ -20,6 +20,9 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
+import io.github.mouse233.localsendkotlin.discovery.LocalNetworkAddress
+import io.github.mouse233.localsendkotlin.settings.AppSettings
+import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
@@ -31,12 +34,16 @@ class MainActivity : Activity(), TransferService.Listener {
     private lateinit var transferProgress: ProgressBar
     private lateinit var cancelTransferButton: android.widget.Button
     private lateinit var activeTransferList: RecyclerView
+    private lateinit var localEndpointText: TextView
     private var selectedFiles: List<Uri> = emptyList()
+    private var appliedLanguage: String? = null
     private var transferService: TransferService? = null
     private var bound = false
     private val deviceAdapter = DeviceAdapter(::sendToDevice)
     private val activeTransferFiles = LinkedHashMap<String, ActiveTransferFile>()
-    private val activeTransferAdapter = ActiveTransferAdapter { sessionId, fileId -> transferService?.cancelIncomingFile(sessionId, fileId) }
+    private val activeTransferAdapter = ActiveTransferAdapter { sessionId, fileId ->
+        transferService?.cancelIncomingFile(sessionId, fileId)
+    }
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -57,6 +64,8 @@ class MainActivity : Activity(), TransferService.Listener {
         transferProgress = findViewById(R.id.transfer_progress)
         cancelTransferButton = findViewById(R.id.cancel_transfer_button)
         activeTransferList = findViewById(R.id.active_transfer_list)
+        localEndpointText = findViewById(R.id.local_endpoint)
+        appliedLanguage = AppSettings(this).language()
         findViewById<android.view.View>(R.id.history_button).setOnClickListener {
             startActivity(Intent(this, ReceiveHistoryActivity::class.java))
         }
@@ -69,10 +78,17 @@ class MainActivity : Activity(), TransferService.Listener {
             statusText.text = getString(R.string.upload_cancelled)
         }
         findViewById<RecyclerView>(R.id.device_list).apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = deviceAdapter }
-        activeTransferList.apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = activeTransferAdapter }
+        activeTransferList.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = activeTransferAdapter
+            // Progress updates replace a queue item frequently. The default change
+            // animation fades its controls, which makes the cancel button flicker.
+            itemAnimator = null
+        }
         findViewById<android.view.View>(R.id.refresh_button).setOnClickListener { transferService?.refreshDevices() }
         findViewById<android.view.View>(R.id.select_file_button).setOnClickListener { chooseFile() }
         onDevicesChanged(emptyList())
+        updateLocalEndpoint()
         requestLegacyStoragePermission()
         requestNotificationPermission()
         startTransferService()
@@ -81,6 +97,18 @@ class MainActivity : Activity(), TransferService.Listener {
     override fun onStart() {
         super.onStart()
         if (!bound) { bindService(Intent(this, TransferService::class.java), connection, BIND_AUTO_CREATE); bound = true }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val language = AppSettings(this).language()
+        if (language != appliedLanguage) {
+            AppLocale.apply(this, language)
+            appliedLanguage = language
+            recreate()
+            return
+        }
+        updateLocalEndpoint()
     }
 
     override fun onStop() {
@@ -134,6 +162,10 @@ class MainActivity : Activity(), TransferService.Listener {
         }
         refreshActiveTransfers()
     }
+    override fun onOutgoingSessionPrepared(sessionId: String, files: List<ActiveTransferFile>) {
+        files.forEach { file -> activeTransferFiles["${file.sessionId}:${file.fileId}"] = file }
+        refreshActiveTransfers()
+    }
     override fun onUploadStatus(message: String) { statusText.text = message }
     override fun onTransferStateRestored(title: String, percent: Int) {
         transferProgress.visibility = android.view.View.VISIBLE
@@ -173,6 +205,10 @@ class MainActivity : Activity(), TransferService.Listener {
         val percent = if (totalBytes > 0L) ((totalReceived * 100L) / totalBytes).toInt().coerceIn(0, 100) else 0
         statusText.text = getString(R.string.receiving_files_progress, percent)
     }
+    override fun onFileSendProgress(file: ActiveTransferFile) {
+        activeTransferFiles["${file.sessionId}:${file.fileId}"] = file
+        refreshActiveTransfers()
+    }
     override fun onFileReceiveCancelled(file: ActiveTransferFile, sessionComplete: Boolean) {
         activeTransferFiles["${file.sessionId}:${file.fileId}"] = file
         refreshActiveTransfers()
@@ -192,10 +228,25 @@ class MainActivity : Activity(), TransferService.Listener {
         activeTransferFiles.keys.filter { it.startsWith("$sessionId:") }.toList().forEach(activeTransferFiles::remove)
         refreshActiveTransfers()
     }
+    override fun onOutgoingSessionCompleted(sessionId: String) {
+        activeTransferFiles.keys.filter { it.startsWith("$sessionId:") }.toList().forEach(activeTransferFiles::remove)
+        refreshActiveTransfers()
+    }
 
     private fun refreshActiveTransfers() {
         activeTransferAdapter.submitFiles(activeTransferFiles.values.toList())
         activeTransferList.visibility = if (activeTransferFiles.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+    }
+
+    private fun updateLocalEndpoint() {
+        val settings = AppSettings(this)
+        localEndpointText.text = if (!settings.serverEnabled()) {
+            getString(R.string.local_endpoint_server_disabled, settings.deviceName())
+        } else {
+            val address = LocalNetworkAddress.ipv4(this)
+            if (address == null) getString(R.string.local_endpoint_waiting_for_network, settings.deviceName(), settings.port())
+            else getString(R.string.local_endpoint_format, settings.deviceName(), address, settings.port())
+        }
     }
 
     private fun requestNotificationPermission() {
