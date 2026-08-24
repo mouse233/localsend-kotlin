@@ -1,5 +1,49 @@
 # Changelog
 
+## [v0.6.0-alpha] - 2026-08-25
+
+### Added
+
+- English interface support with an in-app language selector for System Default, Simplified Chinese, and English.
+- Device verification using matching text codes or Material icon sequences before sending or accepting files.
+- Sequential multi-file sending queue with per-file progress and a session-wide cancel action.
+- Device name and bind address on the main screen for easier nearby-device identification.
+
+### Changed
+
+- Added clear Material icons to settings options, changelog, checksum controls, and verified-device entries.
+- Receive history now shows the actual saved location and opens the configured receive directory.
+- CI now cancels superseded runs, validates the Gradle Wrapper, uses job timeouts, and retains pull-request debug APKs for seven days.
+
+### Fixed
+
+- Completed English translations for the verification screen.
+- Kept nearby-device rows at their original height while vertically centering the verification badge.
+- Improved transfer queue cancellation labels and removed progress-row flickering during active transfers.
+
+## 中文说明
+
+### v0.6.0-alpha（2026-08-25）
+
+#### 新增
+
+- 支持英文界面；可在应用内选择系统默认、简体中文或 English。
+- 新增设备验证：发送或接收前可通过文本安全码或 Material 图标序列核对对端设备。
+- 支持多文件按队列依次发送，显示单文件进度，并可一键取消整个会话。
+- 主页显示设备名称和绑定地址，便于识别附近设备。
+
+#### 调整
+
+- 为设置项、更新日志、校验和控制和已验证设备补充清晰的 Material 图标。
+- 接收历史显示实际保存位置，“打开目录”会进入已配置的接收目录。
+- CI 会取消过期运行、验证 Gradle Wrapper、限制任务时长，并将 PR 的调试 APK 保留 7 天。
+
+#### 修复
+
+- 补全验证页面的英文翻译。
+- 附近设备条目保持原有高度，验证盾牌垂直居中。
+- 优化传输队列的取消文案，并消除传输时进度条目闪烁。
+
 ## [v0.5.0-alpha] - 2026-08-24
 
 ### Added
