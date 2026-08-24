@@ -1,16 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     android:background="@drawable/device_item_background"
-    android:orientation="vertical"
     android:padding="16dp">
+
+    <ImageButton
+        android:id="@+id/device_verify_button"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/verification_title"
+        android:padding="8dp"
+        android:src="@drawable/ic_verify"
+        android:tint="@color/secondary_text" />
 
     <TextView
         android:id="@+id/device_alias"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_toStartOf="@id/device_verify_button"
+        android:layout_marginEnd="8dp"
         android:textColor="@color/primary_text"
         android:textSize="17sp"
         android:textStyle="bold" />
@@ -19,7 +32,10 @@
         android:id="@+id/device_details"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_below="@id/device_alias"
+        android:layout_toStartOf="@id/device_verify_button"
+        android:layout_marginEnd="8dp"
         android:layout_marginTop="4dp"
         android:textColor="@color/secondary_text"
         android:textSize="14sp" />
-</LinearLayout>
+</RelativeLayout>

@@ -9,7 +9,10 @@ import androidx.recyclerview.widget.DiffUtil
 import io.github.mouse233.localsendkotlin.R
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 
-class DeviceAdapter(private val onDeviceClick: (RemoteDevice) -> Unit) : RecyclerView.Adapter<DeviceAdapter.DeviceViewHolder>() {
+class DeviceAdapter(
+    private val onDeviceClick: (RemoteDevice) -> Unit,
+    private val onVerifyClick: (RemoteDevice) -> Unit
+) : RecyclerView.Adapter<DeviceAdapter.DeviceViewHolder>() {
 
     private val devices = mutableListOf<RemoteDevice>()
 
@@ -35,7 +38,7 @@ class DeviceAdapter(private val onDeviceClick: (RemoteDevice) -> Unit) : Recycle
     }
 
     override fun onBindViewHolder(holder: DeviceViewHolder, position: Int) {
-        holder.bind(devices[position], onDeviceClick)
+        holder.bind(devices[position], onDeviceClick, onVerifyClick)
     }
 
     override fun getItemCount(): Int = devices.size
@@ -44,7 +47,7 @@ class DeviceAdapter(private val onDeviceClick: (RemoteDevice) -> Unit) : Recycle
         private val alias: TextView = itemView.findViewById(R.id.device_alias)
         private val details: TextView = itemView.findViewById(R.id.device_details)
 
-        fun bind(device: RemoteDevice, onDeviceClick: (RemoteDevice) -> Unit) {
+        fun bind(device: RemoteDevice, onDeviceClick: (RemoteDevice) -> Unit, onVerifyClick: (RemoteDevice) -> Unit) {
             alias.text = device.alias
             val deviceName = device.deviceModel ?: device.deviceType ?: "Unknown device"
             details.text = itemView.context.getString(
@@ -54,6 +57,7 @@ class DeviceAdapter(private val onDeviceClick: (RemoteDevice) -> Unit) : Recycle
                 device.port
             )
             itemView.setOnClickListener { onDeviceClick(device) }
+            itemView.findViewById<View>(R.id.device_verify_button).setOnClickListener { onVerifyClick(device) }
         }
     }
 }

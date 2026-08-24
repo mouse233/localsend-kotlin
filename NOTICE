@@ -13,5 +13,15 @@ Third-party components are distributed under their respective licenses:
 - Bouncy Castle — MIT-style license
 - AndroidX — Apache License 2.0
 
+Material Icons font
+Copyright 2014 Google Inc.
+Licensed under the Apache License, Version 2.0.
+Source: https://github.com/google/material-design-icons
+
+LocalSend verification icon alphabet and conversion algorithm
+Copyright LocalSend contributors.
+Licensed under the Apache License, Version 2.0.
+Source: https://github.com/localsend/localsend
+
 Refer to the respective component distributions for their complete license
 and notice texts.
