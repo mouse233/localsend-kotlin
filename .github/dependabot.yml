@@ -13,5 +13,6 @@ updates:
     schedule:
       interval: "monthly"
     groups:
-      gradle-dependencies:
+      gradle-non-major:
         patterns: [ "*" ]
+        update-types: [ "minor", "patch" ]
