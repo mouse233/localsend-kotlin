@@ -56,6 +56,10 @@ class ReceiveHistoryActivity : Activity() {
     }
 
     private fun openFile(entry: ReceiveHistoryEntry) {
+        if (!fileExists(entry)) {
+            Toast.makeText(this, R.string.file_no_longer_exists, Toast.LENGTH_SHORT).show()
+            return
+        }
         try {
             startActivity(Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(entry.uri, entry.mimeType)
@@ -67,20 +71,34 @@ class ReceiveHistoryActivity : Activity() {
     }
 
     private fun openDirectory() {
-        val downloadsUri = Uri.parse("content://media/external/downloads")
+        val folderUri = DocumentsContract.buildDocumentUri(
+            EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY,
+            "primary:Download/LocalSend Kotlin"
+        )
         val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(downloadsUri, DocumentsContract.Document.MIME_TYPE_DIR)
+            setDataAndType(folderUri, DocumentsContract.Document.MIME_TYPE_DIR)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         try {
             startActivity(viewIntent)
         } catch (_: Exception) {
             try {
-                startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        putExtra(DocumentsContract.EXTRA_INITIAL_URI, folderUri)
+                    }
+                })
             } catch (_: Exception) {
                 Toast.makeText(this, R.string.open_directory_failed, Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun fileExists(entry: ReceiveHistoryEntry): Boolean = try {
+        contentResolver.openFileDescriptor(entry.uri, "r")?.use { true } ?: false
+    } catch (_: Exception) {
+        false
     }
 
     private fun showDetails(entry: ReceiveHistoryEntry) {
@@ -129,5 +147,6 @@ class ReceiveHistoryActivity : Activity() {
 
     private companion object {
         val DATE_FORMAT = SimpleDateFormat("yyyy/M/d HH:mm", Locale.CHINA)
+        const val EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY = "com.android.externalstorage.documents"
     }
 }
