@@ -14,6 +14,10 @@ import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import okio.BufferedSink
 import java.security.MessageDigest
 import java.io.IOException
@@ -97,7 +101,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 try {
                     val request = Request.Builder()
                         .url(url(device, LocalSendProtocol.CANCEL_PATH).newBuilder().addQueryParameter("sessionId", sessionId).build())
-                        .post(RequestBody.create(null, ByteArray(0)))
+                        .post(ByteArray(0).toRequestBody())
                         .build()
                     client(device).newCall(request).execute().use { }
                 } catch (_: Exception) {
@@ -110,11 +114,11 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     private fun prepare(device: RemoteDevice, files: List<FileInfo>): PrepareResponse {
         val request = Request.Builder()
             .url(url(device, LocalSendProtocol.PREPARE_UPLOAD_PATH))
-            .post(RequestBody.create(JSON, gson.toJson(PrepareRequest(identity.deviceInfo(), files.associateBy { it.id }))))
+            .post(gson.toJson(PrepareRequest(identity.deviceInfo(), files.associateBy { it.id })).toRequestBody(JSON))
             .build()
         client(device).newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IllegalStateException("接收方拒绝请求（${response.code()}）")
-            return gson.fromJson(response.body()?.charStream(), PrepareResponse::class.java)
+            if (!response.isSuccessful) throw IllegalStateException("接收方拒绝请求（${response.code}）")
+            return gson.fromJson(response.body?.charStream(), PrepareResponse::class.java)
                 ?: throw IllegalStateException("接收方响应无效")
         }
     }
@@ -131,7 +135,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         )
         val request = Request.Builder().url(uploadUrl).post(body).build()
         client(device).newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IllegalStateException("上传失败（${response.code()}）")
+            if (!response.isSuccessful) throw IllegalStateException("上传失败（${response.code}）")
         }
     }
 
@@ -140,8 +144,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
             .hostnameVerifier { _, _ -> true }.connectTimeout(8, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
     }
 
-    private fun url(device: RemoteDevice, path: String): HttpUrl = HttpUrl.parse("${device.protocol}://${device.address}:${device.port}$path")
-        ?: throw IllegalArgumentException("无效的设备地址")
+    private fun url(device: RemoteDevice, path: String): HttpUrl = "${device.protocol}://${device.address}:${device.port}$path".toHttpUrl()
 
     private fun readFile(uri: Uri): FileInfo {
         var name = "shared-file"
@@ -181,14 +184,14 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     private data class FileInfo(val id: String, val uri: Uri, val fileName: String, val size: Long, val fileType: String, val sha256: String?)
     private fun FileInfo.toQueueFile() = QueueFile(id, fileName, size)
     private class StreamBody(private val type: String, private val length: Long, private val source: () -> java.io.InputStream, private val progress: (Long) -> Unit, private val shouldCancel: () -> Boolean) : RequestBody() {
-        override fun contentType(): MediaType? = MediaType.parse(type)
+        override fun contentType(): MediaType? = type.toMediaTypeOrNull()
         override fun contentLength(): Long = length
         override fun writeTo(sink: BufferedSink) { source().use { input -> val buffer = ByteArray(BUFFER_SIZE); var sent = 0L; while (true) { if (shouldCancel()) throw IOException("发送已取消"); val count = input.read(buffer); if (count < 0) break; sink.write(buffer, 0, count); sent += count; progress(sent) } } }
     }
     companion object {
         private val activeTransfers = ConcurrentHashMap<String, AtomicBoolean>()
         fun cancel(sessionId: String): Boolean = activeTransfers[sessionId]?.let { it.set(true); true } == true
-        private val JSON = MediaType.parse("application/json; charset=utf-8")!!
+        private val JSON = "application/json; charset=utf-8".toMediaType()
         private const val BUFFER_SIZE = 32 * 1024
     }
 }

@@ -14,6 +14,8 @@ import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.net.ssl.HostnameVerifier
 import io.github.mouse233.localsendkotlin.model.DeviceInfo
 import io.github.mouse233.localsendkotlin.model.RegisterResponse
@@ -173,7 +175,7 @@ class DiscoveryManager(
     private fun cancelRemoteTransfer(protocol: String, address: String, port: Int, fingerprint: String, sessionId: String) {
         try {
             val url = "$protocol://$address:$port${LocalSendProtocol.CANCEL_PATH}?sessionId=$sessionId"
-            val request = Request.Builder().url(url).post(RequestBody.create(null, ByteArray(0))).build()
+            val request = Request.Builder().url(url).post(ByteArray(0).toRequestBody()).build()
             (if (protocol == "https") createHttpsClient(fingerprint) else httpClient).newCall(request).execute().use { }
         } catch (_: Exception) { }
     }
@@ -209,7 +211,7 @@ class DiscoveryManager(
     }
 
     private fun postRegistration(address: String, port: Int, protocol: String, expectedFingerprint: String? = null): RegistrationResult? {
-        val requestBody = RequestBody.create(JSON_MEDIA_TYPE, gson.toJson(identity.deviceInfo()))
+        val requestBody = gson.toJson(identity.deviceInfo()).toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
             .url("$protocol://$address:$port${LocalSendProtocol.REGISTER_PATH}")
             .post(requestBody)
@@ -219,10 +221,10 @@ class DiscoveryManager(
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
                 val peerFingerprint = if (protocol == "https") {
-                    response.handshake()?.peerCertificates()?.firstOrNull()?.let(TlsIdentity::certificateFingerprint)
+                    response.handshake?.peerCertificates?.firstOrNull()?.let(TlsIdentity::certificateFingerprint)
                 } else null
                 if (expectedFingerprint != null && !expectedFingerprint.equals(peerFingerprint, ignoreCase = true)) return null
-                RegistrationResult(gson.fromJson(response.body()?.charStream(), RegisterResponse::class.java), peerFingerprint)
+                RegistrationResult(gson.fromJson(response.body?.charStream(), RegisterResponse::class.java), peerFingerprint)
             }
         } catch (exception: Exception) {
             null
@@ -448,7 +450,7 @@ class DiscoveryManager(
         const val LEGACY_SCAN_PARALLELISM = 24
         val MULTICAST_RETRY_DELAYS_MS = longArrayOf(500L, 1_500L)
         const val MINIMUM_SCAN_PREFIX = 24
-        val JSON_MEDIA_TYPE: MediaType = MediaType.parse("application/json; charset=utf-8")!!
+        val JSON_MEDIA_TYPE: MediaType = "application/json; charset=utf-8".toMediaType()
         val SUPPORTED_PROTOCOLS = setOf("http", "https")
     }
 

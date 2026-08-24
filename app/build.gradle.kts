@@ -1,6 +1,25 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskAction
+
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+}
+
+abstract class GenerateAppDocuments : DefaultTask() {
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        project.copy {
+            from(project.rootProject.projectDir) {
+                include("CHANGELOG.md", "LICENSE", "NOTICE")
+            }
+            into(outputDirectory.get().asFile)
+        }
+    }
 }
 
 val releaseStorePath = System.getenv("ANDROID_KEYSTORE_PATH")
@@ -17,7 +36,7 @@ check(releaseSigningEnabled || releaseSigningValues.all { it.isNullOrBlank() }) 
 
 android {
     namespace = "io.github.mouse233.localsendkotlin"
-    compileSdk = 33
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.github.mouse233.localsendkotlin"
@@ -52,25 +71,23 @@ android {
             )
         }
     }
+    buildFeatures {
+        buildConfig = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-    sourceSets.getByName("main").assets.srcDir(file("$buildDir/generated/assets/documents"))
 }
 
-val copyAppDocuments by tasks.registering(Copy::class) {
-    from(rootProject.projectDir) {
-        include("CHANGELOG.md", "LICENSE", "NOTICE")
-    }
-    into(file("$buildDir/generated/assets/documents"))
+val copyAppDocuments = tasks.register<GenerateAppDocuments>("copyAppDocuments") {
+    outputDirectory.set(layout.buildDirectory.dir("generated/assets/documents"))
 }
 
-tasks.named("preBuild").configure {
-    dependsOn(copyAppDocuments)
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(copyAppDocuments, GenerateAppDocuments::outputDirectory)
+    }
 }
 
 dependencies {
