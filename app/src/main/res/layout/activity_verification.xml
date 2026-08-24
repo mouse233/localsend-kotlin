@@ -10,6 +10,7 @@
         <RadioButton android:id="@+id/verification_icons" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checked="true" android:text="@string/verification_icons" />
         <RadioButton android:id="@+id/verification_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="24dp" android:text="@string/verification_text" />
     </RadioGroup>
+    <ProgressBar android:id="@+id/verification_loading" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:layout_marginTop="28dp" />
     <GridLayout android:id="@+id/verification_icon_grid" android:layout_width="240dp" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:layout_marginTop="28dp" android:columnCount="4" android:rowCount="4" />
     <TextView android:id="@+id/verification_text_code" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="28dp" android:fontFamily="monospace" android:textColor="@color/primary_text" android:textIsSelectable="true" android:textSize="16sp" android:visibility="gone" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="24dp" android:layout_marginTop="24dp" android:layout_marginEnd="24dp" android:gravity="center" android:text="@string/verification_question" android:textColor="@color/secondary_text" android:textSize="15sp" />

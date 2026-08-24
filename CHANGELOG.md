@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.6.1-alpha] - 2026-08-25
+
+### Changed
+
+- Defer TLS identity loading away from the startup path and reuse one process-wide identity.
+- Load verification codes and the Material icon font off the UI thread so the verification screen opens immediately.
+- Group Dependabot Gradle minor and patch updates while keeping major updates in separate pull requests.
+
+## 中文说明
+
+### v0.6.1-alpha（2026-08-25）
+
+#### 调整
+
+- 将 TLS 身份加载移出启动关键路径，并在进程内复用同一身份实例。
+- 在后台加载安全码和 Material 图标字体，验证页面可立即打开。
+- Dependabot 仅合并 Gradle 的 minor/patch 更新，major 更新保持独立 PR。
+
 ## [v0.6.0-alpha] - 2026-08-25
 
 ### Added

@@ -23,8 +23,8 @@ android {
         applicationId = "io.github.mouse233.localsendkotlin"
         minSdk = 21
         targetSdk = 33
-        versionCode = 7
-        versionName = "0.6.0-alpha"
+        versionCode = 8
+        versionName = "0.6.1-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
