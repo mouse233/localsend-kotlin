@@ -23,8 +23,8 @@ android {
         applicationId = "io.github.mouse233.localsendkotlin"
         minSdk = 21
         targetSdk = 33
-        versionCode = 5
-        versionName = "0.4.0-alpha"
+        versionCode = 6
+        versionName = "0.5.0-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -59,6 +59,18 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    sourceSets.getByName("main").assets.srcDir(file("$buildDir/generated/assets/documents"))
+}
+
+val copyAppDocuments by tasks.registering(Copy::class) {
+    from(rootProject.projectDir) {
+        include("CHANGELOG.md", "LICENSE", "NOTICE")
+    }
+    into(file("$buildDir/generated/assets/documents"))
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(copyAppDocuments)
 }
 
 dependencies {

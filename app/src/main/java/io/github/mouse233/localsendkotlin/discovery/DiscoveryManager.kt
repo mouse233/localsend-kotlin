@@ -21,6 +21,7 @@ import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.server.LocalSendServer
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
+import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.transfer.UploadClient
 import java.io.IOException
@@ -45,6 +46,7 @@ class DiscoveryManager(
     private val appContext = context.applicationContext
     private val gson = Gson()
     private val identity = LocalIdentity(appContext)
+    private val settings = AppSettings(appContext)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val devices = ConcurrentHashMap<String, RemoteDevice>()
     private val running = AtomicBoolean(false)
@@ -142,6 +144,8 @@ class DiscoveryManager(
                 identity::deviceInfo,
                 ::registerDevice,
                 transferManager,
+                settings.port(),
+                settings.encryptionEnabled(),
                 onTransferCancelled = UploadClient::cancel
             )
             localServer.start(SOCKET_READ_TIMEOUT_MS, false)
@@ -289,7 +293,7 @@ class DiscoveryManager(
 
     private fun scanAddress(address: String) {
         if (!running.get()) return
-        val response = postRegistration(address, LocalSendProtocol.DEFAULT_PORT, "https") ?: return
+        val response = postRegistration(address, settings.port(), if (settings.encryptionEnabled()) "https" else "http") ?: return
         val alias = response.body.alias ?: return
         val version = response.body.version ?: return
         val fingerprint = response.peerFingerprint ?: response.body.fingerprint ?: return
@@ -300,8 +304,8 @@ class DiscoveryManager(
                 deviceModel = response.body.deviceModel,
                 deviceType = response.body.deviceType,
                 fingerprint = fingerprint,
-                port = LocalSendProtocol.DEFAULT_PORT,
-                protocol = "https",
+                port = settings.port(),
+                protocol = if (settings.encryptionEnabled()) "https" else "http",
                 download = response.body.download
             ),
             address
@@ -315,8 +319,8 @@ class DiscoveryManager(
         val packet = DatagramPacket(
             data,
             data.size,
-            InetAddress.getByName(LocalSendProtocol.MULTICAST_ADDRESS),
-            LocalSendProtocol.DEFAULT_PORT
+            InetAddress.getByName(settings.multicastAddress()),
+            settings.port()
         )
         try {
             multicastSocket.send(packet)
@@ -372,7 +376,7 @@ class DiscoveryManager(
     @Throws(IOException::class)
     private fun createMulticastSocket(): MulticastSocket {
         val transport = findWifiTransport()
-        val group = InetAddress.getByName(LocalSendProtocol.MULTICAST_ADDRESS)
+        val group = InetAddress.getByName(settings.multicastAddress())
         return MulticastSocket(null).apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
                 // DatagramSocket binding was added in API 22.
@@ -386,12 +390,12 @@ class DiscoveryManager(
                 legacyProcessNetworkBound = true
             }
             reuseAddress = true
-            bind(InetSocketAddress(InetAddress.getByName("0.0.0.0"), LocalSendProtocol.DEFAULT_PORT))
+            bind(InetSocketAddress(InetAddress.getByName("0.0.0.0"), settings.port()))
             networkInterface = transport.networkInterface
             timeToLive = 1
             loopbackMode = false
             joinGroup(
-                InetSocketAddress(group, LocalSendProtocol.DEFAULT_PORT),
+                InetSocketAddress(group, settings.port()),
                 transport.networkInterface
             )
         }

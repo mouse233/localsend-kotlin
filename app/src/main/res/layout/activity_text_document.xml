@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/window_background"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/brand_primary"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="16dp">
+
+        <ImageButton
+            android:id="@+id/document_back_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/navigate_up"
+            android:padding="12dp"
+            android:src="?android:attr/homeAsUpIndicator"
+            android:tint="@android:color/white" />
+
+        <TextView
+            android:id="@+id/document_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <TextView
+            android:id="@+id/document_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:textColor="@color/primary_text"
+            android:textIsSelectable="true"
+            android:textSize="14sp" />
+    </ScrollView>
+</LinearLayout>

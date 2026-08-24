@@ -41,6 +41,18 @@
             android:exported="false"
             android:theme="@style/Theme.Localsendkotlin" />
         <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Localsendkotlin" />
+        <activity
+            android:name=".ChangelogActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Localsendkotlin" />
+        <activity
+            android:name=".TextDocumentActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Localsendkotlin" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Localsendkotlin">

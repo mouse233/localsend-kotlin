@@ -1,5 +1,47 @@
 # Changelog
 
+## [v0.5.0-alpha] - 2026-08-24
+
+### Added
+
+- A dedicated settings screen for device identity, receiving behavior, sending checksums, and network discovery.
+- Configurable receive directory, automatic saving, receive history, and checksum verification for incoming files.
+- Server, port, encryption, and multicast-address controls for local network discovery.
+- An About section with version, changelog, source code, feedback, license, and third-party license entries.
+
+### Changed
+
+- Reworked the main toolbar actions into history and settings icon buttons.
+- Refined settings-page hierarchy, iconography, spacing, and native editing dialogs.
+
+### Fixed
+
+- Avoided a crash on some Android document providers after selecting a receive directory.
+- Kept discovery broadcasts on the manufacturer name instead of the full device model.
+- Moved network restarts off the settings UI thread to keep server and encryption switches responsive.
+
+## 中文说明
+
+### v0.5.0-alpha（2026-08-24）
+
+#### 新增
+
+- 新增独立设置页面，涵盖设备身份、接收行为、发送校验和与网络发现。
+- 支持配置接收目录、自动保存、接收历史和接收文件校验和验证。
+- 支持配置局域网发现服务器、端口、加密和多播地址。
+- 新增“关于”分段，提供版本、更新日志、源代码、问题反馈、许可证和第三方许可证入口。
+
+#### 调整
+
+- 主页工具栏改用历史和设置图标按钮。
+- 优化设置页的层级、图标、间距和原生编辑对话框。
+
+#### 修复
+
+- 修复部分 Android 文档提供方在选择接收目录后导致的崩溃。
+- 发现广播恢复为使用设备厂商名，而非完整设备型号。
+- 将网络重启移出设置页主线程，服务器和加密开关不再卡顿。
+
 ## [v0.4.0-alpha] - 2026-08-24
 
 ### Added

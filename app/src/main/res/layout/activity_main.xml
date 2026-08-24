@@ -23,33 +23,27 @@
             android:textSize="20sp"
             android:textStyle="bold" />
 
-        <Button
+        <ImageButton
             android:id="@+id/history_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_gravity="center_vertical"
-            android:background="@android:color/transparent"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="8dp"
-            android:text="@string/history"
-            android:textColor="@android:color/white"
-            android:textAllCaps="false" />
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/history"
+            android:padding="12dp"
+            android:src="@drawable/ic_history"
+            android:tint="@android:color/white" />
 
-        <Button
-            android:id="@+id/about_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <ImageButton
+            android:id="@+id/settings_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_gravity="center_vertical"
-            android:background="@android:color/transparent"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="8dp"
-            android:text="@string/about"
-            android:textColor="@android:color/white"
-            android:textAllCaps="false" />
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/settings"
+            android:padding="12dp"
+            android:src="@drawable/ic_settings"
+            android:tint="@android:color/white" />
     </LinearLayout>
 
     <Button
