@@ -1,5 +1,41 @@
 # Changelog
 
+## [v0.4.0-alpha] - 2026-08-24
+
+### Added
+
+- Receive history for completed incoming files, including the sender, time, size, and saved file reference.
+- A history page with direct file opening, per-item actions, file details, history clearing, and a shortcut to the receive directory.
+
+### Changed
+
+- Replaced the main-screen received-file list with the dedicated history entry point.
+- Refined the history list density, system navigation controls, overflow menu, and file-detail layout.
+
+### Fixed
+
+- History entries now report “File does not exist” when the stored file has been deleted.
+- Directory opening now targets `Download/LocalSend Kotlin` instead of the Downloads root.
+
+## 中文说明
+
+### v0.4.0-alpha（2026-08-24）
+
+#### 新增
+
+- 为已完成接收的文件增加历史记录，保存发送设备、时间、大小和文件引用。
+- 新增历史页面，支持打开文件、单项操作、查看文件详情、清空历史和打开接收目录。
+
+#### 调整
+
+- 移除主页的“已接收文件”列表，改为独立的历史入口。
+- 优化历史列表密度、系统返回控件、更多菜单和文件详情布局。
+
+#### 修复
+
+- 历史文件被删除后，打开时明确提示“文件不存在”。
+- “打开目录”改为定位至 `Download/LocalSend Kotlin`，不再仅打开下载根目录。
+
 ## [v0.3.0-alpha] - 2026-08-24
 
 ### Added

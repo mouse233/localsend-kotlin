@@ -24,6 +24,20 @@
             android:textStyle="bold" />
 
         <Button
+            android:id="@+id/history_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:background="@android:color/transparent"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="8dp"
+            android:text="@string/history"
+            android:textColor="@android:color/white"
+            android:textAllCaps="false" />
+
+        <Button
             android:id="@+id/about_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -134,22 +148,4 @@
         android:clipToPadding="false"
         android:padding="8dp" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="8dp"
-        android:text="@string/received_files"
-        android:textColor="@color/primary_text"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/received_file_list"
-        android:layout_width="match_parent"
-        android:layout_height="160dp"
-        android:clipToPadding="false"
-        android:padding="8dp" />
 </LinearLayout>
