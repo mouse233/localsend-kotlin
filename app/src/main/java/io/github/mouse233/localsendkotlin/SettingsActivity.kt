@@ -8,13 +8,16 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.text.InputFilter
 import android.text.InputType
+import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.settings.DeviceType
+import io.github.mouse233.localsendkotlin.discovery.NetworkInterfaceCatalog
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 
@@ -26,6 +29,7 @@ class SettingsActivity : Activity() {
     private lateinit var languageValue: TextView
     private lateinit var portValue: TextView
     private lateinit var multicastAddressValue: TextView
+    private lateinit var networkInterfacesValue: TextView
     private lateinit var receiveDirectoryValue: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,6 +43,7 @@ class SettingsActivity : Activity() {
         languageValue = findViewById(R.id.language_value)
         portValue = findViewById(R.id.port_value)
         multicastAddressValue = findViewById(R.id.multicast_address_value)
+        networkInterfacesValue = findViewById(R.id.network_interfaces_value)
         receiveDirectoryValue = findViewById(R.id.receive_directory_value)
         refreshValues()
         findViewById<android.view.View>(R.id.settings_back_button).setOnClickListener { finish() }
@@ -85,6 +90,7 @@ class SettingsActivity : Activity() {
         }
         findViewById<android.view.View>(R.id.encryption_row).setOnClickListener { encryptionSwitch.toggle() }
         findViewById<android.view.View>(R.id.multicast_address_row).setOnClickListener { showMulticastAddressEditor() }
+        findViewById<android.view.View>(R.id.network_interfaces_row).setOnClickListener { showNetworkInterfacesPicker() }
         findViewById<TextView>(R.id.version_value).text = BuildConfig.VERSION_NAME
         findViewById<android.view.View>(R.id.version_row).setOnClickListener { openUrl(RELEASES_URL) }
         findViewById<android.view.View>(R.id.changelog_row).setOnClickListener { startActivity(Intent(this, ChangelogActivity::class.java)) }
@@ -189,6 +195,55 @@ class SettingsActivity : Activity() {
         true
     }
 
+    private fun showNetworkInterfacesPicker() {
+        val interfaces = NetworkInterfaceCatalog.list()
+        if (interfaces.isEmpty()) {
+            Toast.makeText(this, R.string.settings_network_interfaces_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val initialSelection = NetworkInterfaceCatalog.resolveSelection(
+            interfaces,
+            settings.networkInterfaceSelection(),
+            NetworkInterfaceCatalog.defaultSelection(this, interfaces)
+        )
+        val selected = initialSelection.toMutableSet()
+        val content = layoutInflater.inflate(R.layout.dialog_network_interfaces, null)
+        val list = content.findViewById<LinearLayout>(R.id.network_interfaces_list)
+        interfaces.forEachIndexed { index, networkInterface ->
+            val row = layoutInflater.inflate(R.layout.item_network_interface, list, false)
+            val checkbox = row.findViewById<CheckBox>(R.id.network_interface_checkbox)
+            row.findViewById<TextView>(R.id.network_interface_name).text =
+                "[#${index + 1}] ${networkInterface.name}"
+            row.findViewById<TextView>(R.id.network_interface_addresses).text =
+                networkInterface.addresses.joinToString("\n")
+            checkbox.isChecked = networkInterface.name in selected
+            checkbox.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) selected += networkInterface.name else selected -= networkInterface.name
+            }
+            row.setOnClickListener { checkbox.isChecked = !checkbox.isChecked }
+            list.addView(row)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.settings_network_interfaces)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.save, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                if (selected.isEmpty()) {
+                    Toast.makeText(this, R.string.settings_network_interfaces_select_one, Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                settings.setNetworkInterfaceSelection(selected)
+                refreshValues()
+                reloadNetwork()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
     private fun showEditor(
         title: Int,
         value: String,
@@ -227,7 +282,20 @@ class SettingsActivity : Activity() {
         }
         portValue.text = settings.port().toString()
         multicastAddressValue.text = settings.multicastAddress()
+        networkInterfacesValue.text = networkInterfaceSummary()
         receiveDirectoryValue.text = settings.receiveDirectoryName() ?: getString(R.string.settings_default_receive_directory)
+    }
+
+    private fun networkInterfaceSummary(): String {
+        val interfaces = NetworkInterfaceCatalog.list()
+        val selected = NetworkInterfaceCatalog.resolveSelection(
+            interfaces,
+            settings.networkInterfaceSelection(),
+            NetworkInterfaceCatalog.defaultSelection(this, interfaces)
+        )
+        return interfaces.filter { it.name in selected }
+            .joinToString("\n") { it.name }
+            .ifBlank { getString(R.string.settings_network_interfaces_none) }
     }
 
     private fun deviceTypeLabel(value: String): String = when (DeviceType.fromValue(value)) {

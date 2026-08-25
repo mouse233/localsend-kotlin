@@ -304,9 +304,20 @@ class MainActivity : Activity(), TransferService.Listener {
         localEndpointText.text = if (!settings.serverEnabled()) {
             getString(R.string.local_endpoint_server_disabled, settings.deviceName())
         } else {
-            val address = LocalNetworkAddress.ipv4(this)
-            if (address == null) getString(R.string.local_endpoint_waiting_for_network, settings.deviceName(), settings.port())
-            else getString(R.string.local_endpoint_format, settings.deviceName(), address, settings.port())
+            val addresses = LocalNetworkAddress.endpoints(this)
+            if (addresses.isEmpty()) {
+                getString(R.string.local_endpoint_waiting_for_network, settings.deviceName(), settings.port())
+            } else {
+                val addressIndent = getString(R.string.local_endpoint_address_indent)
+                val endpointText = addresses.mapIndexed { index, endpoint ->
+                    val address = endpoint.address.substringBefore('%')
+                    val host = if (address.contains(':')) "[$address]" else address
+                    val endpoint = "$host:${settings.port()}"
+                    if (index == 0) endpoint else "$addressIndent$endpoint"
+                }
+                    .joinToString("\n")
+                getString(R.string.local_endpoint_format_multi, settings.deviceName(), endpointText)
+            }
         }
     }
 

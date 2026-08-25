@@ -32,6 +32,11 @@
     <string name="settings_server">服务器</string>
     <string name="settings_server_summary">允许附近设备发现此设备并向它发送文件。</string>
     <string name="settings_port">端口</string>
+    <string name="settings_network_interfaces">网络接口</string>
+    <string name="settings_network_interfaces_none">未选择网络接口</string>
+    <string name="settings_network_interfaces_unavailable">当前没有可用的网络接口</string>
+    <string name="settings_network_interfaces_select_one">请至少选择一个网络接口</string>
+    <string name="settings_network_interfaces_checkbox">选择网络接口</string>
     <string name="settings_encryption">加密</string>
     <string name="settings_encryption_summary">使用 HTTPS 和证书指纹校验。关闭后传输不受加密保护。</string>
     <string name="settings_multicast_address">多播地址</string>
@@ -74,6 +79,8 @@
     <string name="device_details_format">%1$s · %2$s:%3$d</string>
     <string name="select_file">选择文件</string>
     <string name="local_endpoint_format">设备名称：%1$s\n绑定地址：%2$s:%3$d</string>
+    <string name="local_endpoint_format_multi">设备名称：%1$s\n绑定地址：%2$s</string>
+    <string name="local_endpoint_address_indent">&#160;&#160;&#160;&#160;&#160;</string>
     <string name="local_endpoint_waiting_for_network">设备名称：%1$s\n绑定地址：等待网络连接（端口 %2$d）</string>
     <string name="local_endpoint_server_disabled">设备名称：%1$s\n绑定地址：已关闭</string>
     <string name="select_file_first">请先选择文件</string>

@@ -84,6 +84,17 @@ class AppSettings(context: Context) {
         return true
     }
 
+    /** Null means the first-run automatic interface selection is still active. */
+    fun networkInterfaceSelection(): Set<String>? = if (preferences.contains(NETWORK_INTERFACES_KEY)) {
+        preferences.getStringSet(NETWORK_INTERFACES_KEY, emptySet())?.toSet() ?: emptySet()
+    } else {
+        null
+    }
+
+    fun setNetworkInterfaceSelection(names: Set<String>) {
+        preferences.edit().putStringSet(NETWORK_INTERFACES_KEY, names.toSet()).apply()
+    }
+
     fun plainHttpFingerprint(): String = preferences.getString(HTTP_FINGERPRINT_KEY, null) ?: UUID.randomUUID().toString().also {
         preferences.edit().putString(HTTP_FINGERPRINT_KEY, it).apply()
     }
@@ -115,6 +126,7 @@ class AppSettings(context: Context) {
         const val PORT_KEY = "port"
         const val ENCRYPTION_KEY = "encryption_enabled"
         const val MULTICAST_ADDRESS_KEY = "multicast_address"
+        const val NETWORK_INTERFACES_KEY = "network_interfaces"
         const val HTTP_FINGERPRINT_KEY = "http_fingerprint"
     }
 }

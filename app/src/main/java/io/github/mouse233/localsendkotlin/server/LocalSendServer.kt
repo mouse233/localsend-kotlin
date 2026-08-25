@@ -23,8 +23,9 @@ class LocalSendServer(
     private val incomingTransfers: IncomingTransferManager,
     private val port: Int,
     private val encryptionEnabled: Boolean,
+    bindAddress: String,
     private val onTransferCancelled: (String) -> Unit = {}
-) : NanoHTTPD(port) {
+) : NanoHTTPD(bindAddress, port) {
 
     private val clientFingerprint = ThreadLocal<String?>()
 
