@@ -8,6 +8,7 @@ import com.google.gson.Gson
 import io.github.mouse233.localsendkotlin.discovery.LocalIdentity
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
+import io.github.mouse233.localsendkotlin.R
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import okhttp3.HttpUrl
 import okhttp3.MediaType
@@ -27,6 +28,8 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit.MILLISECONDS
 
 class UploadClient(context: Context, private val identity: LocalIdentity) {
     private val appContext = context.applicationContext
@@ -59,7 +62,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                     )
                 }
                 listener.onStatus("正在请求 ${device.alias} 接收文件…")
-                val prepared = prepare(device, files)
+                val prepared = prepareWithPin(device, files, listener, cancelled)
                 activeTransfers[prepared.sessionId] = cancelled
                 activeSessionId = prepared.sessionId
                 val acceptedFiles = files.filter { it.id in prepared.files }
@@ -113,16 +116,60 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         }
     }
 
-    private fun prepare(device: RemoteDevice, files: List<FileInfo>): PrepareResponse {
+    private fun prepareWithPin(
+        device: RemoteDevice,
+        files: List<FileInfo>,
+        listener: Listener,
+        cancelled: AtomicBoolean
+    ): PrepareResponse {
+        var pin: String? = null
+        var attempt = 0
+        while (true) {
+            when (val result = prepare(device, files, pin)) {
+                is PrepareResult.Success -> return result.response
+                PrepareResult.PinRequired -> {
+                    attempt++
+                    if (attempt > MAX_PIN_ATTEMPTS) {
+                        throw IllegalStateException(appContext.getString(R.string.pin_too_many_attempts))
+                    }
+                    pin = awaitPin(device, attempt, listener, cancelled)
+                        ?: throw IllegalStateException(appContext.getString(R.string.pin_input_cancelled))
+                }
+            }
+        }
+    }
+
+    private fun prepare(device: RemoteDevice, files: List<FileInfo>, pin: String?): PrepareResult {
+        val prepareUrl = url(device, LocalSendProtocol.PREPARE_UPLOAD_PATH).newBuilder().apply {
+            pin?.let { addQueryParameter(LocalSendProtocol.PIN_QUERY_PARAMETER, it) }
+        }.build()
         val request = Request.Builder()
-            .url(url(device, LocalSendProtocol.PREPARE_UPLOAD_PATH))
+            .url(prepareUrl)
             .post(gson.toJson(PrepareRequest(identity.deviceInfo(), files.associateBy { it.id })).toRequestBody(JSON))
             .build()
         client(device).newCall(request).execute().use { response ->
+            if (response.code == 401) return PrepareResult.PinRequired
+            if (response.code == 429) throw IllegalStateException(appContext.getString(R.string.pin_too_many_attempts))
             if (!response.isSuccessful) throw IllegalStateException("接收方拒绝请求（${response.code}）")
-            return gson.fromJson(response.body?.charStream(), PrepareResponse::class.java)
-                ?: throw IllegalStateException("接收方响应无效")
+            return PrepareResult.Success(
+                gson.fromJson(response.body?.charStream(), PrepareResponse::class.java)
+                    ?: throw IllegalStateException("接收方响应无效")
+            )
         }
+    }
+
+    private fun awaitPin(device: RemoteDevice, attempt: Int, listener: Listener, cancelled: AtomicBoolean): String? {
+        val latch = CountDownLatch(1)
+        val enteredPin = java.util.concurrent.atomic.AtomicReference<String?>()
+        listener.onPinRequired(device, attempt) { pin ->
+            enteredPin.set(pin?.trim()?.takeIf { it.isNotEmpty() })
+            latch.countDown()
+        }
+        val deadline = System.currentTimeMillis() + PIN_DIALOG_TIMEOUT_MS
+        while (!cancelled.get() && System.currentTimeMillis() < deadline) {
+            if (latch.await(PIN_WAIT_POLL_MS, MILLISECONDS)) break
+        }
+        return if (cancelled.get()) null else enteredPin.get()
     }
 
     private fun upload(device: RemoteDevice, sessionId: String, fileId: String, token: String, file: FileInfo, cancelled: AtomicBoolean, onProgress: (Long) -> Unit) {
@@ -178,6 +225,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
 
     interface Listener {
         fun onStatus(message: String)
+        fun onPinRequired(device: RemoteDevice, attempt: Int, reply: (String?) -> Unit)
         fun onSessionPrepared(sessionId: String, files: List<QueueFile>)
         fun onProgress(sessionId: String, fileId: String, fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long)
         fun onFileCompleted(sessionId: String, fileId: String)
@@ -187,6 +235,10 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     data class QueueFile(val id: String, val fileName: String, val size: Long)
     private data class PrepareRequest(val info: Any, val files: Map<String, FileInfo>)
     private data class PrepareResponse(val sessionId: String, val files: Map<String, String>)
+    private sealed interface PrepareResult {
+        data class Success(val response: PrepareResponse) : PrepareResult
+        data object PinRequired : PrepareResult
+    }
     private data class FileInfo(val id: String, val uri: Uri, val fileName: String, val size: Long, val fileType: String, val sha256: String?)
     private fun FileInfo.toQueueFile() = QueueFile(id, fileName, size)
     private class StreamBody(private val type: String, private val length: Long, private val source: () -> java.io.InputStream, private val progress: (Long) -> Unit, private val shouldCancel: () -> Boolean) : RequestBody() {
@@ -199,5 +251,8 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         fun cancel(sessionId: String): Boolean = activeTransfers[sessionId]?.let { it.set(true); true } == true
         private val JSON = "application/json; charset=utf-8".toMediaType()
         private const val BUFFER_SIZE = 32 * 1024
+        private const val MAX_PIN_ATTEMPTS = 3
+        private const val PIN_DIALOG_TIMEOUT_MS = 120_000L
+        private const val PIN_WAIT_POLL_MS = 250L
     }
 }

@@ -1,5 +1,31 @@
 # Changelog
 
+## [v0.6.5-alpha] - 2026-08-26
+
+### Added
+
+- Added optional receive PIN protection with LocalSend v2.1 interoperability.
+- Added sender-side PIN prompts when sending to a PIN-protected receiver.
+- PINs accept any non-empty text after trimming surrounding whitespace, including Chinese characters.
+
+### Fixed
+
+- Fixed PIN retry requests being misread by the embedded HTTP server when the initial unauthorized request used a keep-alive connection.
+
+## 中文说明
+
+### v0.6.5-alpha（2026-08-26）
+
+#### 新增
+
+- 新增可选的接收 PIN 保护，并支持与 LocalSend v2.1 客户端互操作。
+- 向启用 PIN 保护的接收端发送文件时，发送方会弹出 PIN 输入框。
+- PIN 支持去除首尾空白后的任意非空文本，包括中文字符。
+
+#### 修复
+
+- 修复首次未授权请求使用 keep-alive 连接时，内置 HTTP 服务端错误解析 PIN 重试请求的问题。
+
 ## [v0.6.4-alpha] - 2026-08-25
 
 ### Added

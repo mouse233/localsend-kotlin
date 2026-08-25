@@ -66,6 +66,13 @@ class SettingsActivity : Activity() {
             setOnCheckedChangeListener { _, checked -> settings.setAutoSaveReceivedFiles(checked) }
         }
         findViewById<android.view.View>(R.id.auto_save_row).setOnClickListener { autoSaveSwitch.toggle() }
+        val receivePinSwitch = findViewById<Switch>(R.id.receive_pin_switch).apply {
+            isChecked = settings.receivePin() != null
+            setOnCheckedChangeListener { _, checked ->
+                if (checked) showReceivePinDialog(this) else settings.clearReceivePin()
+            }
+        }
+        findViewById<android.view.View>(R.id.receive_pin_row).setOnClickListener { receivePinSwitch.toggle() }
         findViewById<android.view.View>(R.id.receive_directory_row).setOnClickListener { chooseReceiveDirectory() }
         val saveHistorySwitch = findViewById<Switch>(R.id.save_history_switch).apply {
             isChecked = settings.saveReceiveHistory()
@@ -119,6 +126,36 @@ class SettingsActivity : Activity() {
             settings.saveDeviceName(value)
             refreshValues()
             true
+        }
+    }
+
+    private fun showReceivePinDialog(pinSwitch: Switch) {
+        val content = layoutInflater.inflate(R.layout.dialog_edit_device_name, null)
+        val input = content.findViewById<EditText>(R.id.device_name_editor).apply {
+            inputType = InputType.TYPE_CLASS_TEXT
+            hint = getString(R.string.pin_input_hint)
+        }
+        var saved = false
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.settings_receive_pin_title)
+            .setMessage(R.string.settings_receive_pin_message)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel) { _, _ -> pinSwitch.isChecked = false }
+            .setPositiveButton(R.string.save, null)
+            .setOnCancelListener { if (!saved) pinSwitch.isChecked = false }
+            .create()
+        dialog.show()
+        val customPanelId = resources.getIdentifier("customPanel", "id", "android")
+        if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val pin = input.text.toString().trim()
+            if (pin.isEmpty()) {
+                input.error = getString(R.string.invalid_pin)
+                return@setOnClickListener
+            }
+            settings.setReceivePin(pin)
+            saved = true
+            dialog.dismiss()
         }
     }
 

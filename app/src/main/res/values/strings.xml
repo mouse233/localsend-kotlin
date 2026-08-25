@@ -24,6 +24,17 @@
     <string name="settings_verify_file_integrity_summary">发送前计算 SHA-256 校验和，以供接收端核对文件完整性。</string>
     <string name="settings_receive_section">接收</string>
     <string name="settings_auto_save">自动保存</string>
+    <string name="settings_receive_pin">启用 PIN 密码</string>
+    <string name="settings_receive_pin_summary">接收文件前要求发送方输入 PIN。</string>
+    <string name="settings_receive_pin_title">设置接收 PIN</string>
+    <string name="settings_receive_pin_message">发送方需要输入此 PIN 才能向本设备发送文件。</string>
+    <string name="pin_input_hint">请输入 PIN</string>
+    <string name="invalid_pin">PIN 不能为空</string>
+    <string name="pin_required_title">需要 PIN</string>
+    <string name="pin_required_message">设备“%1$s”需要 PIN 才能发送文件。&#10;第 %2$d 次尝试</string>
+    <string name="pin_too_many_attempts">PIN 尝试次数过多，请稍后再试</string>
+    <string name="pin_input_cancelled">已取消 PIN 输入</string>
+    <string name="submit">提交</string>
     <string name="settings_receive_directory">保存目录</string>
     <string name="settings_default_receive_directory">下载/LocalSend Kotlin</string>
     <string name="settings_selected_receive_directory">已选择的文件夹</string>

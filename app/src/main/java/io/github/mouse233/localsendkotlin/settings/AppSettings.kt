@@ -54,6 +54,15 @@ class AppSettings(context: Context) {
     fun autoSaveReceivedFiles(): Boolean = preferences.getBoolean(AUTO_SAVE_KEY, false)
     fun setAutoSaveReceivedFiles(enabled: Boolean) = preferences.edit().putBoolean(AUTO_SAVE_KEY, enabled).apply()
 
+    /** A non-blank PIN enables the LocalSend prepare-upload PIN gate. */
+    fun receivePin(): String? = preferences.getString(RECEIVE_PIN_KEY, null)?.trim()?.takeIf { it.isNotEmpty() }
+
+    fun setReceivePin(pin: String) {
+        preferences.edit().putString(RECEIVE_PIN_KEY, pin.trim()).apply()
+    }
+
+    fun clearReceivePin() = preferences.edit().remove(RECEIVE_PIN_KEY).apply()
+
     fun receiveDirectoryUri(): Uri? = preferences.getString(RECEIVE_DIRECTORY_URI_KEY, null)?.let(Uri::parse)
     fun receiveDirectoryName(): String? = preferences.getString(RECEIVE_DIRECTORY_NAME_KEY, null)
     fun saveReceiveDirectory(uri: Uri, name: String) = preferences.edit()
@@ -125,6 +134,7 @@ class AppSettings(context: Context) {
         const val LANGUAGE_KEY = "language"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"
+        const val RECEIVE_PIN_KEY = "receive_pin"
         const val RECEIVE_DIRECTORY_URI_KEY = "receive_directory_uri"
         const val RECEIVE_DIRECTORY_NAME_KEY = "receive_directory_name"
         const val SAVE_HISTORY_KEY = "save_receive_history"

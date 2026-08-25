@@ -7,6 +7,7 @@ object LocalSendProtocol {
     const val MULTICAST_ADDRESS = "224.0.0.167"
     const val REGISTER_PATH = "/api/localsend/v2/register"
     const val PREPARE_UPLOAD_PATH = "/api/localsend/v2/prepare-upload"
+    const val PIN_QUERY_PARAMETER = "pin"
     const val UPLOAD_PATH = "/api/localsend/v2/upload"
     const val CANCEL_PATH = "/api/localsend/v2/cancel"
 }
