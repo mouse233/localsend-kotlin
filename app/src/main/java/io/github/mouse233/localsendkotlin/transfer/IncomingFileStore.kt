@@ -26,9 +26,22 @@ class IncomingFileStore(context: Context) {
     internal val resolver = appContext.contentResolver
     private val settings = AppSettings(appContext)
 
-    fun create(displayName: String, mimeType: String, size: Long): Destination {
+    fun create(
+        displayName: String,
+        mimeType: String,
+        size: Long,
+        receiveDirectoryUri: Uri? = settings.receiveDirectoryUri(),
+        saveMediaToGallery: Boolean = false
+    ): Destination {
         val safeName = File(displayName).name.ifBlank { "received-file" }
-        settings.receiveDirectoryUri()?.let { treeUri ->
+        if (saveMediaToGallery && isGalleryMedia(mimeType)) {
+            try {
+                return createInGallery(safeName, mimeType, size)
+            } catch (_: Exception) {
+                // Fall back to the selected receive directory when gallery access fails.
+            }
+        }
+        receiveDirectoryUri?.let { treeUri ->
             try {
                 return createInSelectedDirectory(treeUri, safeName, mimeType, size)
             } catch (_: Exception) {
@@ -63,6 +76,30 @@ class IncomingFileStore(context: Context) {
             ?: throw IOException("Unable to create file in selected directory")
         return Destination(ReceivedFile(displayName, uri, mimeType, size), null, mediaStorePending = false)
     }
+
+    private fun createInGallery(displayName: String, mimeType: String, size: Long): Destination {
+        val isImage = mimeType.startsWith("image/", ignoreCase = true)
+        val collection = if (isImage) MediaStore.Images.Media.EXTERNAL_CONTENT_URI else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        val relativePath = if (isImage) "Pictures/$GALLERY_FOLDER/" else "Movies/$GALLERY_FOLDER/"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
+                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(collection, values) ?: throw IOException("Unable to create gallery entry")
+            return Destination(ReceivedFile(displayName, uri, mimeType, size), null, mediaStorePending = true)
+        }
+        val folderType = if (isImage) Environment.DIRECTORY_PICTURES else Environment.DIRECTORY_MOVIES
+        val folder = File(Environment.getExternalStoragePublicDirectory(folderType), GALLERY_FOLDER).apply { mkdirs() }
+        val file = uniqueFile(folder, displayName)
+        val uri = FileProvider.getUriForFile(appContext, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
+        return Destination(ReceivedFile(file.name, uri, mimeType, size), file, mediaStorePending = false)
+    }
+
+    private fun isGalleryMedia(mimeType: String): Boolean =
+        mimeType.startsWith("image/", ignoreCase = true) || mimeType.startsWith("video/", ignoreCase = true)
 
     /** Opens the destination, runs the writer, and always closes the stream before returning. */
     @SuppressLint("Recycle")
@@ -154,6 +191,7 @@ class IncomingFileStore(context: Context) {
 
     private companion object {
         const val FOLDER_NAME = "LocalSend Kotlin"
+        const val GALLERY_FOLDER = "LocalSend Kotlin"
         const val RELATIVE_PATH = "Download/$FOLDER_NAME/"
     }
 }

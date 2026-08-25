@@ -55,6 +55,10 @@
             android:exported="false"
             android:theme="@style/Theme.Localsendkotlin" />
         <activity
+            android:name=".ReceiveSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Localsendkotlin" />
+        <activity
             android:name=".TextDocumentActivity"
             android:exported="false"
             android:theme="@style/Theme.Localsendkotlin" />

@@ -27,6 +27,7 @@ import io.github.mouse233.localsendkotlin.discovery.ManualEndpoint
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
+import io.github.mouse233.localsendkotlin.transfer.IncomingReceiveOptions
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
 import io.github.mouse233.localsendkotlin.ui.ActiveTransferAdapter
@@ -46,7 +47,10 @@ class MainActivity : Activity(), TransferService.Listener {
     private var bound = false
     private val deviceAdapter = DeviceAdapter(::sendToDevice, ::verifyDevice)
     private var pendingVerificationRequest: IncomingTransferManager.PrepareUploadRequest? = null
-    private var pendingVerificationDecision: ((Boolean) -> Unit)? = null
+    private var pendingVerificationDecision: ((IncomingReceiveOptions?) -> Unit)? = null
+    private var pendingReceiveSettingsRequest: IncomingTransferManager.PrepareUploadRequest? = null
+    private var pendingReceiveSettingsDecision: ((IncomingReceiveOptions?) -> Unit)? = null
+    private var pendingReceiveSettingsOptions: IncomingReceiveOptions? = null
     private val activeTransferFiles = LinkedHashMap<String, ActiveTransferFile>()
     private val activeTransferAdapter = ActiveTransferAdapter { sessionId, fileId ->
         transferService?.cancelIncomingFile(sessionId, fileId)
@@ -135,7 +139,28 @@ class MainActivity : Activity(), TransferService.Listener {
             val decide = pendingVerificationDecision
             pendingVerificationRequest = null
             pendingVerificationDecision = null
-            if (request != null && decide != null) showIncomingRequest(request, decide)
+            if (request != null && decide != null) showIncomingRequest(request, decide, pendingReceiveSettingsOptions)
+            return
+        }
+        if (requestCode == RECEIVE_SETTINGS_REQUEST) {
+            val request = pendingReceiveSettingsRequest
+            val decide = pendingReceiveSettingsDecision
+            pendingReceiveSettingsRequest = null
+            pendingReceiveSettingsDecision = null
+            if (request != null && decide != null && resultCode == RESULT_OK) {
+                val selectedIds = data?.getStringArrayListExtra(ReceiveSettingsActivity.EXTRA_SELECTED_FILE_IDS).orEmpty().toSet()
+                val allIds = data?.getStringArrayListExtra(ReceiveSettingsActivity.EXTRA_ALL_FILE_IDS).orEmpty()
+                val allNames = data?.getStringArrayListExtra(ReceiveSettingsActivity.EXTRA_FILE_NAMES).orEmpty()
+                val renamedFiles = allIds.mapIndexedNotNull { index, fileId ->
+                    allNames.getOrNull(index)?.trim()?.takeIf { it.isNotBlank() }?.let { fileId to it }
+                }.toMap()
+                val directory = data?.getStringExtra(ReceiveSettingsActivity.EXTRA_DIRECTORY_URI)?.let(Uri::parse)
+                pendingReceiveSettingsOptions = IncomingReceiveOptions(
+                    selectedIds, renamedFiles, directory,
+                    data?.getBooleanExtra(ReceiveSettingsActivity.EXTRA_SAVE_TO_GALLERY, false) == true
+                )
+            }
+            if (request != null && decide != null) showIncomingRequest(request, decide, pendingReceiveSettingsOptions)
             return
         }
         if (requestCode == FILE_REQUEST && resultCode == RESULT_OK) {
@@ -243,22 +268,42 @@ class MainActivity : Activity(), TransferService.Listener {
         statusText.text = message
     }
 
-    override fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (Boolean) -> Unit) {
-        if (isFinishing || isDestroyed) { decide(false); return }
-        showIncomingRequest(request, decide)
+    override fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit) {
+        if (isFinishing || isDestroyed) { decide(null); return }
+        showIncomingRequest(request, decide, IncomingReceiveOptions.forAll(request, AppSettings(this)))
     }
 
-    private fun showIncomingRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (Boolean) -> Unit) {
-        val files = request.files.values.joinToString("\n") { "${it.fileName} (${formatBytes(it.size)})" }
-        AlertDialog.Builder(this).setTitle(getString(R.string.incoming_request_title, request.info.alias)).setMessage(files)
-            .setNegativeButton(R.string.incoming_request_reject) { _, _ -> decide(false) }
-            .setPositiveButton(R.string.incoming_request_accept) { _, _ -> decide(true) }
-            .setNeutralButton(R.string.verification_title) { _, _ ->
-                pendingVerificationRequest = request
-                pendingVerificationDecision = decide
-                startActivityForResult(Intent(this, VerificationActivity::class.java).putExtra(VerificationActivity.EXTRA_FINGERPRINT, request.info.fingerprint), VERIFICATION_REQUEST)
+    private fun showIncomingRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit, options: IncomingReceiveOptions?) {
+        val content = layoutInflater.inflate(R.layout.dialog_incoming_request, null)
+        content.findViewById<TextView>(R.id.incoming_file_list).text = request.files.values.joinToString("\n") { "${it.fileName} (${formatBytes(it.size)})" }
+        val dialog = AlertDialog.Builder(this).setTitle(getString(R.string.incoming_request_title, request.info.alias)).setView(content)
+            .setNegativeButton(R.string.incoming_request_reject) { _, _ -> decide(null) }
+            .setNeutralButton(R.string.incoming_settings) { _, _ ->
+                pendingReceiveSettingsRequest = request
+                pendingReceiveSettingsDecision = decide
+                pendingReceiveSettingsOptions = options
+                startActivityForResult(ReceiveSettingsActivity.intent(this, request, options), RECEIVE_SETTINGS_REQUEST)
             }
-            .setOnCancelListener { decide(false) }.show()
+            .setPositiveButton(R.string.incoming_request_accept) { _, _ -> decide(options) }
+            .setOnCancelListener { decide(null) }.create()
+        dialog.show()
+        val settingsButton = dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
+        val buttonPanel = settingsButton?.parent as? android.view.ViewGroup
+        if (settingsButton != null && buttonPanel != null) {
+            val verifyButton = android.widget.Button(this, null, android.R.attr.buttonBarNeutralButtonStyle).apply {
+                setText(R.string.verification_title)
+                isAllCaps = false
+                setOnClickListener {
+                    pendingVerificationRequest = request
+                    pendingVerificationDecision = decide
+                    pendingReceiveSettingsOptions = options
+                    dialog.dismiss()
+                    startActivityForResult(Intent(this@MainActivity, VerificationActivity::class.java).putExtra(VerificationActivity.EXTRA_FINGERPRINT, request.info.fingerprint), VERIFICATION_REQUEST)
+                }
+            }
+            val settingsIndex = buttonPanel.indexOfChild(settingsButton)
+            buttonPanel.addView(verifyButton, settingsIndex)
+        }
     }
     override fun onFileReceiveProgress(file: ActiveTransferFile) {
         activeTransferFiles["${file.sessionId}:${file.fileId}"] = file
@@ -333,5 +378,5 @@ class MainActivity : Activity(), TransferService.Listener {
     }
     private fun formatBytes(bytes: Long): String = when { bytes < 1024 -> "$bytes B"; bytes < 1024 * 1024 -> "%.1f KB".format(bytes / 1024.0); bytes < 1024 * 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024.0)); else -> "%.1f GB".format(bytes / (1024.0 * 1024.0 * 1024.0)) }
 
-    private companion object { const val FILE_REQUEST = 1001; const val LEGACY_STORAGE_PERMISSION_REQUEST = 1002; const val NOTIFICATION_PERMISSION_REQUEST = 1003; const val VERIFICATION_REQUEST = 1004 }
+    private companion object { const val FILE_REQUEST = 1001; const val LEGACY_STORAGE_PERMISSION_REQUEST = 1002; const val NOTIFICATION_PERMISSION_REQUEST = 1003; const val VERIFICATION_REQUEST = 1004; const val RECEIVE_SETTINGS_REQUEST = 1005 }
 }

@@ -54,7 +54,7 @@ class ReceiveHistoryAdapter(
             onDetails: (ReceiveHistoryEntry) -> Unit,
             onDelete: (ReceiveHistoryEntry) -> Unit
         ) {
-            icon.setImageResource(iconFor(entry.mimeType))
+            icon.setImageResource(FileTypeIcon.forMimeType(entry.mimeType))
             name.text = entry.displayName
             details.text = itemView.context.getString(
                 R.string.receive_history_details,
@@ -80,11 +80,6 @@ class ReceiveHistoryAdapter(
             }
         }
 
-        private fun iconFor(mimeType: String): Int = when {
-            mimeType.startsWith("image/") -> R.drawable.ic_history_image
-            mimeType.startsWith("text/") || mimeType.contains("pdf") || mimeType.contains("word") -> R.drawable.ic_history_text
-            else -> R.drawable.ic_history_file
-        }
     }
 
     private companion object {

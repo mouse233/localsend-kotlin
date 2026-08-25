@@ -11,11 +11,12 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /** Stores incoming LocalSend uploads without buffering entire files in memory. */
 class IncomingTransferManager(
     context: Context,
-    private val onTransferRequested: (PrepareUploadRequest, (Boolean) -> Unit) -> Unit,
+    private val onTransferRequested: (PrepareUploadRequest, (IncomingReceiveOptions?) -> Unit) -> Unit,
     private val onSessionPrepared: (String, PrepareUploadRequest) -> Unit,
     private val onTransferCancelRequested: (DeviceInfo, String, String) -> Unit,
     private val onFileProgress: (String, String, String, Long, Long) -> Unit,
@@ -31,23 +32,29 @@ class IncomingTransferManager(
     fun prepare(request: PrepareUploadRequest, remoteAddress: String): PrepareUploadResponse? {
         val decisionLatch = CountDownLatch(1)
         val decisionReceived = AtomicBoolean(false)
-        val accepted = AtomicBoolean(false)
-        onTransferRequested(request) { decision ->
+        val optionsReference = AtomicReference<IncomingReceiveOptions?>(null)
+        onTransferRequested(request) { options ->
             if (decisionReceived.compareAndSet(false, true)) {
-                accepted.set(decision)
+                optionsReference.set(options)
                 decisionLatch.countDown()
             }
         }
-        if (!decisionLatch.await(DECISION_TIMEOUT_SECONDS, TimeUnit.SECONDS) || !accepted.get()) return null
+        if (!decisionLatch.await(DECISION_TIMEOUT_SECONDS, TimeUnit.SECONDS)) return null
+        val options = optionsReference.get() ?: return null
+        val selectedFiles = options.selectedFiles(request)
+        if (selectedFiles.isEmpty()) return null
 
         val sessionId = UUID.randomUUID().toString()
-        val targets = request.files.mapValues { (_, file) ->
+        val effectiveFiles = selectedFiles.mapValues { (fileId, file) ->
+            file.copy(fileName = options.displayName(fileId, file.fileName))
+        }
+        val targets = effectiveFiles.mapValues { (_, file) ->
             val token = UUID.randomUUID().toString()
-            Target(token, file, fileStore.create(file.fileName, file.fileType, file.size))
+            Target(token, file, fileStore.create(file.fileName, file.fileType, file.size, options.receiveDirectoryUri, options.saveMediaToGallery))
         }
         sessions[sessionId] = Session(targets, request.info, remoteAddress)
         activeSessionId = sessionId
-        onSessionPrepared(sessionId, request)
+        onSessionPrepared(sessionId, request.copy(files = effectiveFiles))
         return PrepareUploadResponse(sessionId, targets.mapValues { it.value.token })
     }
 
