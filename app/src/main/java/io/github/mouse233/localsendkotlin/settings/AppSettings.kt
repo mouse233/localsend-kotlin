@@ -36,6 +36,12 @@ class AppSettings(context: Context) {
         }.apply()
     }
 
+    fun hideIpv6BindAddresses(): Boolean = preferences.getBoolean(HIDE_IPV6_BIND_ADDRESSES_KEY, false)
+
+    fun setHideIpv6BindAddresses(enabled: Boolean) {
+        preferences.edit().putBoolean(HIDE_IPV6_BIND_ADDRESSES_KEY, enabled).apply()
+    }
+
     fun language(): String = preferences.getString(LANGUAGE_KEY, AppLocale.SYSTEM) ?: AppLocale.SYSTEM
     fun setLanguage(language: String) = preferences.edit().putString(LANGUAGE_KEY, language).apply()
 
@@ -115,6 +121,7 @@ class AppSettings(context: Context) {
         const val DEVICE_NAME_KEY = "device_name"
         const val DEVICE_TYPE_KEY = "device_type"
         const val DEVICE_MODEL_KEY = "device_model"
+        const val HIDE_IPV6_BIND_ADDRESSES_KEY = "hide_ipv6_bind_addresses"
         const val LANGUAGE_KEY = "language"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"

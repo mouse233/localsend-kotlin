@@ -51,6 +51,11 @@ class SettingsActivity : Activity() {
         findViewById<android.view.View>(R.id.device_name_row).setOnClickListener { showDeviceNameEditor() }
         findViewById<android.view.View>(R.id.device_type_row).setOnClickListener { showDeviceTypePicker() }
         findViewById<android.view.View>(R.id.device_model_row).setOnClickListener { showDeviceModelEditor() }
+        val hideIpv6Switch = findViewById<Switch>(R.id.hide_ipv6_switch).apply {
+            isChecked = settings.hideIpv6BindAddresses()
+            setOnCheckedChangeListener { _, checked -> settings.setHideIpv6BindAddresses(checked) }
+        }
+        findViewById<android.view.View>(R.id.hide_ipv6_row).setOnClickListener { hideIpv6Switch.toggle() }
         val checksumSwitch = findViewById<Switch>(R.id.checksum_switch).apply {
             isChecked = settings.createChecksums()
             setOnCheckedChangeListener { _, checked -> settings.setCreateChecksums(checked) }

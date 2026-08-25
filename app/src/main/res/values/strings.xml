@@ -4,6 +4,7 @@
     <string name="settings">设置</string>
     <string name="save">保存</string>
     <string name="settings_device_section">设备</string>
+    <string name="settings_general_section">通用</string>
     <string name="settings_language">语言</string>
     <string name="language_system">系统默认</string>
     <string name="language_chinese">简体中文</string>
@@ -11,6 +12,8 @@
     <string name="settings_device_name">设备名称</string>
     <string name="settings_device_type">设备类型</string>
     <string name="settings_device_model">设备型号</string>
+    <string name="settings_hide_ipv6_addresses">隐藏 IPv6 绑定地址</string>
+    <string name="settings_hide_ipv6_addresses_summary">仅隐藏主页显示，不影响监听和传输。</string>
     <string name="device_type_mobile">移动设备</string>
     <string name="device_type_desktop">桌面设备</string>
     <string name="device_type_web">Web 浏览器</string>
@@ -80,7 +83,12 @@
     <string name="select_file">选择文件</string>
     <string name="local_endpoint_format">设备名称：%1$s\n绑定地址：%2$s:%3$d</string>
     <string name="local_endpoint_format_multi">设备名称：%1$s\n绑定地址：%2$s</string>
-    <string name="local_endpoint_address_indent">&#160;&#160;&#160;&#160;&#160;</string>
+    <string name="local_endpoint_device_name">设备名称：%1$s</string>
+    <string name="local_endpoint_bind_label">绑定地址：</string>
+    <string name="local_endpoint_server_disabled_value">已关闭</string>
+    <string name="local_endpoint_waiting_for_network_value">等待网络连接（端口 %1$d）</string>
+    <string name="local_endpoint_ipv6_hidden_value">IPv6 地址已隐藏</string>
+    <string name="local_endpoint_ipv6_hidden">设备名称：%1$s\n绑定地址：IPv6 地址已隐藏</string>
     <string name="local_endpoint_waiting_for_network">设备名称：%1$s\n绑定地址：等待网络连接（端口 %2$d）</string>
     <string name="local_endpoint_server_disabled">设备名称：%1$s\n绑定地址：已关闭</string>
     <string name="select_file_first">请先选择文件</string>

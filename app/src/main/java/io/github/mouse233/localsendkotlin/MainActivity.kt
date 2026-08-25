@@ -37,7 +37,9 @@ class MainActivity : Activity(), TransferService.Listener {
     private lateinit var transferProgress: ProgressBar
     private lateinit var cancelTransferButton: android.widget.Button
     private lateinit var activeTransferList: RecyclerView
-    private lateinit var localEndpointText: TextView
+    private lateinit var localEndpointDeviceName: TextView
+    private lateinit var localEndpointBindLabel: TextView
+    private lateinit var localEndpointAddresses: TextView
     private var selectedFiles: List<Uri> = emptyList()
     private var appliedLanguage: String? = null
     private var transferService: TransferService? = null
@@ -69,7 +71,9 @@ class MainActivity : Activity(), TransferService.Listener {
         transferProgress = findViewById(R.id.transfer_progress)
         cancelTransferButton = findViewById(R.id.cancel_transfer_button)
         activeTransferList = findViewById(R.id.active_transfer_list)
-        localEndpointText = findViewById(R.id.local_endpoint)
+        localEndpointDeviceName = findViewById(R.id.local_endpoint_device_name)
+        localEndpointBindLabel = findViewById(R.id.local_endpoint_bind_label)
+        localEndpointAddresses = findViewById(R.id.local_endpoint_addresses)
         appliedLanguage = AppSettings(this).language()
         findViewById<android.view.View>(R.id.history_button).setOnClickListener {
             startActivity(Intent(this, ReceiveHistoryActivity::class.java))
@@ -301,22 +305,21 @@ class MainActivity : Activity(), TransferService.Listener {
 
     private fun updateLocalEndpoint() {
         val settings = AppSettings(this)
-        localEndpointText.text = if (!settings.serverEnabled()) {
-            getString(R.string.local_endpoint_server_disabled, settings.deviceName())
+        localEndpointDeviceName.text = getString(R.string.local_endpoint_device_name, settings.deviceName())
+        localEndpointBindLabel.text = getString(R.string.local_endpoint_bind_label)
+        localEndpointAddresses.text = if (!settings.serverEnabled()) {
+            getString(R.string.local_endpoint_server_disabled_value)
         } else {
-            val addresses = LocalNetworkAddress.endpoints(this)
-            if (addresses.isEmpty()) {
-                getString(R.string.local_endpoint_waiting_for_network, settings.deviceName(), settings.port())
-            } else {
-                val addressIndent = getString(R.string.local_endpoint_address_indent)
-                val endpointText = addresses.mapIndexed { index, endpoint ->
+            val allAddresses = LocalNetworkAddress.endpoints(this)
+            val addresses = LocalNetworkAddress.visibleEndpoints(allAddresses, settings.hideIpv6BindAddresses())
+            when {
+                addresses.isNotEmpty() -> addresses.joinToString("\n") { endpoint ->
                     val address = endpoint.address.substringBefore('%')
                     val host = if (address.contains(':')) "[$address]" else address
-                    val endpoint = "$host:${settings.port()}"
-                    if (index == 0) endpoint else "$addressIndent$endpoint"
+                    "$host:${settings.port()}"
                 }
-                    .joinToString("\n")
-                getString(R.string.local_endpoint_format_multi, settings.deviceName(), endpointText)
+                allAddresses.isEmpty() -> getString(R.string.local_endpoint_waiting_for_network_value, settings.port())
+                else -> getString(R.string.local_endpoint_ipv6_hidden_value)
             }
         }
     }

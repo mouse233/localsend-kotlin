@@ -16,6 +16,15 @@
     <string name="manual_send_connecting">Connecting to manual address…</string>
     <string name="manual_send_invalid_address">Invalid address. Enter IP:port.</string>
     <string name="manual_send_failed">Could not connect to the LocalSend device: %1$s:%2$d</string>
-    <string name="settings_network_interfaces_checkbox">Select network interface</string><string name="local_endpoint_address_indent">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</string>
+    <string name="settings_network_interfaces_checkbox">Select network interface</string>
     <string name="local_endpoint_format_multi">Device name: %1$s\nBind address: %2$s</string>
+    <string name="local_endpoint_device_name">Device name: %1$s</string>
+    <string name="local_endpoint_bind_label">Bind address:</string>
+    <string name="local_endpoint_server_disabled_value">Disabled</string>
+    <string name="local_endpoint_waiting_for_network_value">Waiting for network (port %1$d)</string>
+    <string name="local_endpoint_ipv6_hidden_value">IPv6 addresses hidden</string>
+    <string name="settings_general_section">General</string>
+    <string name="settings_hide_ipv6_addresses">Hide IPv6 bind addresses</string>
+    <string name="settings_hide_ipv6_addresses_summary">Only hides them on the home screen; listening and transfers are unaffected.</string>
+    <string name="local_endpoint_ipv6_hidden">Device name: %1$s\nBind address: IPv6 addresses hidden</string>
 </resources>

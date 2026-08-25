@@ -13,6 +13,15 @@ data class LocalNetworkEndpoint(
 
 /** Finds the addresses used by the LocalSend listeners. */
 object LocalNetworkAddress {
+    fun visibleEndpoints(
+        endpoints: List<LocalNetworkEndpoint>,
+        hideIpv6: Boolean
+    ): List<LocalNetworkEndpoint> = if (hideIpv6) {
+        endpoints.filterNot { it.address.substringBefore('%').contains(':') }
+    } else {
+        endpoints
+    }
+
     @Suppress("DEPRECATION")
     fun endpoints(context: Context): List<LocalNetworkEndpoint> {
         val interfaces = NetworkInterfaceCatalog.list()
