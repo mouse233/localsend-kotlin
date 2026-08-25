@@ -20,6 +20,28 @@ class AppSettings(context: Context) {
         }.apply()
     }
 
+    fun deviceType(): String = DeviceType.fromValue(preferences.getString(DEVICE_TYPE_KEY, null)).value
+
+    fun setDeviceType(type: String) {
+        preferences.edit().putString(DEVICE_TYPE_KEY, DeviceType.fromValue(type).value).apply()
+    }
+
+    fun deviceModel(): String = preferences.getString(DEVICE_MODEL_KEY, null)?.trim().orEmpty()
+        .ifBlank { defaultDeviceModel() }
+
+    fun saveDeviceModel(model: String) {
+        val normalized = model.trim()
+        preferences.edit().apply {
+            if (normalized.isBlank()) remove(DEVICE_MODEL_KEY) else putString(DEVICE_MODEL_KEY, normalized)
+        }.apply()
+    }
+
+    fun hideIpv6BindAddresses(): Boolean = preferences.getBoolean(HIDE_IPV6_BIND_ADDRESSES_KEY, false)
+
+    fun setHideIpv6BindAddresses(enabled: Boolean) {
+        preferences.edit().putBoolean(HIDE_IPV6_BIND_ADDRESSES_KEY, enabled).apply()
+    }
+
     fun language(): String = preferences.getString(LANGUAGE_KEY, AppLocale.SYSTEM) ?: AppLocale.SYSTEM
     fun setLanguage(language: String) = preferences.edit().putString(LANGUAGE_KEY, language).apply()
 
@@ -68,11 +90,24 @@ class AppSettings(context: Context) {
         return true
     }
 
+    /** Null means the first-run automatic interface selection is still active. */
+    fun networkInterfaceSelection(): Set<String>? = if (preferences.contains(NETWORK_INTERFACES_KEY)) {
+        preferences.getStringSet(NETWORK_INTERFACES_KEY, emptySet())?.toSet() ?: emptySet()
+    } else {
+        null
+    }
+
+    fun setNetworkInterfaceSelection(names: Set<String>) {
+        preferences.edit().putStringSet(NETWORK_INTERFACES_KEY, names.toSet()).apply()
+    }
+
     fun plainHttpFingerprint(): String = preferences.getString(HTTP_FINGERPRINT_KEY, null) ?: UUID.randomUUID().toString().also {
         preferences.edit().putString(HTTP_FINGERPRINT_KEY, it).apply()
     }
 
     private fun defaultDeviceName(): String = Build.MODEL.ifBlank { "Android" }
+
+    private fun defaultDeviceModel(): String = Build.MANUFACTURER.ifBlank { Build.MODEL.ifBlank { "Android" } }
 
     private fun isIpv4Multicast(address: String): Boolean {
         val parts = address.split('.')
@@ -84,6 +119,9 @@ class AppSettings(context: Context) {
     private companion object {
         const val PREFERENCES_NAME = "app_settings"
         const val DEVICE_NAME_KEY = "device_name"
+        const val DEVICE_TYPE_KEY = "device_type"
+        const val DEVICE_MODEL_KEY = "device_model"
+        const val HIDE_IPV6_BIND_ADDRESSES_KEY = "hide_ipv6_bind_addresses"
         const val LANGUAGE_KEY = "language"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"
@@ -95,6 +133,7 @@ class AppSettings(context: Context) {
         const val PORT_KEY = "port"
         const val ENCRYPTION_KEY = "encryption_enabled"
         const val MULTICAST_ADDRESS_KEY = "multicast_address"
+        const val NETWORK_INTERFACES_KEY = "network_interfaces"
         const val HTTP_FINGERPRINT_KEY = "http_fingerprint"
     }
 }

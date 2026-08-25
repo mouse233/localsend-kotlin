@@ -4,7 +4,7 @@
 
 An unofficial, lightweight native Android LocalSend client written in Kotlin. This project is not affiliated with or endorsed by the official LocalSend project. It aims to interoperate with the official LocalSend clients and provide secure file transfer on local networks, including older Android devices.
 
-> Current version: `v0.6.2-alpha`
+> Current version: `v0.6.3-alpha`
 >
 > The core workflow is usable, but compatibility across Android versions, vendor-specific background policies, and long-running transfers still needs more real-device validation.
 
@@ -14,9 +14,11 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
   - LocalSend v2 UDP multicast discovery (`224.0.0.167:53317`)
   - HTTPS LAN scanning fallback when multicast is unavailable
   - Android 5.0 (API 21) network binding compatibility
+  - Selectable network interfaces with per-interface address display
 - File sending
   - System file picker
   - Multi-file selection and sequential send queue
+  - Manual `IP:port` connection with HTTP/HTTPS protocol probing
   - Per-file and session progress
   - Sender-side whole-session cancellation
   - Stops uploading when the receiver cancels
@@ -35,7 +37,8 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 - Interface and settings
   - In-app language choice: System Default, Simplified Chinese, or English
   - Local device name and bind address on the main screen
-  - Settings for the server, port, encryption, multicast address, receive behavior, and checksums
+  - Settings for the device name, device type, device model, network interfaces, server, port, encryption, multicast address, receive behavior, and checksums
+  - Optional hiding of IPv6 bind addresses on the main screen
 - Background transfer and notifications
   - Foreground service for background and lock-screen transfers
   - Notification actions for accepting, rejecting, and cancelling transfers
@@ -44,10 +47,9 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 ## Not implemented yet
 
 - Resumable transfers after an interrupted connection or app restart.
-- Manual IP connection for networks where multicast and LAN scanning are unavailable.
 - Save received media to the gallery.
 - Trusted-device management for known certificate fingerprints.
-- Advanced identity and network controls: device type/model, network interface, and discovery timeout.
+- Advanced discovery controls such as discovery timeout are not implemented yet.
 - Experimental Android 4.x support.
 
 ## Technology stack
@@ -114,7 +116,7 @@ The project can also be opened in Android Studio and run with the `app` configur
 1. Install and open the app on both devices.
 2. Connect both devices to the same Wi-Fi/LAN and allow network access.
 3. Tap **Select file** and choose a file.
-4. Tap the target device under **Nearby devices**.
+4. Tap the target device under **Nearby devices**, or tap **Manual send** and enter the target `IP:port`.
 5. Accept the confirmation dialog on the receiving device.
 6. Monitor the progress and tap **Cancel** if needed. Completed received files appear in **History**.
 

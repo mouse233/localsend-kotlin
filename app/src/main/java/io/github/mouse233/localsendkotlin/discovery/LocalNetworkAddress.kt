@@ -3,12 +3,45 @@ package io.github.mouse233.localsendkotlin.discovery
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import io.github.mouse233.localsendkotlin.settings.AppSettings
 import java.net.Inet4Address
 
-/** Finds the LAN IPv4 address used by the LocalSend listener. */
+data class LocalNetworkEndpoint(
+    val interfaceName: String,
+    val address: String
+)
+
+/** Finds the addresses used by the LocalSend listeners. */
 object LocalNetworkAddress {
+    fun visibleEndpoints(
+        endpoints: List<LocalNetworkEndpoint>,
+        hideIpv6: Boolean
+    ): List<LocalNetworkEndpoint> = if (hideIpv6) {
+        endpoints.filterNot { it.address.substringBefore('%').contains(':') }
+    } else {
+        endpoints
+    }
+
     @Suppress("DEPRECATION")
-    fun ipv4(context: Context): String? {
+    fun endpoints(context: Context): List<LocalNetworkEndpoint> {
+        val interfaces = NetworkInterfaceCatalog.list()
+        val configuredSelection = AppSettings(context).networkInterfaceSelection()
+        val selected = NetworkInterfaceCatalog.resolveSelection(
+            interfaces,
+            configuredSelection,
+            NetworkInterfaceCatalog.defaultSelection(context, interfaces)
+        )
+        val selectedEndpoints = interfaces.asSequence()
+            .filter { it.name in selected }
+            .flatMap { networkInterface ->
+                networkInterface.addresses.asSequence().map { address ->
+                    LocalNetworkEndpoint(networkInterface.name, address)
+                }
+            }
+            .distinct()
+            .toList()
+        if (selectedEndpoints.isNotEmpty() || configuredSelection != null) return selectedEndpoints
+
         val manager = context.applicationContext
             .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networks = manager.allNetworks.sortedByDescending { network ->
@@ -25,6 +58,13 @@ object LocalNetworkAddress {
             .map { it.address }
             .filterIsInstance<Inet4Address>()
             .firstOrNull { !it.isLoopbackAddress }
-            ?.hostAddress
+            ?.let { address ->
+                listOf(LocalNetworkEndpoint("network", address.hostAddress ?: return@let emptyList()))
+            }
+            ?: emptyList()
     }
+
+    fun ipv4(context: Context): String? = endpoints(context)
+        .firstOrNull { !it.address.contains(':') }
+        ?.address
 }

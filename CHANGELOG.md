@@ -1,5 +1,35 @@
 # Changelog
 
+## [v0.6.3-alpha] - 2026-08-25
+
+### Added
+
+- Added manual `IP:port` sending with HTTP/HTTPS probing.
+- Added customizable device type and device model settings.
+- Added selectable network interfaces with per-interface IPv4/IPv6 address display and listeners.
+- Added an option to hide IPv6 bind addresses on the main screen without disabling IPv6 listening.
+
+### Changed
+
+- Updated the main screen to show all selected bind addresses without repeating interface names.
+- Reworked the network-interface picker and settings rows for consistent spacing and touchable areas.
+
+## 中文说明
+
+### v0.6.3-alpha（2026-08-25）
+
+#### 新增
+
+- 新增输入 `IP:端口` 手动发送，并自动探测 HTTP/HTTPS。
+- 新增自定义设备类型和设备型号设置。
+- 新增网络接口多选，可显示并监听各接口的 IPv4/IPv6 地址。
+- 新增主页隐藏 IPv6 绑定地址选项；该选项不会关闭 IPv6 监听。
+
+#### 调整
+
+- 主页显示所有已选绑定地址，不再重复显示接口名称。
+- 重做网络接口选择器和设置项间距，统一可触摸区域。
+
 ## [v0.6.2-alpha] - 2026-08-25
 
 ### Changed

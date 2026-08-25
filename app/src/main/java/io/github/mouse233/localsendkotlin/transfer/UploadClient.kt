@@ -144,7 +144,11 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
             .hostnameVerifier { _, _ -> true }.connectTimeout(8, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
     }
 
-    private fun url(device: RemoteDevice, path: String): HttpUrl = "${device.protocol}://${device.address}:${device.port}$path".toHttpUrl()
+    private fun url(device: RemoteDevice, path: String): HttpUrl {
+        val host = device.address.removePrefix("[").removeSuffix("]")
+        val formattedHost = if (host.contains(':')) "[$host]" else host
+        return "${device.protocol}://$formattedHost:${device.port}$path".toHttpUrl()
+    }
 
     private fun readFile(uri: Uri): FileInfo {
         var name = "shared-file"

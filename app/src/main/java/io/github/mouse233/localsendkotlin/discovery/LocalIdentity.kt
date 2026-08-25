@@ -1,7 +1,6 @@
 package io.github.mouse233.localsendkotlin.discovery
 
 import android.content.Context
-import android.os.Build
 import io.github.mouse233.localsendkotlin.model.DeviceInfo
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
@@ -21,8 +20,8 @@ class LocalIdentity(context: Context) {
     fun deviceInfo(): DeviceInfo = DeviceInfo(
         alias = settings.deviceName(),
         version = LocalSendProtocol.VERSION,
-        deviceModel = Build.MANUFACTURER.ifBlank { Build.MODEL.ifBlank { "Android" } },
-        deviceType = "mobile",
+        deviceModel = settings.deviceModel(),
+        deviceType = settings.deviceType(),
         fingerprint = if (settings.encryptionEnabled()) tlsIdentity.fingerprint else settings.plainHttpFingerprint(),
         port = settings.port(),
         protocol = if (settings.encryptionEnabled()) "https" else "http",

@@ -69,8 +69,9 @@ class DiscoveryManager(
 
     @Volatile private var executor: ExecutorService? = null
     @Volatile private var legacyScanExecutor: ExecutorService? = null
-    @Volatile private var socket: MulticastSocket? = null
-    @Volatile private var server: LocalSendServer? = null
+    @Volatile private var multicastReceiveExecutor: ExecutorService? = null
+    @Volatile private var multicastSockets: List<MulticastSocket> = emptyList()
+    @Volatile private var servers: List<LocalSendServer> = emptyList()
     @Volatile private var incomingTransfers: IncomingTransferManager? = null
     @Volatile private var multicastLock: WifiManager.MulticastLock? = null
     @Volatile private var legacyProcessNetworkBound = false
@@ -98,15 +99,17 @@ class DiscoveryManager(
 
     fun stop() {
         if (!running.compareAndSet(true, false)) return
-        socket?.close()
-        socket = null
+        multicastSockets.forEach { it.close() }
+        multicastSockets = emptyList()
+        multicastReceiveExecutor?.shutdownNow()
+        multicastReceiveExecutor = null
         if (legacyProcessNetworkBound) {
             // setProcessDefaultNetwork is the API 21-compatible counterpart to socket binding.
             ConnectivityManager.setProcessDefaultNetwork(null)
             legacyProcessNetworkBound = false
         }
-        server?.stop()
-        server = null
+        servers.forEach { it.stop() }
+        servers = emptyList()
         multicastLock?.let { lock -> if (lock.isHeld) lock.release() }
         multicastLock = null
         executor?.shutdownNow()
@@ -118,6 +121,10 @@ class DiscoveryManager(
     private fun runDiscovery() {
         try {
             acquireMulticastLock()
+            val selectedInterfaces = selectedInterfaces()
+            if (selectedInterfaces.isEmpty()) {
+                throw IOException("No selected network interface is available")
+            }
             val transferManager = IncomingTransferManager(
                 appContext,
                 onTransferRequested = { request, decide ->
@@ -140,26 +147,57 @@ class DiscoveryManager(
                 }
             )
             incomingTransfers = transferManager
-            val localServer = LocalSendServer(
-                gson,
-                identity.tlsIdentity,
-                identity::deviceInfo,
-                ::registerDevice,
-                transferManager,
-                settings.port(),
-                settings.encryptionEnabled(),
-                onTransferCancelled = UploadClient::cancel
-            )
-            localServer.start(SOCKET_READ_TIMEOUT_MS, false)
-            server = localServer
+            val startedServers = ArrayList<LocalSendServer>()
+            selectedInterfaces.flatMap { it.addresses }.forEach { address ->
+                try {
+                    LocalSendServer(
+                        gson,
+                        identity.tlsIdentity,
+                        identity::deviceInfo,
+                        ::registerDevice,
+                        transferManager,
+                        settings.port(),
+                        settings.encryptionEnabled(),
+                        bindAddress = address,
+                        onTransferCancelled = UploadClient::cancel
+                    ).also { localServer ->
+                        localServer.start(SOCKET_READ_TIMEOUT_MS, false)
+                        startedServers += localServer
+                        Log.i(TAG, "Listening for LocalSend HTTP on $address:${settings.port()}")
+                    }
+                } catch (exception: Exception) {
+                    Log.w(TAG, "Unable to listen on $address:${settings.port()}", exception)
+                }
+            }
+            if (startedServers.isEmpty()) throw IOException("Unable to listen on selected network interfaces")
+            servers = startedServers
 
-            val multicastSocket = createMulticastSocket()
-            socket = multicastSocket
-            Log.i(TAG, "Listening for LocalSend discovery on ${multicastSocket.networkInterface.name}")
+            val transports = selectedInterfaces.mapNotNull { createTransport(it) }
+            prepareProcessNetworkBinding(transports)
+            val sockets = transports.mapNotNull { transport ->
+                try {
+                    createMulticastSocket(transport).also {
+                        Log.i(TAG, "Listening for LocalSend discovery on ${transport.interfaceInfo.name}")
+                    }
+                } catch (exception: Exception) {
+                    Log.w(TAG, "Unable to listen for multicast on ${transport.interfaceInfo.name}", exception)
+                    null
+                }
+            }
+            multicastSockets = sockets
+            multicastReceiveExecutor = Executors.newFixedThreadPool(sockets.size.coerceAtLeast(1))
+            sockets.forEach { multicastReceiveExecutor?.execute { receiveAnnouncements(it) } }
             sendAnnouncement(announce = true)
             scheduleMulticastRetries()
             scheduleLegacyScan()
-            receiveAnnouncements(multicastSocket)
+            while (running.get()) {
+                try {
+                    Thread.sleep(500L)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    break
+                }
+            }
         } catch (exception: Exception) {
             Log.e(TAG, "Unable to start LocalSend discovery", exception)
             reportError("Unable to start discovery: ${exception.message ?: "network error"}")
@@ -262,21 +300,23 @@ class DiscoveryManager(
         }
     }
 
-    /** HTTP legacy-mode fallback for WLANs that suppress multicast packets. */
+    /** HTTP legacy-mode fallback for selected interfaces that suppress multicast packets. */
     private fun scanLocalNetwork() {
-        val transport = try {
-            findWifiTransport()
-        } catch (exception: IOException) {
-            reportError(exception.message ?: "Unable to scan the local network")
+        val selectedInterfaces = selectedInterfaces()
+        if (selectedInterfaces.isEmpty()) {
+            reportError("No selected network interface is available")
             return
         }
-        val effectivePrefix = maxOf(transport.prefixLength, MINIMUM_SCAN_PREFIX)
-        val hostBits = 32 - effectivePrefix
-        val networkAddress = ipv4ToInt(transport.address) and (-1 shl hostBits)
-        val addressCount = 1 shl hostBits
-        Log.i(TAG, "Starting HTTP legacy scan with ${addressCount - 2} hosts, nearest addresses first")
-        orderedHostOffsets(networkAddress, addressCount, transport.address).forEach { offset ->
-            legacyScanExecutor?.execute { scanAddress(intToIpv4(networkAddress + offset)) }
+        selectedInterfaces.flatMap { it.ipv4Addresses }.forEach { localAddress ->
+            val effectivePrefix = maxOf(localAddress.prefixLength, MINIMUM_SCAN_PREFIX)
+            val hostBits = 32 - effectivePrefix
+            if (hostBits <= 1) return@forEach
+            val networkAddress = ipv4ToInt(localAddress.address) and (-1 shl hostBits)
+            val addressCount = 1 shl hostBits
+            Log.i(TAG, "Starting HTTP legacy scan on ${localAddress.address.hostAddress} with ${addressCount - 2} hosts")
+            orderedHostOffsets(networkAddress, addressCount, localAddress.address).forEach { offset ->
+                legacyScanExecutor?.execute { scanAddress(intToIpv4(networkAddress + offset)) }
+            }
         }
     }
 
@@ -315,20 +355,23 @@ class DiscoveryManager(
     }
 
     private fun sendAnnouncement(announce: Boolean) {
-        val multicastSocket = socket ?: return
+        if (multicastSockets.isEmpty()) return
         val message = gson.toJson(identity.deviceInfo().copy(announce = announce))
         val data = message.toByteArray(Charsets.UTF_8)
-        val packet = DatagramPacket(
-            data,
-            data.size,
-            InetAddress.getByName(settings.multicastAddress()),
-            settings.port()
-        )
-        try {
-            multicastSocket.send(packet)
-            Log.d(TAG, "Sent LocalSend multicast announcement")
-        } catch (exception: IOException) {
-            reportError("Unable to send device announcement")
+        multicastSockets.forEach { multicastSocket ->
+            try {
+                multicastSocket.send(
+                    DatagramPacket(
+                        data,
+                        data.size,
+                        InetAddress.getByName(settings.multicastAddress()),
+                        settings.port()
+                    )
+                )
+                Log.d(TAG, "Sent LocalSend multicast announcement on ${multicastSocket.networkInterface.name}")
+            } catch (exception: IOException) {
+                Log.w(TAG, "Unable to send device announcement on ${multicastSocket.networkInterface.name}", exception)
+            }
         }
     }
 
@@ -370,26 +413,13 @@ class DiscoveryManager(
         }
     }
 
-    /**
-     * Android often creates an IPv6 dual-stack socket when given a wildcard address.
-     * LocalSend v2 discovery is IPv4 multicast, so explicitly use the active Wi-Fi IPv4
-     * interface for both joining and sending. This is required on several MIUI devices.
-     */
+    /** Creates one IPv4 multicast socket for a selected interface. */
     @Throws(IOException::class)
-    private fun createMulticastSocket(): MulticastSocket {
-        val transport = findWifiTransport()
+    private fun createMulticastSocket(transport: InterfaceTransport): MulticastSocket {
         val group = InetAddress.getByName(settings.multicastAddress())
         return MulticastSocket(null).apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-                // DatagramSocket binding was added in API 22.
-                transport.network.bindSocket(this)
-            } else {
-                // Android 5.0 has no Network.bindSocket(DatagramSocket). Bind the process
-                // before creating/using the multicast socket instead.
-                if (!ConnectivityManager.setProcessDefaultNetwork(transport.network)) {
-                    throw IOException("Unable to bind process to Wi-Fi network")
-                }
-                legacyProcessNetworkBound = true
+                transport.network?.bindSocket(this)
             }
             reuseAddress = true
             bind(InetSocketAddress(InetAddress.getByName("0.0.0.0"), settings.port()))
@@ -403,27 +433,34 @@ class DiscoveryManager(
         }
     }
 
-    @Throws(IOException::class)
-    private fun findWifiTransport(): WifiTransport {
+    private fun selectedInterfaces(): List<LocalNetworkInterface> {
+        val available = NetworkInterfaceCatalog.list()
+        val selected = NetworkInterfaceCatalog.resolveSelection(
+            available,
+            settings.networkInterfaceSelection(),
+            NetworkInterfaceCatalog.defaultSelection(appContext, available)
+        )
+        return available.filter { it.name in selected }
+    }
+
+    private fun createTransport(interfaceInfo: LocalNetworkInterface): InterfaceTransport? {
+        val networkInterface = NetworkInterface.getByName(interfaceInfo.name) ?: return null
         val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE)
             as? ConnectivityManager ?: throw IOException("Connectivity service is unavailable")
-        val wifiNetwork = connectivityManager.allNetworks.firstOrNull { network ->
-            connectivityManager.getNetworkCapabilities(network)
-                ?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
-        } ?: throw IOException("Connect to a Wi-Fi network before starting discovery")
-        val wifiLinkAddress = connectivityManager.getLinkProperties(wifiNetwork)
-            ?.linkAddresses
-            ?.firstOrNull { linkAddress ->
-                linkAddress.address is Inet4Address && !linkAddress.address.isLoopbackAddress
-            }
-            ?: throw IOException("Wi-Fi has no IPv4 address")
-        val wifiAddress = wifiLinkAddress.address as Inet4Address
-        val networkInterface = NetworkInterface.getByInetAddress(wifiAddress)
-            ?: throw IOException("Wi-Fi network interface is unavailable")
-        if (!networkInterface.isUp || !networkInterface.supportsMulticast()) {
-            throw IOException("Wi-Fi network interface does not support multicast")
+        val network = connectivityManager.allNetworks.firstOrNull { candidate ->
+            connectivityManager.getLinkProperties(candidate)?.interfaceName == interfaceInfo.name
         }
-        return WifiTransport(wifiNetwork, networkInterface, wifiAddress, wifiLinkAddress.prefixLength)
+        if (!networkInterface.isUp || !networkInterface.supportsMulticast()) return null
+        return InterfaceTransport(interfaceInfo, network, networkInterface)
+    }
+
+    private fun prepareProcessNetworkBinding(transports: List<InterfaceTransport>) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1 || transports.size != 1) return
+        val network = transports.first().network ?: return
+        if (!ConnectivityManager.setProcessDefaultNetwork(network)) {
+            throw IOException("Unable to bind process to selected network interface")
+        }
+        legacyProcessNetworkBound = true
     }
 
     private fun ipv4ToInt(address: Inet4Address): Int {
@@ -454,11 +491,10 @@ class DiscoveryManager(
         val SUPPORTED_PROTOCOLS = setOf("http", "https")
     }
 
-    private data class WifiTransport(
-        val network: Network,
-        val networkInterface: NetworkInterface,
-        val address: Inet4Address,
-        val prefixLength: Int
+    private data class InterfaceTransport(
+        val interfaceInfo: LocalNetworkInterface,
+        val network: Network?,
+        val networkInterface: NetworkInterface
     )
 
     private data class RegistrationResult(

@@ -8,21 +8,28 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.text.InputFilter
 import android.text.InputType
+import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.AppLocale
+import io.github.mouse233.localsendkotlin.settings.DeviceType
+import io.github.mouse233.localsendkotlin.discovery.NetworkInterfaceCatalog
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 
 class SettingsActivity : Activity() {
     private lateinit var settings: AppSettings
     private lateinit var deviceNameValue: TextView
+    private lateinit var deviceTypeValue: TextView
+    private lateinit var deviceModelValue: TextView
     private lateinit var languageValue: TextView
     private lateinit var portValue: TextView
     private lateinit var multicastAddressValue: TextView
+    private lateinit var networkInterfacesValue: TextView
     private lateinit var receiveDirectoryValue: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,14 +38,24 @@ class SettingsActivity : Activity() {
         setContentView(R.layout.activity_settings)
         settings = AppSettings(this)
         deviceNameValue = findViewById(R.id.device_name_value)
+        deviceTypeValue = findViewById(R.id.device_type_value)
+        deviceModelValue = findViewById(R.id.device_model_value)
         languageValue = findViewById(R.id.language_value)
         portValue = findViewById(R.id.port_value)
         multicastAddressValue = findViewById(R.id.multicast_address_value)
+        networkInterfacesValue = findViewById(R.id.network_interfaces_value)
         receiveDirectoryValue = findViewById(R.id.receive_directory_value)
         refreshValues()
         findViewById<android.view.View>(R.id.settings_back_button).setOnClickListener { finish() }
         findViewById<android.view.View>(R.id.language_row).setOnClickListener { showLanguagePicker() }
         findViewById<android.view.View>(R.id.device_name_row).setOnClickListener { showDeviceNameEditor() }
+        findViewById<android.view.View>(R.id.device_type_row).setOnClickListener { showDeviceTypePicker() }
+        findViewById<android.view.View>(R.id.device_model_row).setOnClickListener { showDeviceModelEditor() }
+        val hideIpv6Switch = findViewById<Switch>(R.id.hide_ipv6_switch).apply {
+            isChecked = settings.hideIpv6BindAddresses()
+            setOnCheckedChangeListener { _, checked -> settings.setHideIpv6BindAddresses(checked) }
+        }
+        findViewById<android.view.View>(R.id.hide_ipv6_row).setOnClickListener { hideIpv6Switch.toggle() }
         val checksumSwitch = findViewById<Switch>(R.id.checksum_switch).apply {
             isChecked = settings.createChecksums()
             setOnCheckedChangeListener { _, checked -> settings.setCreateChecksums(checked) }
@@ -78,6 +95,7 @@ class SettingsActivity : Activity() {
         }
         findViewById<android.view.View>(R.id.encryption_row).setOnClickListener { encryptionSwitch.toggle() }
         findViewById<android.view.View>(R.id.multicast_address_row).setOnClickListener { showMulticastAddressEditor() }
+        findViewById<android.view.View>(R.id.network_interfaces_row).setOnClickListener { showNetworkInterfacesPicker() }
         findViewById<TextView>(R.id.version_value).text = BuildConfig.VERSION_NAME
         findViewById<android.view.View>(R.id.version_row).setOnClickListener { openUrl(RELEASES_URL) }
         findViewById<android.view.View>(R.id.changelog_row).setOnClickListener { startActivity(Intent(this, ChangelogActivity::class.java)) }
@@ -100,6 +118,41 @@ class SettingsActivity : Activity() {
         ) { value ->
             settings.saveDeviceName(value)
             refreshValues()
+            true
+        }
+    }
+
+    private fun showDeviceTypePicker() {
+        val types = arrayOf(
+            DeviceType.MOBILE to R.string.device_type_mobile,
+            DeviceType.DESKTOP to R.string.device_type_desktop,
+            DeviceType.WEB to R.string.device_type_web,
+            DeviceType.HEADLESS to R.string.device_type_headless,
+            DeviceType.SERVER to R.string.device_type_server
+        )
+        val labels = types.map { getString(it.second) }.toTypedArray()
+        val selected = types.indexOfFirst { it.first.value == settings.deviceType() }.coerceAtLeast(0)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_device_type)
+            .setSingleChoiceItems(labels, selected) { dialog, which ->
+                settings.setDeviceType(types[which].first.value)
+                refreshValues()
+                reloadNetwork()
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun showDeviceModelEditor() {
+        showEditor(
+            R.string.settings_device_model,
+            settings.deviceModel(),
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
+            InputFilter.LengthFilter(64)
+        ) { value ->
+            settings.saveDeviceModel(value)
+            refreshValues()
+            reloadNetwork()
             true
         }
     }
@@ -147,6 +200,55 @@ class SettingsActivity : Activity() {
         true
     }
 
+    private fun showNetworkInterfacesPicker() {
+        val interfaces = NetworkInterfaceCatalog.list()
+        if (interfaces.isEmpty()) {
+            Toast.makeText(this, R.string.settings_network_interfaces_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val initialSelection = NetworkInterfaceCatalog.resolveSelection(
+            interfaces,
+            settings.networkInterfaceSelection(),
+            NetworkInterfaceCatalog.defaultSelection(this, interfaces)
+        )
+        val selected = initialSelection.toMutableSet()
+        val content = layoutInflater.inflate(R.layout.dialog_network_interfaces, null)
+        val list = content.findViewById<LinearLayout>(R.id.network_interfaces_list)
+        interfaces.forEachIndexed { index, networkInterface ->
+            val row = layoutInflater.inflate(R.layout.item_network_interface, list, false)
+            val checkbox = row.findViewById<CheckBox>(R.id.network_interface_checkbox)
+            row.findViewById<TextView>(R.id.network_interface_name).text =
+                "[#${index + 1}] ${networkInterface.name}"
+            row.findViewById<TextView>(R.id.network_interface_addresses).text =
+                networkInterface.addresses.joinToString("\n")
+            checkbox.isChecked = networkInterface.name in selected
+            checkbox.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) selected += networkInterface.name else selected -= networkInterface.name
+            }
+            row.setOnClickListener { checkbox.isChecked = !checkbox.isChecked }
+            list.addView(row)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.settings_network_interfaces)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.save, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                if (selected.isEmpty()) {
+                    Toast.makeText(this, R.string.settings_network_interfaces_select_one, Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                settings.setNetworkInterfaceSelection(selected)
+                refreshValues()
+                reloadNetwork()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
     private fun showEditor(
         title: Int,
         value: String,
@@ -176,6 +278,8 @@ class SettingsActivity : Activity() {
 
     private fun refreshValues() {
         deviceNameValue.text = settings.deviceName()
+        deviceTypeValue.text = deviceTypeLabel(settings.deviceType())
+        deviceModelValue.text = settings.deviceModel()
         languageValue.text = when (settings.language()) {
             AppLocale.CHINESE -> getString(R.string.language_chinese)
             AppLocale.ENGLISH -> getString(R.string.language_english)
@@ -183,7 +287,28 @@ class SettingsActivity : Activity() {
         }
         portValue.text = settings.port().toString()
         multicastAddressValue.text = settings.multicastAddress()
+        networkInterfacesValue.text = networkInterfaceSummary()
         receiveDirectoryValue.text = settings.receiveDirectoryName() ?: getString(R.string.settings_default_receive_directory)
+    }
+
+    private fun networkInterfaceSummary(): String {
+        val interfaces = NetworkInterfaceCatalog.list()
+        val selected = NetworkInterfaceCatalog.resolveSelection(
+            interfaces,
+            settings.networkInterfaceSelection(),
+            NetworkInterfaceCatalog.defaultSelection(this, interfaces)
+        )
+        return interfaces.filter { it.name in selected }
+            .joinToString("\n") { it.name }
+            .ifBlank { getString(R.string.settings_network_interfaces_none) }
+    }
+
+    private fun deviceTypeLabel(value: String): String = when (DeviceType.fromValue(value)) {
+        DeviceType.MOBILE -> getString(R.string.device_type_mobile)
+        DeviceType.DESKTOP -> getString(R.string.device_type_desktop)
+        DeviceType.WEB -> getString(R.string.device_type_web)
+        DeviceType.HEADLESS -> getString(R.string.device_type_headless)
+        DeviceType.SERVER -> getString(R.string.device_type_server)
     }
 
     private fun chooseReceiveDirectory() {
