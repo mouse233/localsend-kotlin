@@ -12,6 +12,7 @@ import android.provider.MediaStore
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.history.ReceiveHistoryStore
@@ -22,6 +23,7 @@ import io.github.mouse233.localsendkotlin.ui.SystemBars
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.io.File
 
 class ReceiveHistoryActivity : Activity() {
     private lateinit var store: ReceiveHistoryStore
@@ -78,17 +80,26 @@ class ReceiveHistoryActivity : Activity() {
 
     private fun openDirectory() {
         val selectedTree = settings.receiveDirectoryUri()
-        val folderUri = selectedTree?.let { tree ->
+        val localDirectory = selectedTree?.let(::primaryExternalDirectory) ?: defaultDirectory()
+        val localUri = localDirectory?.let(::fileProviderUri)
+        val folderUri = localUri ?: selectedTree?.let { tree ->
+            // SAF destinations are already content URIs. Convert the tree URI
+            // to its document URI, matching LocalSend's Android implementation.
             DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
-        } ?: DocumentsContract.buildDocumentUri(
-            EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY,
-            "primary:Download/LocalSend Kotlin"
-        )
+        } ?: defaultDirectoryDocumentUri()
         val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(folderUri, DocumentsContract.Document.MIME_TYPE_DIR)
+            // open_filex uses */* for a plain filesystem directory path.
+            // This broad type is what makes the system show all apps that can
+            // accept the location, matching the official LocalSend behavior.
+            val mimeType = if (localUri != null) "*/*" else DocumentsContract.Document.MIME_TYPE_DIR
+            setDataAndType(folderUri, mimeType)
+            addCategory(Intent.CATEGORY_DEFAULT)
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         try {
+            // LocalSend opens this generic ACTION_VIEW directly. Android then
+            // resolves all file managers that support browsing directories.
             startActivity(viewIntent)
         } catch (_: Exception) {
             try {
@@ -103,6 +114,37 @@ class ReceiveHistoryActivity : Activity() {
             }
         }
     }
+
+    private fun defaultDirectory(): File = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "LocalSend Kotlin"
+        )
+
+    private fun primaryExternalDirectory(treeUri: Uri): File? = try {
+        val treeId = DocumentsContract.getTreeDocumentId(treeUri)
+        if (treeId.startsWith("primary:")) {
+            File(
+                Environment.getExternalStorageDirectory(),
+                treeId.removePrefix("primary:")
+            )
+        } else null
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun fileProviderUri(directory: File): Uri? {
+        return try {
+            if (!directory.exists()) directory.mkdirs()
+            FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.fileprovider", directory)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun defaultDirectoryDocumentUri(): Uri = DocumentsContract.buildDocumentUri(
+        EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY,
+        "primary:Download/LocalSend Kotlin"
+    )
 
     private fun fileExists(entry: ReceiveHistoryEntry): Boolean = try {
         contentResolver.openFileDescriptor(entry.uri, "r")?.use { true } ?: false
