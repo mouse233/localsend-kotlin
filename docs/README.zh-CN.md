@@ -52,13 +52,14 @@
 
 ## 技术栈
 
-- Kotlin、Android SDK、AndroidX Core KTX
+- Android Gradle Plugin 9.3.2、Gradle 9.7.1，以及 AGP 内置 Kotlin（2.2.x）
+- Android SDK API 36；AndroidX Core KTX 1.17.0、RecyclerView 1.4.0
 - Android Views/XML 布局
 - Android Activity、RecyclerView、系统文件选择器
-- Gradle Kotlin DSL、Android Gradle Plugin
-- OkHttp：HTTPS 请求和文件上传
+- Gradle Kotlin DSL
+- OkHttp 5.4：HTTPS 请求和文件上传
 - NanoHTTPD：本地 HTTP/HTTPS 服务
-- Gson：LocalSend 协议 JSON 编解码
+- Gson 2.14：LocalSend 协议 JSON 编解码
 - Bouncy Castle：TLS 证书和加密支持
 - UDP Multicast、IPv4 局域网扫描：设备发现
 - MediaStore：Android 10 及以上的公共下载目录存储
@@ -68,9 +69,9 @@
 | 项目 | 当前设置 |
 | --- | --- |
 | 最低 Android 版本 | Android 5.0（API 21） |
-| 编译 SDK | Android 13（API 33） |
+| 编译 SDK | Android 16（API 36） |
 | Target SDK | API 33 |
-| Java/Kotlin JVM | Java 8 语言级别；构建建议使用 JDK 17 |
+| Java/Kotlin JVM | Java 8 语言级别；构建必须使用 JDK 17 |
 | 默认端口 | TCP/UDP `53317` |
 | 协议 | LocalSend Protocol v2.2 / version `2.0` |
 
@@ -81,7 +82,7 @@
 要求：
 
 - Android Studio（建议使用较新的稳定版本）
-- Android SDK Platform 33
+- Android SDK Platform 36
 - JDK 17
 
 在项目根目录执行：
@@ -97,6 +98,8 @@
 ```
 
 当前构建已无 lint 错误，剩余少量非阻塞警告主要来自旧版 Android 兼容、AndroidManifest 属性、Bouncy Castle 第三方依赖和根布局背景检查。
+
+`Android CI` 会为 PR 运行 lint、单元测试和调试构建；需要在 Android 5.0 模拟器上验证时，可手动触发独立的 `API 21 Compatibility` workflow。
 
 生成的调试 APK 位于：
 
