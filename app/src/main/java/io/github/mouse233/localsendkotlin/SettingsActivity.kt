@@ -14,12 +14,15 @@ import android.widget.TextView
 import android.widget.Toast
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.AppLocale
+import io.github.mouse233.localsendkotlin.settings.DeviceType
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 
 class SettingsActivity : Activity() {
     private lateinit var settings: AppSettings
     private lateinit var deviceNameValue: TextView
+    private lateinit var deviceTypeValue: TextView
+    private lateinit var deviceModelValue: TextView
     private lateinit var languageValue: TextView
     private lateinit var portValue: TextView
     private lateinit var multicastAddressValue: TextView
@@ -31,6 +34,8 @@ class SettingsActivity : Activity() {
         setContentView(R.layout.activity_settings)
         settings = AppSettings(this)
         deviceNameValue = findViewById(R.id.device_name_value)
+        deviceTypeValue = findViewById(R.id.device_type_value)
+        deviceModelValue = findViewById(R.id.device_model_value)
         languageValue = findViewById(R.id.language_value)
         portValue = findViewById(R.id.port_value)
         multicastAddressValue = findViewById(R.id.multicast_address_value)
@@ -39,6 +44,8 @@ class SettingsActivity : Activity() {
         findViewById<android.view.View>(R.id.settings_back_button).setOnClickListener { finish() }
         findViewById<android.view.View>(R.id.language_row).setOnClickListener { showLanguagePicker() }
         findViewById<android.view.View>(R.id.device_name_row).setOnClickListener { showDeviceNameEditor() }
+        findViewById<android.view.View>(R.id.device_type_row).setOnClickListener { showDeviceTypePicker() }
+        findViewById<android.view.View>(R.id.device_model_row).setOnClickListener { showDeviceModelEditor() }
         val checksumSwitch = findViewById<Switch>(R.id.checksum_switch).apply {
             isChecked = settings.createChecksums()
             setOnCheckedChangeListener { _, checked -> settings.setCreateChecksums(checked) }
@@ -100,6 +107,41 @@ class SettingsActivity : Activity() {
         ) { value ->
             settings.saveDeviceName(value)
             refreshValues()
+            true
+        }
+    }
+
+    private fun showDeviceTypePicker() {
+        val types = arrayOf(
+            DeviceType.MOBILE to R.string.device_type_mobile,
+            DeviceType.DESKTOP to R.string.device_type_desktop,
+            DeviceType.WEB to R.string.device_type_web,
+            DeviceType.HEADLESS to R.string.device_type_headless,
+            DeviceType.SERVER to R.string.device_type_server
+        )
+        val labels = types.map { getString(it.second) }.toTypedArray()
+        val selected = types.indexOfFirst { it.first.value == settings.deviceType() }.coerceAtLeast(0)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_device_type)
+            .setSingleChoiceItems(labels, selected) { dialog, which ->
+                settings.setDeviceType(types[which].first.value)
+                refreshValues()
+                reloadNetwork()
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun showDeviceModelEditor() {
+        showEditor(
+            R.string.settings_device_model,
+            settings.deviceModel(),
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
+            InputFilter.LengthFilter(64)
+        ) { value ->
+            settings.saveDeviceModel(value)
+            refreshValues()
+            reloadNetwork()
             true
         }
     }
@@ -176,6 +218,8 @@ class SettingsActivity : Activity() {
 
     private fun refreshValues() {
         deviceNameValue.text = settings.deviceName()
+        deviceTypeValue.text = deviceTypeLabel(settings.deviceType())
+        deviceModelValue.text = settings.deviceModel()
         languageValue.text = when (settings.language()) {
             AppLocale.CHINESE -> getString(R.string.language_chinese)
             AppLocale.ENGLISH -> getString(R.string.language_english)
@@ -184,6 +228,14 @@ class SettingsActivity : Activity() {
         portValue.text = settings.port().toString()
         multicastAddressValue.text = settings.multicastAddress()
         receiveDirectoryValue.text = settings.receiveDirectoryName() ?: getString(R.string.settings_default_receive_directory)
+    }
+
+    private fun deviceTypeLabel(value: String): String = when (DeviceType.fromValue(value)) {
+        DeviceType.MOBILE -> getString(R.string.device_type_mobile)
+        DeviceType.DESKTOP -> getString(R.string.device_type_desktop)
+        DeviceType.WEB -> getString(R.string.device_type_web)
+        DeviceType.HEADLESS -> getString(R.string.device_type_headless)
+        DeviceType.SERVER -> getString(R.string.device_type_server)
     }
 
     private fun chooseReceiveDirectory() {

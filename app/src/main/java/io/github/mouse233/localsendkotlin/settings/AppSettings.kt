@@ -20,6 +20,22 @@ class AppSettings(context: Context) {
         }.apply()
     }
 
+    fun deviceType(): String = DeviceType.fromValue(preferences.getString(DEVICE_TYPE_KEY, null)).value
+
+    fun setDeviceType(type: String) {
+        preferences.edit().putString(DEVICE_TYPE_KEY, DeviceType.fromValue(type).value).apply()
+    }
+
+    fun deviceModel(): String = preferences.getString(DEVICE_MODEL_KEY, null)?.trim().orEmpty()
+        .ifBlank { defaultDeviceModel() }
+
+    fun saveDeviceModel(model: String) {
+        val normalized = model.trim()
+        preferences.edit().apply {
+            if (normalized.isBlank()) remove(DEVICE_MODEL_KEY) else putString(DEVICE_MODEL_KEY, normalized)
+        }.apply()
+    }
+
     fun language(): String = preferences.getString(LANGUAGE_KEY, AppLocale.SYSTEM) ?: AppLocale.SYSTEM
     fun setLanguage(language: String) = preferences.edit().putString(LANGUAGE_KEY, language).apply()
 
@@ -74,6 +90,8 @@ class AppSettings(context: Context) {
 
     private fun defaultDeviceName(): String = Build.MODEL.ifBlank { "Android" }
 
+    private fun defaultDeviceModel(): String = Build.MANUFACTURER.ifBlank { Build.MODEL.ifBlank { "Android" } }
+
     private fun isIpv4Multicast(address: String): Boolean {
         val parts = address.split('.')
         if (parts.size != 4) return false
@@ -84,6 +102,8 @@ class AppSettings(context: Context) {
     private companion object {
         const val PREFERENCES_NAME = "app_settings"
         const val DEVICE_NAME_KEY = "device_name"
+        const val DEVICE_TYPE_KEY = "device_type"
+        const val DEVICE_MODEL_KEY = "device_model"
         const val LANGUAGE_KEY = "language"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"

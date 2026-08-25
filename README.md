@@ -36,7 +36,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 - Interface and settings
   - In-app language choice: System Default, Simplified Chinese, or English
   - Local device name and bind address on the main screen
-  - Settings for the server, port, encryption, multicast address, receive behavior, and checksums
+  - Settings for the device name, device type, device model, server, port, encryption, multicast address, receive behavior, and checksums
 - Background transfer and notifications
   - Foreground service for background and lock-screen transfers
   - Notification actions for accepting, rejecting, and cancelling transfers
