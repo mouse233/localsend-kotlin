@@ -159,6 +159,7 @@ class DiscoveryManager(
                         settings.port(),
                         settings.encryptionEnabled(),
                         bindAddress = address,
+                        receivePin = settings::receivePin,
                         onTransferCancelled = UploadClient::cancel
                     ).also { localServer ->
                         localServer.start(SOCKET_READ_TIMEOUT_MS, false)

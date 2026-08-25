@@ -5,11 +5,13 @@ import fi.iki.elonen.NanoHTTPD
 import io.github.mouse233.localsendkotlin.model.DeviceInfo
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
+import io.github.mouse233.localsendkotlin.security.PinAuthenticator
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import java.net.ServerSocket
 import java.net.Socket
 import java.io.IOException
 import java.nio.charset.StandardCharsets
+import java.util.HashMap
 import android.util.Log
 import javax.net.ssl.SSLServerSocket
 import javax.net.ssl.SSLSocket
@@ -24,10 +26,13 @@ class LocalSendServer(
     private val port: Int,
     private val encryptionEnabled: Boolean,
     bindAddress: String,
+    private val receivePin: () -> String?,
     private val onTransferCancelled: (String) -> Unit = {}
 ) : NanoHTTPD(bindAddress, port) {
 
     private val clientFingerprint = ThreadLocal<String?>()
+    private val failedPinAttempts = HashMap<String, Int>()
+    private val failedPinAttemptsLock = Any()
 
     init {
         if (encryptionEnabled) {
@@ -82,10 +87,18 @@ class LocalSendServer(
         Log.w(TAG, "Bad request: $reason")
         return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, reason)
     }
+    private fun pinRejected(status: Response.Status, message: String): Response =
+        newFixedLengthResponse(status, MIME_PLAINTEXT, message).also {
+            // The rejected prepare-upload body has not been consumed. Close the
+            // keep-alive connection so NanoHTTPD does not parse that JSON as a
+            // second HTTP request before the sender retries with the PIN.
+            it.closeConnection(true)
+        }
     private fun forbidden(): Response = newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Invalid certificate")
     private fun rejected(): Response = newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Rejected")
 
     private fun prepareUpload(session: IHTTPSession): Response {
+        checkPin(session)?.let { return it }
         val request = gson.fromJson(readUtf8Body(session), IncomingTransferManager.PrepareUploadRequest::class.java) ?: return badRequest()
         Log.i(TAG, "Prepare upload: files=${request.files.size} ids=${request.files.keys}")
         if (!validIdentity(request.info)) {
@@ -94,6 +107,28 @@ class LocalSendServer(
         }
         val response = incomingTransfers.prepare(request, session.remoteIpAddress) ?: return rejected()
         return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(response))
+    }
+
+    /** LocalSend v2.1 authenticates the prepare request with a query parameter. */
+    private fun checkPin(session: IHTTPSession): Response? {
+        val remoteAddress = session.remoteIpAddress
+        val suppliedPin = session.parms[LocalSendProtocol.PIN_QUERY_PARAMETER]
+        val failedAttempts = synchronized(failedPinAttemptsLock) { failedPinAttempts[remoteAddress] ?: 0 }
+        return when (PinAuthenticator.check(receivePin(), suppliedPin, failedAttempts)) {
+            PinAuthenticator.Result.NOT_REQUIRED -> null
+            PinAuthenticator.Result.ACCEPTED -> {
+                synchronized(failedPinAttemptsLock) { failedPinAttempts.remove(remoteAddress) }
+                null
+            }
+            PinAuthenticator.Result.INVALID -> {
+                if (suppliedPin != null) {
+                    synchronized(failedPinAttemptsLock) { failedPinAttempts[remoteAddress] = failedAttempts + 1 }
+                }
+                pinRejected(Response.Status.UNAUTHORIZED, "PIN required or invalid")
+            }
+            PinAuthenticator.Result.TOO_MANY_ATTEMPTS ->
+                pinRejected(Response.Status.TOO_MANY_REQUESTS, "Too many requests")
+        }
     }
 
     private fun receiveFile(session: IHTTPSession): Response {

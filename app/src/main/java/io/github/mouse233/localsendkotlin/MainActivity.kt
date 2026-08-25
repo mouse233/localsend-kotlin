@@ -248,6 +248,40 @@ class MainActivity : Activity(), TransferService.Listener {
         refreshActiveTransfers()
     }
     override fun onUploadStatus(message: String) { statusText.text = message }
+    override fun onPinRequired(device: RemoteDevice, attempt: Int, reply: (String?) -> Unit) {
+        if (isFinishing || isDestroyed) {
+            reply(null)
+            return
+        }
+        val content = layoutInflater.inflate(R.layout.dialog_pin, null)
+        val message = content.findViewById<TextView>(R.id.pin_dialog_message)
+        val input = content.findViewById<EditText>(R.id.pin_dialog_editor)
+        input.inputType = InputType.TYPE_CLASS_TEXT
+        message.text = getString(R.string.pin_required_message, device.alias, attempt)
+        var replied = false
+        fun respond(pin: String?) {
+            if (replied) return
+            replied = true
+            reply(pin)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.pin_required_title)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel) { _, _ -> respond(null) }
+            .setPositiveButton(R.string.submit) { _, _ -> respond(input.text.toString()) }
+            .setOnCancelListener { respond(null) }
+            .create()
+        dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val pin = input.text.toString().trim()
+            if (pin.isEmpty()) {
+                input.error = getString(R.string.invalid_pin)
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            respond(pin)
+        }
+    }
     override fun onTransferStateRestored(title: String, percent: Int) {
         transferProgress.visibility = android.view.View.VISIBLE
         transferProgress.progress = percent
@@ -378,5 +412,11 @@ class MainActivity : Activity(), TransferService.Listener {
     }
     private fun formatBytes(bytes: Long): String = when { bytes < 1024 -> "$bytes B"; bytes < 1024 * 1024 -> "%.1f KB".format(bytes / 1024.0); bytes < 1024 * 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024.0)); else -> "%.1f GB".format(bytes / (1024.0 * 1024.0 * 1024.0)) }
 
-    private companion object { const val FILE_REQUEST = 1001; const val LEGACY_STORAGE_PERMISSION_REQUEST = 1002; const val NOTIFICATION_PERMISSION_REQUEST = 1003; const val VERIFICATION_REQUEST = 1004; const val RECEIVE_SETTINGS_REQUEST = 1005 }
+    private companion object {
+        const val FILE_REQUEST = 1001
+        const val LEGACY_STORAGE_PERMISSION_REQUEST = 1002
+        const val NOTIFICATION_PERMISSION_REQUEST = 1003
+        const val VERIFICATION_REQUEST = 1004
+        const val RECEIVE_SETTINGS_REQUEST = 1005
+    }
 }

@@ -44,6 +44,7 @@ class TransferService : Service(), DiscoveryListener {
         fun onIncomingSessionCompleted(sessionId: String)
         fun onOutgoingSessionCompleted(sessionId: String)
         fun onUploadStatus(message: String)
+        fun onPinRequired(device: RemoteDevice, attempt: Int, reply: (String?) -> Unit)
         fun onUploadProgress(fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long)
         fun onTransferStateRestored(title: String, percent: Int)
         fun onTransferFinished(message: String)
@@ -189,6 +190,15 @@ class TransferService : Service(), DiscoveryListener {
                 activeNotificationTitle = message
                 notifyProgress()
                 notifyListeners { it.onUploadStatus(message) }
+            }
+
+            override fun onPinRequired(device: RemoteDevice, attempt: Int, reply: (String?) -> Unit) {
+                val hasForegroundListener = synchronized(listenerLock) { listeners.isNotEmpty() }
+                if (hasForegroundListener) {
+                    notifyListeners { it.onPinRequired(device, attempt, reply) }
+                } else {
+                    reply(null)
+                }
             }
 
             override fun onSessionPrepared(sessionId: String, files: List<UploadClient.QueueFile>) {

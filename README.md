@@ -30,6 +30,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
   - Configurable receive directory; defaults to `Download/LocalSend Kotlin`
   - Per-transfer receive settings: temporary directory, gallery saving for photos/videos, file selection, and renaming
   - Optional SHA-256 checksum verification when the sender provides one
+  - Optional receive PIN; the PIN field is visible and accepts any non-empty text after trimming surrounding whitespace, and senders are challenged through the LocalSend v2.1 `pin` query parameter
   - Receive history with file details, direct opening, and history clearing
 - Secure transfer
   - HTTPS encryption
@@ -38,7 +39,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 - Interface and settings
   - In-app language choice: System Default, Simplified Chinese, or English
   - Local device name and bind address on the main screen
-  - Settings for the device name, device type, device model, network interfaces, server, port, encryption, multicast address, receive behavior, and checksums
+  - Settings for the device name, device type, device model, network interfaces, server, port, encryption, multicast address, receive behavior, receive PIN, and checksums
   - Optional hiding of IPv6 bind addresses on the main screen
 - Background transfer and notifications
   - Foreground service for background and lock-screen transfers
