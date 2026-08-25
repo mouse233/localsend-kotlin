@@ -14,6 +14,10 @@
 - Updated the main screen to show all selected bind addresses without repeating interface names.
 - Reworked the network-interface picker and settings rows for consistent spacing and touchable areas.
 
+### Fixed
+
+- Fixed the receive-directory action so Android shows the full list of compatible file manager apps.
+
 ## 中文说明
 
 ### v0.6.3-alpha（2026-08-25）
@@ -29,6 +33,10 @@
 
 - 主页显示所有已选绑定地址，不再重复显示接口名称。
 - 重做网络接口选择器和设置项间距，统一可触摸区域。
+
+#### 修复
+
+- 修复打开接收目录时 Android 未显示完整兼容文件管理器列表的问题。
 
 ## [v0.6.2-alpha] - 2026-08-25
 

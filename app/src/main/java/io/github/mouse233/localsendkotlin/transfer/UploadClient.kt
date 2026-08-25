@@ -62,15 +62,17 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 val prepared = prepare(device, files)
                 activeTransfers[prepared.sessionId] = cancelled
                 activeSessionId = prepared.sessionId
-                listener.onSessionPrepared(prepared.sessionId, files.map { it.toQueueFile() })
+                val acceptedFiles = files.filter { it.id in prepared.files }
+                if (acceptedFiles.isEmpty()) throw IllegalStateException("接收方未接受文件")
+                listener.onSessionPrepared(prepared.sessionId, acceptedFiles.map { it.toQueueFile() })
                 try {
                     var totalSent = 0L
-                    val totalBytes = files.sumOf { it.size }
-                    files.forEachIndexed { index, file ->
-                        val token = prepared.files[file.id] ?: throw IllegalStateException("接收方未接受文件：${file.fileName}")
-                        listener.onStatus("正在发送 ${index + 1}/${files.size}：${file.fileName}")
+                    val totalBytes = acceptedFiles.sumOf { it.size }
+                    acceptedFiles.forEachIndexed { index, file ->
+                        val token = prepared.files.getValue(file.id)
+                        listener.onStatus("正在发送 ${index + 1}/${acceptedFiles.size}：${file.fileName}")
                         upload(device, prepared.sessionId, file.id, token, file, cancelled) { sent ->
-                            listener.onProgress(prepared.sessionId, file.id, file.fileName, index, files.size, sent, file.size, totalSent + sent, totalBytes)
+                            listener.onProgress(prepared.sessionId, file.id, file.fileName, index, acceptedFiles.size, sent, file.size, totalSent + sent, totalBytes)
                         }
                         totalSent += file.size
                         listener.onFileCompleted(prepared.sessionId, file.id)
@@ -81,7 +83,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                     activeCancelFlag = null
                     activeDevice = null
                 }
-                listener.onCompleted(files.map { it.fileName })
+                listener.onCompleted(acceptedFiles.map { it.fileName })
             } catch (exception: Exception) {
                 activeCancelFlag = null
                 activeSessionId = null

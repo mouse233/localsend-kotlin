@@ -28,6 +28,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
   - Per-file progress for multi-file sessions
   - Cancel an individual received file or the whole session
   - Configurable receive directory; defaults to `Download/LocalSend Kotlin`
+  - Per-transfer receive settings: temporary directory, gallery saving for photos/videos, file selection, and renaming
   - Optional SHA-256 checksum verification when the sender provides one
   - Receive history with file details, direct opening, and history clearing
 - Secure transfer
@@ -47,7 +48,6 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 ## Not implemented yet
 
 - Resumable transfers after an interrupted connection or app restart.
-- Save received media to the gallery.
 - Trusted-device management for known certificate fingerprints.
 - Advanced discovery controls such as discovery timeout are not implemented yet.
 - Experimental Android 4.x support.

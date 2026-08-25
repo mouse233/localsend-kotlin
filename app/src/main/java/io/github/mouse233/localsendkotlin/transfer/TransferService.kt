@@ -34,7 +34,7 @@ class TransferService : Service(), DiscoveryListener {
     interface Listener {
         fun onDevicesChanged(devices: List<RemoteDevice>)
         fun onDiscoveryError(message: String)
-        fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (Boolean) -> Unit)
+        fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit)
         fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest)
         fun onOutgoingSessionPrepared(sessionId: String, files: List<ActiveTransferFile>)
         fun onFileReceiveProgress(file: ActiveTransferFile)
@@ -116,7 +116,7 @@ class TransferService : Service(), DiscoveryListener {
             if (hasActiveTransfer) listener.onTransferStateRestored(activeNotificationTitle ?: getString(R.string.notification_service_title), activeNotificationProgress)
             else lastTransferMessage?.let(listener::onTransferFinished)
             pendingIncoming?.let { pending ->
-                listener.onIncomingTransferRequest(pending.request) { accepted -> resolveIncoming(accepted) }
+                listener.onIncomingTransferRequest(pending.request) { options -> resolveIncoming(options) }
             }
             synchronized(outgoingFiles) {
                 outgoingFiles.forEach { (sessionId, files) ->
@@ -293,15 +293,15 @@ class TransferService : Service(), DiscoveryListener {
 
     override fun onIncomingTransferRequest(
         request: IncomingTransferManager.PrepareUploadRequest,
-        decide: (Boolean) -> Unit
+        decide: (IncomingReceiveOptions?) -> Unit
     ) {
         if (settings.autoSaveReceivedFiles()) {
-            decide(true)
+            decide(IncomingReceiveOptions.forAll(request, settings))
             return
         }
         val listener = listeners.firstOrNull()
         if (listener == null) {
-            pendingIncoming?.decide?.invoke(false)
+            pendingIncoming?.decide?.invoke(null)
             pendingIncoming = PendingIncoming(request, decide)
             showIncomingRequestNotification(request)
         } else {
@@ -442,9 +442,14 @@ class TransferService : Service(), DiscoveryListener {
 
     private fun resolveIncoming(accepted: Boolean) {
         val pending = pendingIncoming ?: return
+        resolveIncoming(if (accepted) IncomingReceiveOptions.forAll(pending.request, settings) else null)
+    }
+
+    private fun resolveIncoming(options: IncomingReceiveOptions?) {
+        val pending = pendingIncoming ?: return
         pendingIncoming = null
         notificationManager().cancel(INCOMING_NOTIFICATION_ID)
-        pending.decide(accepted)
+        pending.decide(options)
     }
 
     private fun showIncomingRequestNotification(request: IncomingTransferManager.PrepareUploadRequest) {
@@ -610,6 +615,6 @@ class TransferService : Service(), DiscoveryListener {
 
     private data class PendingIncoming(
         val request: IncomingTransferManager.PrepareUploadRequest,
-        val decide: (Boolean) -> Unit
+        val decide: (IncomingReceiveOptions?) -> Unit
     )
 }
