@@ -12,6 +12,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.text.InputType
+import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -21,6 +23,7 @@ import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
 import io.github.mouse233.localsendkotlin.discovery.LocalNetworkAddress
+import io.github.mouse233.localsendkotlin.discovery.ManualEndpoint
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
@@ -88,6 +91,7 @@ class MainActivity : Activity(), TransferService.Listener {
             itemAnimator = null
         }
         findViewById<android.view.View>(R.id.refresh_button).setOnClickListener { transferService?.refreshDevices() }
+        findViewById<android.view.View>(R.id.manual_send_button).setOnClickListener { showManualSendDialog() }
         findViewById<android.view.View>(R.id.select_file_button).setOnClickListener { chooseFile() }
         onDevicesChanged(emptyList())
         updateLocalEndpoint()
@@ -148,6 +152,40 @@ class MainActivity : Activity(), TransferService.Listener {
         putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         type = "*/*"
     }, FILE_REQUEST)
+
+    private fun showManualSendDialog() {
+        if (selectedFiles.isEmpty()) {
+            Toast.makeText(this, R.string.select_file_first, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val content = layoutInflater.inflate(R.layout.dialog_manual_send, null)
+        val input = content.findViewById<EditText>(R.id.manual_endpoint_editor).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine(true)
+            setSelectAllOnFocus(true)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.manual_send_title)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.manual_send, null)
+            .create()
+        dialog.show()
+        val customPanelId = resources.getIdentifier("customPanel", "id", "android")
+        if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val endpoint = try {
+                ManualEndpoint.parse(input.text.toString())
+            } catch (_: IllegalArgumentException) {
+                input.error = getString(R.string.manual_send_invalid_address)
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            statusText.text = getString(R.string.manual_send_connecting)
+            transferService?.sendManual(selectedFiles, endpoint)
+                ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private fun sendToDevice(device: RemoteDevice) {
         if (selectedFiles.isEmpty()) { Toast.makeText(this, R.string.select_file_first, Toast.LENGTH_SHORT).show(); return }

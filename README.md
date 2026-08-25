@@ -17,6 +17,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 - File sending
   - System file picker
   - Multi-file selection and sequential send queue
+  - Manual `IP:port` connection with HTTP/HTTPS protocol probing
   - Per-file and session progress
   - Sender-side whole-session cancellation
   - Stops uploading when the receiver cancels
@@ -44,7 +45,6 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 ## Not implemented yet
 
 - Resumable transfers after an interrupted connection or app restart.
-- Manual IP connection for networks where multicast and LAN scanning are unavailable.
 - Save received media to the gallery.
 - Trusted-device management for known certificate fingerprints.
 - Advanced identity and network controls: device type/model, network interface, and discovery timeout.
@@ -114,7 +114,7 @@ The project can also be opened in Android Studio and run with the `app` configur
 1. Install and open the app on both devices.
 2. Connect both devices to the same Wi-Fi/LAN and allow network access.
 3. Tap **Select file** and choose a file.
-4. Tap the target device under **Nearby devices**.
+4. Tap the target device under **Nearby devices**, or tap **Manual send** and enter the target `IP:port`.
 5. Accept the confirmation dialog on the receiving device.
 6. Monitor the progress and tap **Cancel** if needed. Completed received files appear in **History**.
 

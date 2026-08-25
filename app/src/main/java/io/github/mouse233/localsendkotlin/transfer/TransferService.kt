@@ -19,6 +19,8 @@ import io.github.mouse233.localsendkotlin.R
 import io.github.mouse233.localsendkotlin.discovery.DiscoveryListener
 import io.github.mouse233.localsendkotlin.discovery.DiscoveryManager
 import io.github.mouse233.localsendkotlin.discovery.LocalIdentity
+import io.github.mouse233.localsendkotlin.discovery.ManualDeviceConnector
+import io.github.mouse233.localsendkotlin.discovery.ManualEndpoint
 import io.github.mouse233.localsendkotlin.history.ReceiveHistoryStore
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
@@ -66,7 +68,7 @@ class TransferService : Service(), DiscoveryListener {
     private var activeNotificationTitle: String? = null
     private var activeNotificationProgress = 0
     private var hasActiveTransfer = false
-    private var currentDevices: List<RemoteDevice> = emptyList()
+    @Volatile private var currentDevices: List<RemoteDevice> = emptyList()
     private var lastTransferMessage: String? = null
     private var lastProgressDispatchAt = 0L
     private var lastProgressDispatchPercent = -1
@@ -144,6 +146,33 @@ class TransferService : Service(), DiscoveryListener {
     }
 
     fun send(uri: Uri, device: RemoteDevice) = send(listOf(uri), device)
+
+    fun sendManual(uris: List<Uri>, endpoint: ManualEndpoint) {
+        if (uris.isEmpty()) return
+        notifyListeners { it.onUploadStatus(getString(R.string.manual_send_connecting)) }
+        networkExecutor.execute {
+            try {
+                // A discovered device already carries its announced protocol and, for HTTPS,
+                // the certificate fingerprint. Reuse that information instead of probing the
+                // same endpoint again and guessing between HTTP and HTTPS.
+                val discoveredDevice = currentDevices.firstOrNull { device ->
+                    endpoint.matches(device.address, device.port)
+                }
+                if (discoveredDevice != null) {
+                    mainHandler.post {
+                        if (!serviceDestroyed) send(uris, discoveredDevice)
+                    }
+                    return@execute
+                }
+                val device = ManualDeviceConnector(this).resolve(endpoint)
+                mainHandler.post {
+                    if (!serviceDestroyed) send(uris, device)
+                }
+            } catch (_: Exception) {
+                notifyListeners { it.onUploadError(getString(R.string.manual_send_failed, endpoint.host, endpoint.port)) }
+            }
+        }
+    }
 
     fun send(uris: List<Uri>, device: RemoteDevice) {
         notificationGeneration++

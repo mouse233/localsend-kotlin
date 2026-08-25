@@ -55,6 +55,13 @@
     <string name="verification_question">在另一台设备上显示的内容相同吗？</string>
     <string name="nearby_devices">附近设备</string>
     <string name="refresh_devices">刷新</string>
+    <string name="manual_send">手动发送</string>
+    <string name="manual_send_title">手动发送</string>
+    <string name="manual_send_message">输入目标 LocalSend 设备的地址：</string>
+    <string name="manual_send_hint">例如：192.168.1.10:53317</string>
+    <string name="manual_send_connecting">正在连接手动地址…</string>
+    <string name="manual_send_invalid_address">地址格式无效，请输入 IP:端口</string>
+    <string name="manual_send_failed">无法连接到该 LocalSend 设备：%1$s:%2$d</string>
     <string name="discovery_scanning">正在查找附近设备…</string>
     <string name="discovery_error">发现失败：%1$s</string>
     <string name="device_details_format">%1$s · %2$s:%3$d</string>

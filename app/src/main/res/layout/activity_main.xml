@@ -139,6 +139,13 @@
             android:textStyle="bold" />
 
         <Button
+            android:id="@+id/manual_send_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="@string/manual_send" />
+
+        <Button
             android:id="@+id/refresh_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
