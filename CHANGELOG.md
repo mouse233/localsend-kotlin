@@ -1,5 +1,31 @@
 # Changelog
 
+## [v0.6.4-alpha] - 2026-08-25
+
+### Added
+
+- Added per-transfer receive settings for selecting files, renaming files, choosing a temporary directory, and saving photos and videos to the system gallery.
+- Added file-type icons and editable file rows to the receive settings screen.
+
+### Changed
+
+- Added verification and receive settings actions to the incoming request dialog while retaining the native reject and accept button styling.
+- Improved receive settings layout, bilingual text, and temporary gallery-saving behavior across Android versions.
+
+## 中文说明
+
+### v0.6.4-alpha（2026-08-25）
+
+#### 新增
+
+- 新增单次接收设置，可选择文件、修改文件名、选择临时保存目录，以及将照片和视频保存到系统相册。
+- 接收设置页面新增文件类型图标和可编辑的文件条目。
+
+#### 调整
+
+- 在接收请求对话框中加入验证和接收设置入口，同时保留原生拒绝、接收按钮样式。
+- 优化接收设置页面布局、中英文文案和不同 Android 版本下的临时相册保存行为。
+
 ## [v0.6.3-alpha] - 2026-08-25
 
 ### Added
