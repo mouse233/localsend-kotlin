@@ -16,6 +16,7 @@
 *.jks
 *.keystore
 keystore.properties
+AGENTS.md
 .externalNativeBuild
 .cxx
 local.properties
