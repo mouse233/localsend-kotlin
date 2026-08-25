@@ -1,5 +1,33 @@
 # Changelog
 
+## [v0.6.2-alpha] - 2026-08-25
+
+### Changed
+
+- Modernized the Android build toolchain to AGP 9.3.2, Gradle 9.7.1, Kotlin 2.4.0, and compile SDK 36.
+- Updated AndroidX Core, OkHttp, Gson, and RecyclerView dependencies while retaining Android 5.0 (API 21) as the minimum supported version.
+- Updated GitHub Actions to use Node.js 24-compatible action versions and separated API 21 instrumentation tests into a manual workflow.
+- Refreshed the README technology-stack and build-environment documentation.
+
+### Fixed
+
+- Clarified the API-level intent of the cleartext-traffic manifest setting so Android Studio no longer reports a compatibility warning.
+
+## 中文说明
+
+### v0.6.2-alpha（2026-08-25）
+
+#### 调整
+
+- 将 Android 构建工具链升级到 AGP 9.3.2、Gradle 9.7.1、Kotlin 2.4.0 和 compile SDK 36。
+- 更新 AndroidX Core、OkHttp、Gson 和 RecyclerView 依赖，同时继续支持 Android 5.0（API 21）及以上系统。
+- 更新 GitHub Actions 到兼容 Node.js 24 的 action 版本，并将 API 21 仪器测试拆分为手动触发的独立工作流。
+- 更新 README 中的技术栈和构建环境说明。
+
+#### 修复
+
+- 明确标注明文流量 Manifest 属性的 API 级别意图，消除 Android Studio 的兼容性警告。
+
 ## [v0.6.1-alpha] - 2026-08-25
 
 ### Changed

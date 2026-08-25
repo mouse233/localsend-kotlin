@@ -23,7 +23,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.Localsendkotlin">
+        android:theme="@style/Theme.Localsendkotlin"
+        tools:targetApi="23">
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
