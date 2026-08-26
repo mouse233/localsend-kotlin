@@ -96,8 +96,8 @@
                     android:text="@string/settings_theme_color" />
                 <View
                     android:id="@+id/theme_color_swatch"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp" />
+                    android:layout_width="32dp"
+                    android:layout_height="32dp" />
             </LinearLayout>
 
             <LinearLayout
