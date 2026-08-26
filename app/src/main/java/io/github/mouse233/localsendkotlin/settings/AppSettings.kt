@@ -42,6 +42,12 @@ class AppSettings(context: Context) {
         preferences.edit().putBoolean(HIDE_IPV6_BIND_ADDRESSES_KEY, enabled).apply()
     }
 
+    fun keepScreenAwakeDuringTransfer(): Boolean = preferences.getBoolean(KEEP_SCREEN_AWAKE_KEY, false)
+
+    fun setKeepScreenAwakeDuringTransfer(enabled: Boolean) {
+        preferences.edit().putBoolean(KEEP_SCREEN_AWAKE_KEY, enabled).apply()
+    }
+
     fun language(): String = preferences.getString(LANGUAGE_KEY, AppLocale.SYSTEM) ?: AppLocale.SYSTEM
     fun setLanguage(language: String) = preferences.edit().putString(LANGUAGE_KEY, language).apply()
 
@@ -131,6 +137,7 @@ class AppSettings(context: Context) {
         const val DEVICE_TYPE_KEY = "device_type"
         const val DEVICE_MODEL_KEY = "device_model"
         const val HIDE_IPV6_BIND_ADDRESSES_KEY = "hide_ipv6_bind_addresses"
+        const val KEEP_SCREEN_AWAKE_KEY = "keep_screen_awake_during_transfer"
         const val LANGUAGE_KEY = "language"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"

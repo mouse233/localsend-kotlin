@@ -44,6 +44,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
   - Optional hiding of IPv6 bind addresses on the main screen
 - Background transfer and notifications
   - Foreground service for background and lock-screen transfers
+  - Optional keep-screen-awake mode during active transfers
   - Notification actions for accepting, rejecting, and cancelling transfers
   - Progress, completed size, transfer speed, and ETA in transfer notifications
 

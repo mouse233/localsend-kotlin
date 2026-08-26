@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import io.github.mouse233.localsendkotlin.MainActivity
 import io.github.mouse233.localsendkotlin.R
@@ -66,6 +67,10 @@ class TransferService : Service(), DiscoveryListener {
     private lateinit var settings: AppSettings
     private val cancellationExecutor = Executors.newSingleThreadExecutor()
     private val networkExecutor = Executors.newSingleThreadExecutor()
+    private val screenAwakeLock = Any()
+    private val activeScreenAwakeSessions = LinkedHashSet<String>()
+    private var wakeLock: PowerManager.WakeLock? = null
+    @Volatile private var outgoingScreenAwakeSessionId: String? = null
     private var activeNotificationTitle: String? = null
     private var activeNotificationProgress = 0
     private var hasActiveTransfer = false
@@ -104,6 +109,7 @@ class TransferService : Service(), DiscoveryListener {
             ACTION_ACCEPT_INCOMING -> resolveIncoming(true)
             ACTION_REJECT_INCOMING -> resolveIncoming(false)
             ACTION_RELOAD_SETTINGS -> restartNetwork()
+            ACTION_REFRESH_SCREEN_AWAKE -> updateScreenAwakeLock()
         }
         return START_NOT_STICKY
     }
@@ -209,6 +215,8 @@ class TransferService : Service(), DiscoveryListener {
             }
 
             override fun onSessionPrepared(sessionId: String, files: List<UploadClient.QueueFile>) {
+                beginScreenAwakeSession(sessionId)
+                outgoingScreenAwakeSessionId = sessionId
                 val queue = LinkedHashMap<String, ActiveTransferFile>()
                 files.forEach { file ->
                     queue[file.id] = ActiveTransferFile(
@@ -252,6 +260,8 @@ class TransferService : Service(), DiscoveryListener {
             }
 
             override fun onCompleted(names: List<String>) {
+                outgoingScreenAwakeSessionId?.let(::endScreenAwakeSession)
+                outgoingScreenAwakeSessionId = null
                 hasActiveTransfer = false
                 cancellationRequested = false
                 resetProgressDispatch()
@@ -262,6 +272,8 @@ class TransferService : Service(), DiscoveryListener {
             }
 
             override fun onError(message: String) {
+                outgoingScreenAwakeSessionId?.let(::endScreenAwakeSession)
+                outgoingScreenAwakeSessionId = null
                 hasActiveTransfer = false
                 cancellationRequested = false
                 resetProgressDispatch()
@@ -279,6 +291,7 @@ class TransferService : Service(), DiscoveryListener {
         // request is still in flight.
         cancellationRequested = true
         hasActiveTransfer = false
+        endAllScreenAwakeSessions()
         if (stopService) removeNotificationsAndStopForeground()
         cancellationExecutor.execute {
             uploadClient.cancelCurrent()
@@ -341,6 +354,7 @@ class TransferService : Service(), DiscoveryListener {
     }
 
     override fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest) {
+        beginScreenAwakeSession(sessionId)
         val files = LinkedHashMap<String, ActiveTransferFile>()
         request.files.forEach { (fileId, file) ->
             files[fileId] = ActiveTransferFile(sessionId, fileId, file.fileName, 0L, file.size, ActiveTransferFile.Status.WAITING)
@@ -372,6 +386,7 @@ class TransferService : Service(), DiscoveryListener {
         lastTransferMessage = getString(R.string.download_cancelled, fileName)
         notifyListeners { it.onFileReceiveCancelled(state, sessionComplete) }
         if (sessionComplete) {
+            endScreenAwakeSession(sessionId)
             synchronized(incomingFiles) {
                 incomingFiles.remove(sessionId)
                 incomingSenders.remove(sessionId)
@@ -392,6 +407,7 @@ class TransferService : Service(), DiscoveryListener {
         lastTransferMessage = getString(R.string.download_completed, file.displayName)
         notifyListeners { it.onFileReceived(sessionId, fileId, file, sessionComplete) }
         if (sessionComplete) {
+            endScreenAwakeSession(sessionId)
             synchronized(incomingFiles) {
                 incomingFiles.remove(sessionId)
                 incomingSenders.remove(sessionId)
@@ -512,6 +528,7 @@ class TransferService : Service(), DiscoveryListener {
     override fun onDestroy() {
         serviceDestroyed = true
         resolveIncoming(false)
+        endAllScreenAwakeSessions()
         cancellationExecutor.shutdownNow()
         networkExecutor.shutdownNow()
         discoveryManager?.stop()
@@ -619,6 +636,53 @@ class TransferService : Service(), DiscoveryListener {
         stopForeground(true)
     }
 
+    private fun beginScreenAwakeSession(sessionId: String) {
+        synchronized(screenAwakeLock) {
+            activeScreenAwakeSessions += sessionId
+            updateScreenAwakeLockLocked()
+        }
+    }
+
+    private fun endScreenAwakeSession(sessionId: String) {
+        synchronized(screenAwakeLock) {
+            activeScreenAwakeSessions -= sessionId
+            updateScreenAwakeLockLocked()
+        }
+    }
+
+    private fun endAllScreenAwakeSessions() {
+        synchronized(screenAwakeLock) {
+            activeScreenAwakeSessions.clear()
+            updateScreenAwakeLockLocked()
+        }
+    }
+
+    private fun updateScreenAwakeLock() {
+        synchronized(screenAwakeLock) {
+            updateScreenAwakeLockLocked()
+        }
+    }
+
+    @Suppress("DEPRECATION", "WakelockTimeout")
+    private fun updateScreenAwakeLockLocked() {
+        val shouldHold = settings.keepScreenAwakeDuringTransfer() && activeScreenAwakeSessions.isNotEmpty()
+        if (shouldHold && wakeLock?.isHeld != true) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.SCREEN_DIM_WAKE_LOCK,
+                "$packageName:transfer-screen-awake"
+            ).apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } else if (!shouldHold) {
+            wakeLock?.let { lock ->
+                if (lock.isHeld) lock.release()
+            }
+            wakeLock = null
+        }
+    }
+
     @Suppress("DEPRECATION")
     private fun notificationManager(): NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -631,6 +695,7 @@ class TransferService : Service(), DiscoveryListener {
     companion object {
         const val ACTION_CANCEL = "io.github.mouse233.localsendkotlin.CANCEL_TRANSFER"
         const val ACTION_RELOAD_SETTINGS = "io.github.mouse233.localsendkotlin.RELOAD_SETTINGS"
+        const val ACTION_REFRESH_SCREEN_AWAKE = "io.github.mouse233.localsendkotlin.REFRESH_SCREEN_AWAKE"
         private const val ACTION_ACCEPT_INCOMING = "io.github.mouse233.localsendkotlin.ACCEPT_INCOMING"
         private const val ACTION_REJECT_INCOMING = "io.github.mouse233.localsendkotlin.REJECT_INCOMING"
         private const val CHANNEL_TRANSFER = "transfer_progress"

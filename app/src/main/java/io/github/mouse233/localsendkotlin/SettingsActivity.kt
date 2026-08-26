@@ -52,6 +52,14 @@ class SettingsActivity : Activity() {
             setOnCheckedChangeListener { _, checked -> settings.setHideIpv6BindAddresses(checked) }
         }
         findViewById<android.view.View>(R.id.hide_ipv6_row).setOnClickListener { hideIpv6Switch.toggle() }
+        val keepScreenAwakeSwitch = findViewById<Switch>(R.id.keep_screen_awake_switch).apply {
+            isChecked = settings.keepScreenAwakeDuringTransfer()
+            setOnCheckedChangeListener { _, checked ->
+                settings.setKeepScreenAwakeDuringTransfer(checked)
+                notifyTransferServiceOfScreenAwakeChange()
+            }
+        }
+        findViewById<android.view.View>(R.id.keep_screen_awake_row).setOnClickListener { keepScreenAwakeSwitch.toggle() }
         val checksumSwitch = findViewById<Switch>(R.id.checksum_switch).apply {
             isChecked = settings.createChecksums()
             setOnCheckedChangeListener { _, checked -> settings.setCreateChecksums(checked) }
@@ -110,6 +118,10 @@ class SettingsActivity : Activity() {
         findViewById<android.view.View>(R.id.third_party_licenses_row).setOnClickListener {
             openDocument(R.string.settings_third_party_licenses, NOTICE_FILE)
         }
+    }
+
+    private fun notifyTransferServiceOfScreenAwakeChange() {
+        startService(Intent(this, TransferService::class.java).setAction(TransferService.ACTION_REFRESH_SCREEN_AWAKE))
     }
 
     private fun showDeviceInfoDialog() {
@@ -310,7 +322,7 @@ class SettingsActivity : Activity() {
             settings.deviceName(),
             deviceTypeLabel(settings.deviceType()),
             settings.deviceModel()
-        )
+        ).replace("\n", getString(R.string.settings_device_information_separator))
         languageValue.text = when (settings.language()) {
             AppLocale.CHINESE -> getString(R.string.language_chinese)
             AppLocale.ENGLISH -> getString(R.string.language_english)

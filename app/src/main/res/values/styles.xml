@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="SettingsListRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">@dimen/settings_list_horizontal_padding</item>
+        <item name="android:paddingEnd">@dimen/settings_list_horizontal_padding</item>
+    </style>
+
+    <style name="SettingsListRow.Single" parent="SettingsListRow">
+        <item name="android:layout_height">@dimen/settings_list_row_single_height</item>
+    </style>
+
+    <style name="SettingsListRow.Adaptive" parent="SettingsListRow">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">@dimen/settings_list_row_two_height</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+
+    <style name="SettingsListTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/primary_text</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="SettingsListSummary">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:textColor">@color/secondary_text</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="SettingsListSection">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/settings_list_section_height</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">@dimen/settings_list_content_spacing</item>
+        <item name="android:paddingEnd">@dimen/settings_list_horizontal_padding</item>
+        <item name="android:textColor">@color/brand_primary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="settings_list_row_single_height">48dp</dimen>
+    <dimen name="settings_list_row_two_height">72dp</dimen>
+    <dimen name="settings_list_icon_size">24dp</dimen>
+    <dimen name="settings_list_horizontal_padding">16dp</dimen>
+    <dimen name="settings_list_content_spacing">32dp</dimen>
+    <dimen name="settings_list_control_spacing">8dp</dimen>
+    <dimen name="settings_list_summary_spacing">4dp</dimen>
+    <dimen name="settings_list_section_height">48dp</dimen>
+    <dimen name="settings_list_top_padding">8dp</dimen>
+</resources>
