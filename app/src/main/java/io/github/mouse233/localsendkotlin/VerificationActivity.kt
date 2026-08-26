@@ -54,7 +54,7 @@ class VerificationActivity : Activity() {
         typeface = iconTypeface
         setFontFeatureSettings("liga")
         textSize = 32f
-        setTextColor(resources.getColor(R.color.primary_text))
+        setTextColor(ThemeColors.primaryTextColor(this@VerificationActivity))
     }
 
     private val Int.dp get() = (this * resources.displayMetrics.density).toInt()

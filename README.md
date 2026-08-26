@@ -4,7 +4,7 @@
 
 An unofficial, lightweight native Android LocalSend client written in Kotlin. This project is not affiliated with or endorsed by the official LocalSend project. It aims to interoperate with the official LocalSend clients and provide secure file transfer on local networks, including older Android devices.
 
-> Current version: `v0.7.0-alpha`
+> Current version: `v0.7.1-alpha`
 >
 > The core workflow is usable, but compatibility across Android versions, vendor-specific background policies, and long-running transfers still needs more real-device validation.
 
@@ -40,6 +40,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 - Interface and settings
   - In-app language choice: System Default, Simplified Chinese, or English
   - Local device name and bind address on the main screen
+  - Preset theme colors and dark mode with system, enabled, and disabled options
   - Settings for the device name, device type, device model, network interfaces, server, port, encryption, multicast address, receive behavior, receive PIN, and checksums
   - Optional hiding of IPv6 bind addresses on the main screen
 - Background transfer and notifications

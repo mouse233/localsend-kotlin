@@ -11,6 +11,8 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckedTextView
 import android.widget.CompoundButton
@@ -49,6 +51,11 @@ object ThemeColors {
     )
 
     @Suppress("DEPRECATION")
+    fun primaryTextColor(context: Context): Int = context.resources.getColor(
+        if (isDark(context)) R.color.dark_primary_text else R.color.primary_text
+    )
+
+    @Suppress("DEPRECATION")
     fun apply(activity: Activity) {
         val root = activity.findViewById<View>(android.R.id.content) ?: return
         apply(root)
@@ -61,15 +68,16 @@ object ThemeColors {
 
     fun apply(dialog: AlertDialog) {
         val palette = palette(dialog.context)
-        dialog.window?.let { window ->
-            if (palette.dark) window.setBackgroundDrawable(ColorDrawable(palette.dialogBackground))
-        }
-        val root = dialog.window?.decorView ?: return
+        val window = dialog.window ?: return
+        if (palette.dark) window.setBackgroundDrawable(ColorDrawable(palette.dialogBackground))
+        constrainDialogWidth(window)
+        val root = window.decorView
         applyDialogContent(root, palette)
         applyDialogButtons(root, palette.primary)
         root.post {
             applyDialogContent(root, palette)
             applyDialogButtons(root, palette.primary)
+            constrainDialogWidth(window)
         }
     }
 
@@ -228,6 +236,14 @@ object ThemeColors {
         if (view is ViewGroup) {
             for (index in 0 until view.childCount) applyDialogButtons(view.getChildAt(index), primary)
         }
+    }
+
+    private fun constrainDialogWidth(window: Window) {
+        val context = window.context
+        val horizontalMargin = dp(context, 40)
+        val availableWidth = (context.resources.displayMetrics.widthPixels - horizontalMargin * 2).coerceAtLeast(1)
+        val maxWidth = dp(context, 560)
+        window.setLayout(kotlin.math.min(availableWidth, maxWidth), WindowManager.LayoutParams.WRAP_CONTENT)
     }
 
     private fun tintBackground(view: View, tint: ColorStateList) {
