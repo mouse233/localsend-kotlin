@@ -31,6 +31,6 @@ enum class ThemeColorPreset(
     BLACK("black", R.string.theme_color_black, R.color.theme_black, R.color.theme_black_pressed);
 
     companion object {
-        fun fromId(id: String?): ThemeColorPreset = values().firstOrNull { it.id == id } ?: BLUE
+        fun fromId(id: String?): ThemeColorPreset = values().firstOrNull { it.id == id } ?: BLUE_GREY
     }
 }

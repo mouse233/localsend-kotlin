@@ -41,4 +41,12 @@ class AppSettingsTest {
         settings.setThemeColor(ThemeColorPreset.PURPLE.id)
         org.junit.Assert.assertEquals(ThemeColorPreset.PURPLE.id, settings.themeColor())
     }
+
+    @Test
+    fun themeColorDefaultsToBlueGrey() {
+        org.junit.Assert.assertEquals(
+            ThemeColorPreset.BLUE_GREY.id,
+            AppSettings(InstrumentationRegistry.getInstrumentation().targetContext).themeColor()
+        )
+    }
 }

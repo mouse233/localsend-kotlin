@@ -33,7 +33,7 @@ class SettingsActivity : Activity() {
     private lateinit var settings: AppSettings
     private lateinit var deviceInfoValue: TextView
     private lateinit var languageValue: TextView
-    private lateinit var themeColorValue: TextView
+    private lateinit var themeColorSwatch: View
     private lateinit var portValue: TextView
     private lateinit var multicastAddressValue: TextView
     private lateinit var networkInterfacesValue: TextView
@@ -47,7 +47,7 @@ class SettingsActivity : Activity() {
         settings = AppSettings(this)
         deviceInfoValue = findViewById(R.id.device_info_value)
         languageValue = findViewById(R.id.language_value)
-        themeColorValue = findViewById(R.id.theme_color_value)
+        themeColorSwatch = findViewById(R.id.theme_color_swatch)
         portValue = findViewById(R.id.port_value)
         multicastAddressValue = findViewById(R.id.multicast_address_value)
         networkInterfacesValue = findViewById(R.id.network_interfaces_value)
@@ -389,7 +389,10 @@ class SettingsActivity : Activity() {
             AppLocale.ENGLISH -> getString(R.string.language_english)
             else -> getString(R.string.language_system)
         }
-        themeColorValue.text = getString(ThemeColorPreset.fromId(settings.themeColor()).labelRes)
+        themeColorSwatch.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(ThemeColors.color(this@SettingsActivity, ThemeColorPreset.fromId(settings.themeColor())))
+        }
         portValue.text = settings.port().toString()
         multicastAddressValue.text = settings.multicastAddress()
         networkInterfacesValue.text = networkInterfaceSummary()

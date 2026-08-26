@@ -79,27 +79,25 @@
 
             <LinearLayout
                 android:id="@+id/theme_color_row"
-                style="@style/SettingsListRow.Adaptive">
+                style="@style/SettingsListRow.Single">
                 <ImageView
                     android:id="@+id/theme_color_icon"
                     android:layout_width="@dimen/settings_list_icon_size"
                     android:layout_height="@dimen/settings_list_icon_size"
                     android:src="@drawable/ic_palette"
                     android:tint="@color/secondary_text" />
-                <LinearLayout
+                <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/settings_list_content_spacing"
+                    android:layout_marginEnd="@dimen/settings_list_control_spacing"
                     android:layout_weight="1"
-                    android:orientation="vertical">
-                    <TextView
-                        style="@style/SettingsListTitle"
-                        android:text="@string/settings_theme_color" />
-                    <TextView
-                        android:id="@+id/theme_color_value"
-                        style="@style/SettingsListSummary"
-                        android:layout_marginTop="@dimen/settings_list_summary_spacing" />
-                </LinearLayout>
+                    style="@style/SettingsListTitle"
+                    android:text="@string/settings_theme_color" />
+                <View
+                    android:id="@+id/theme_color_swatch"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp" />
             </LinearLayout>
 
             <LinearLayout
