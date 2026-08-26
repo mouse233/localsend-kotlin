@@ -3,7 +3,6 @@ package io.github.mouse233.localsendkotlin
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
@@ -15,8 +14,8 @@ import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ArrayAdapter
+import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.RadioButton
 import android.widget.Switch
 import android.widget.Spinner
 import android.widget.TextView
@@ -233,52 +232,48 @@ class SettingsActivity : Activity() {
         val selectedId = settings.themeColor()
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(8), dp(8), dp(8), dp(8))
+            setPadding(dp(24), 0, dp(24), dp(8))
         }
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.settings_theme_color)
             .setView(content)
-            .setNegativeButton(android.R.string.cancel, null)
             .create()
-        presets.forEach { preset ->
+        presets.toList().chunked(4).forEach { rowPresets ->
             val row = LinearLayout(this).apply {
-                gravity = Gravity.CENTER_VERTICAL
-                isClickable = true
-                isFocusable = true
-                minimumHeight = dp(56)
+                gravity = Gravity.CENTER
             }
-            val swatch = View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(dp(40), dp(40)).apply {
-                    marginEnd = dp(16)
+            rowPresets.forEach { preset ->
+                val color = ThemeColors.color(this@SettingsActivity, preset)
+                val cell = FrameLayout(this).apply {
+                    isClickable = true
+                    isFocusable = true
+                    contentDescription = getString(preset.labelRes)
                 }
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(ThemeColors.color(this@SettingsActivity, preset))
+                val swatch = View(this).apply {
+                    layoutParams = FrameLayout.LayoutParams(dp(48), dp(48), Gravity.CENTER)
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(color)
+                        setStroke(
+                            if (preset.id == selectedId) dp(3) else dp(1),
+                            if (preset.id == selectedId) ThemeColors.foregroundColor(color) else 0x33000000
+                        )
+                    }
                 }
-                contentDescription = getString(preset.labelRes)
+                cell.addView(swatch)
+                cell.setOnClickListener {
+                    settings.setThemeColor(preset.id)
+                    dialog.dismiss()
+                    recreate()
+                }
+                row.addView(cell, LinearLayout.LayoutParams(0, dp(64), 1f))
             }
-            val label = TextView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                text = getString(preset.labelRes)
-                textSize = 16f
+            while (row.childCount < 4) {
+                row.addView(View(this), LinearLayout.LayoutParams(0, dp(64), 1f))
             }
-            val radio = RadioButton(this).apply {
-                isClickable = false
-                isChecked = preset.id == selectedId
-                buttonTintList = ColorStateList.valueOf(ThemeColors.color(this@SettingsActivity, preset))
-            }
-            row.addView(swatch)
-            row.addView(label)
-            row.addView(radio)
-            row.setOnClickListener {
-                settings.setThemeColor(preset.id)
-                dialog.dismiss()
-                recreate()
-            }
-            content.addView(row, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56)))
+            content.addView(row, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64)))
         }
         dialog.show()
-        ThemeColors.apply(dialog)
     }
 
     private fun showPortEditor() = showEditor(R.string.settings_port, settings.port().toString(), InputType.TYPE_CLASS_NUMBER) { value ->

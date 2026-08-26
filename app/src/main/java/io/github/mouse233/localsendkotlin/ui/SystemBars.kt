@@ -1,6 +1,7 @@
 package io.github.mouse233.localsendkotlin.ui
 
 import android.app.Activity
+import android.graphics.Color
 import android.os.Build
 import android.view.View
 import io.github.mouse233.localsendkotlin.R
@@ -10,7 +11,8 @@ object SystemBars {
     @Suppress("DEPRECATION")
     fun apply(activity: Activity) {
         val window = activity.window
-        window.statusBarColor = ThemeColors.primaryColor(activity)
+        val primary = ThemeColors.primaryColor(activity)
+        window.statusBarColor = primary
         window.navigationBarColor = activity.resources.getColor(R.color.window_background)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.navigationBarDividerColor = activity.resources.getColor(R.color.window_background)
@@ -22,7 +24,11 @@ object SystemBars {
 
         var flags = window.decorView.systemUiVisibility
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            flags = flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+            flags = if (ThemeColors.foregroundColor(primary) == Color.BLACK) {
+                flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+            } else {
+                flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+            }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             flags = flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR

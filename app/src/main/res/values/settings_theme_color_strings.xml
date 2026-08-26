@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_theme_color">主题色</string>
-    <string name="theme_color_blue">蓝色</string>
-    <string name="theme_color_green">绿色</string>
+    <string name="theme_color_red">红色</string>
+    <string name="theme_color_pink">粉色</string>
     <string name="theme_color_purple">紫色</string>
-    <string name="theme_color_orange">橙色</string>
+    <string name="theme_color_deep_purple">深紫色</string>
+    <string name="theme_color_indigo">靛蓝色</string>
+    <string name="theme_color_blue">蓝色</string>
+    <string name="theme_color_light_blue">浅蓝色</string>
+    <string name="theme_color_cyan">青色</string>
     <string name="theme_color_teal">青绿色</string>
+    <string name="theme_color_green">绿色</string>
+    <string name="theme_color_light_green">浅绿色</string>
+    <string name="theme_color_lime">黄绿色</string>
+    <string name="theme_color_yellow">黄色</string>
+    <string name="theme_color_amber">琥珀色</string>
+    <string name="theme_color_orange">橙色</string>
+    <string name="theme_color_deep_orange">深橙色</string>
+    <string name="theme_color_brown">棕色</string>
+    <string name="theme_color_grey">灰色</string>
+    <string name="theme_color_blue_grey">蓝灰色</string>
+    <string name="theme_color_black">黑色</string>
 </resources>

@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Switch
 import android.widget.TextView
 import androidx.core.graphics.drawable.DrawableCompat
@@ -34,7 +35,10 @@ object ThemeColors {
         val root = activity.findViewById<View>(android.R.id.content) ?: return
         val primary = primaryColor(activity)
         val pressed = pressedColor(activity)
-        val presetColors = ThemeColorPreset.values().mapTo(mutableSetOf()) { color(activity, it) }
+        val presetColors = ThemeColorPreset.values().mapTo(
+            mutableSetOf(activity.resources.getColor(R.color.brand_primary))
+        ) { color(activity, it) }
+        val foreground = foregroundColor(primary)
         val tint = ColorStateList(
             arrayOf(intArrayOf(android.R.attr.state_pressed), intArrayOf()),
             intArrayOf(pressed, primary)
@@ -48,7 +52,7 @@ object ThemeColors {
             intArrayOf(withAlpha(primary, 0x66), 0x55000000)
         )
         activity.window.statusBarColor = primary
-        applyToView(root, presetColors, primary, tint, switchThumbTint, switchTrackTint)
+        applyToView(root, presetColors, primary, foreground, tint, switchThumbTint, switchTrackTint, false)
     }
 
     fun apply(dialog: AlertDialog) {
@@ -70,29 +74,56 @@ object ThemeColors {
         view: View,
         presetColors: Set<Int>,
         primary: Int,
+        foreground: Int,
         tint: ColorStateList,
         switchThumbTint: ColorStateList,
-        switchTrackTint: ColorStateList
+        switchTrackTint: ColorStateList,
+        inPrimarySurface: Boolean
     ) {
-        if (view is TextView && view.textColors.defaultColor in presetColors) {
-            view.setTextColor(primary)
-        }
         val background = view.background
-        if (background is ColorDrawable && background.color in presetColors) {
+        val hasPrimaryBackground = background is ColorDrawable && background.color in presetColors
+        val isPrimarySurface = inPrimarySurface || hasPrimaryBackground
+        if (view is TextView) {
+            val textColor = view.textColors.defaultColor
+            when {
+                isPrimarySurface && (textColor == Color.WHITE || textColor == Color.BLACK) -> {
+                    view.setTextColor(foreground)
+                }
+                textColor in presetColors -> view.setTextColor(if (foreground == Color.BLACK) foreground else primary)
+            }
+        }
+        if (view is ImageView &&
+            (isPrimarySurface || view.id in COLORED_IMAGE_BUTTON_IDS) &&
+            view.imageTintList?.defaultColor?.let { it == Color.WHITE || it == Color.BLACK } == true
+        ) {
+            view.imageTintList = ColorStateList.valueOf(foreground)
+        }
+        if (hasPrimaryBackground) {
             view.setBackgroundColor(primary)
         }
         when (view) {
             is Switch -> {
                 tintSwitch(view, switchThumbTint, switchTrackTint)
             }
-            is Button -> tintBackground(view, tint)
+            is Button -> {
+                view.setTextColor(foreground)
+                tintBackground(view, tint)
+            }
             is ImageButton -> if (view.id in COLORED_IMAGE_BUTTON_IDS) tintBackground(view, tint)
         }
         if (view is ViewGroup) {
             for (index in 0 until view.childCount) {
-                applyToView(view.getChildAt(index), presetColors, primary, tint, switchThumbTint, switchTrackTint)
+                applyToView(
+                    view.getChildAt(index), presetColors, primary, foreground, tint,
+                    switchThumbTint, switchTrackTint, isPrimarySurface
+                )
             }
         }
+    }
+
+    fun foregroundColor(background: Int): Int {
+        val brightness = (Color.red(background) * 299 + Color.green(background) * 587 + Color.blue(background) * 114) / 1000
+        return if (brightness > 160) Color.BLACK else Color.WHITE
     }
 
     private fun tintBackground(view: View, tint: ColorStateList) {
