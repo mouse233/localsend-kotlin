@@ -2,7 +2,8 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/window_background">
+    android:background="@color/window_background"
+    android:clipChildren="false">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -194,7 +195,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="84dp"
+        android:layout_marginBottom="92dp"
+        android:clipChildren="false"
         android:gravity="end"
         android:orientation="vertical"
         android:visibility="gone">
@@ -203,15 +205,16 @@
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:layout_marginBottom="8dp"
+            android:clipChildren="false"
             android:gravity="center_vertical"
             android:orientation="horizontal">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="4dp"
                 android:paddingStart="12dp"
                 android:paddingTop="8dp"
-                android:paddingEnd="12dp"
+                android:paddingEnd="4dp"
                 android:paddingBottom="8dp"
                 android:text="@string/content_action_clipboard"
                 android:textColor="@color/primary_text"
@@ -222,6 +225,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/mini_fab_background"
                 android:contentDescription="@string/content_action_clipboard"
+                android:elevation="6dp"
                 android:padding="8dp"
                 android:src="@drawable/ic_content_paste"
                 android:tint="@android:color/white" />
@@ -231,15 +235,16 @@
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:layout_marginBottom="8dp"
+            android:clipChildren="false"
             android:gravity="center_vertical"
             android:orientation="horizontal">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="4dp"
                 android:paddingStart="12dp"
                 android:paddingTop="8dp"
-                android:paddingEnd="12dp"
+                android:paddingEnd="4dp"
                 android:paddingBottom="8dp"
                 android:text="@string/content_action_text"
                 android:textColor="@color/primary_text"
@@ -250,6 +255,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/mini_fab_background"
                 android:contentDescription="@string/content_action_text"
+                android:elevation="6dp"
                 android:padding="8dp"
                 android:src="@drawable/ic_text"
                 android:tint="@android:color/white" />
@@ -259,15 +265,16 @@
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:layout_marginBottom="8dp"
+            android:clipChildren="false"
             android:gravity="center_vertical"
             android:orientation="horizontal">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="4dp"
                 android:paddingStart="12dp"
                 android:paddingTop="8dp"
-                android:paddingEnd="12dp"
+                android:paddingEnd="4dp"
                 android:paddingBottom="8dp"
                 android:text="@string/content_action_media"
                 android:textColor="@color/primary_text"
@@ -278,6 +285,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/mini_fab_background"
                 android:contentDescription="@string/content_action_media"
+                android:elevation="6dp"
                 android:padding="8dp"
                 android:src="@drawable/ic_image"
                 android:tint="@android:color/white" />
@@ -287,15 +295,16 @@
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:layout_marginBottom="8dp"
+            android:clipChildren="false"
             android:gravity="center_vertical"
             android:orientation="horizontal">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="4dp"
                 android:paddingStart="12dp"
                 android:paddingTop="8dp"
-                android:paddingEnd="12dp"
+                android:paddingEnd="4dp"
                 android:paddingBottom="8dp"
                 android:text="@string/content_action_folder"
                 android:textColor="@color/primary_text"
@@ -306,6 +315,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/mini_fab_background"
                 android:contentDescription="@string/content_action_folder"
+                android:elevation="6dp"
                 android:padding="8dp"
                 android:src="@drawable/ic_folder"
                 android:tint="@android:color/white" />
@@ -314,15 +324,16 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="40dp"
+            android:clipChildren="false"
             android:gravity="center_vertical"
             android:orientation="horizontal">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="4dp"
                 android:paddingStart="12dp"
                 android:paddingTop="8dp"
-                android:paddingEnd="12dp"
+                android:paddingEnd="4dp"
                 android:paddingBottom="8dp"
                 android:text="@string/content_action_file"
                 android:textColor="@color/primary_text"
@@ -333,6 +344,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/mini_fab_background"
                 android:contentDescription="@string/content_action_file"
+                android:elevation="6dp"
                 android:padding="8dp"
                 android:src="@drawable/ic_description"
                 android:tint="@android:color/white" />

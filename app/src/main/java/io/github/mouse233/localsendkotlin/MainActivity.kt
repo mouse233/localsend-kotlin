@@ -125,6 +125,13 @@ class MainActivity : Activity(), TransferService.Listener {
         findViewById<android.view.View>(R.id.manual_send_button).setOnClickListener { showManualSendDialog() }
         contentActionFab.setOnClickListener { setContentActionMenuOpen(!contentMenuOpen) }
         configureFabShadow(contentActionFab)
+        listOf(
+            R.id.content_action_clipboard,
+            R.id.content_action_text,
+            R.id.content_action_media,
+            R.id.content_action_folder,
+            R.id.content_action_file
+        ).forEach { configureFabShadow(findViewById(it)) }
         findViewById<android.view.View>(R.id.content_action_file).setOnClickListener { closeContentActionMenu(); chooseFile() }
         findViewById<android.view.View>(R.id.content_action_folder).setOnClickListener { closeContentActionMenu(); chooseFolder() }
         findViewById<android.view.View>(R.id.content_action_media).setOnClickListener { closeContentActionMenu(); chooseMedia() }
@@ -376,10 +383,10 @@ class MainActivity : Activity(), TransferService.Listener {
         val pressedElevation = 12f * resources.displayMetrics.density
         button.outlineProvider = object : ViewOutlineProvider() {
             override fun getOutline(view: android.view.View, outline: Outline) {
-                outline.setOval(0, 0, view.measuredWidth, view.measuredHeight)
+                val radius = minOf(view.measuredWidth, view.measuredHeight) / 2f
+                outline.setRoundRect(0, 0, view.measuredWidth, view.measuredHeight, radius)
             }
         }
-        button.clipToOutline = true
         button.elevation = restingElevation
         button.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
             view.invalidateOutline()
