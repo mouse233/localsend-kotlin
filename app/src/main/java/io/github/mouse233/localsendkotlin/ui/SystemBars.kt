@@ -4,7 +4,6 @@ import android.app.Activity
 import android.graphics.Color
 import android.os.Build
 import android.view.View
-import io.github.mouse233.localsendkotlin.R
 
 /** Keeps system bars visually continuous with the app chrome on gesture and button navigation. */
 object SystemBars {
@@ -12,10 +11,12 @@ object SystemBars {
     fun apply(activity: Activity) {
         val window = activity.window
         val primary = ThemeColors.primaryColor(activity)
+        val dark = ThemeColors.isDark(activity)
+        val background = ThemeColors.backgroundColor(activity)
         window.statusBarColor = primary
-        window.navigationBarColor = activity.resources.getColor(R.color.window_background)
+        window.navigationBarColor = background
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            window.navigationBarDividerColor = activity.resources.getColor(R.color.window_background)
+            window.navigationBarDividerColor = background
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isStatusBarContrastEnforced = false
@@ -31,7 +32,11 @@ object SystemBars {
             }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            flags = flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            flags = if (dark) {
+                flags and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
+            } else {
+                flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            }
         }
         window.decorView.systemUiVisibility = flags
     }

@@ -62,6 +62,7 @@ class ReceiveSettingsActivity : Activity() {
             hasMedia = hasMedia || media
             val originalName = originalNames.getOrNull(index) ?: names.getOrNull(index).orEmpty()
             val row = layoutInflater.inflate(R.layout.item_receive_settings_file, fileList, false)
+            ThemeColors.apply(row)
             val checkBox = row.findViewById<CheckBox>(R.id.receive_settings_file_check).apply {
                 isChecked = selected.isEmpty() || id in selected
             }

@@ -101,6 +101,31 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/dark_mode_row"
+                style="@style/SettingsListRow.Adaptive">
+                <ImageView
+                    android:id="@+id/dark_mode_icon"
+                    android:layout_width="@dimen/settings_list_icon_size"
+                    android:layout_height="@dimen/settings_list_icon_size"
+                    android:src="@drawable/ic_brightness"
+                    android:tint="@color/secondary_text" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/settings_list_content_spacing"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        style="@style/SettingsListTitle"
+                        android:text="@string/settings_dark_mode" />
+                    <TextView
+                        android:id="@+id/dark_mode_value"
+                        style="@style/SettingsListSummary"
+                        android:layout_marginTop="@dimen/settings_list_summary_spacing" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/device_info_row"
                 style="@style/SettingsListRow.Adaptive">
                 <ImageView

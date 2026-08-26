@@ -49,4 +49,19 @@ class AppSettingsTest {
             AppSettings(InstrumentationRegistry.getInstrumentation().targetContext).themeColor()
         )
     }
+
+    @Test
+    fun darkModeDefaultsToFollowSystem() {
+        org.junit.Assert.assertEquals(
+            DarkModePreference.FOLLOW_SYSTEM.id,
+            AppSettings(InstrumentationRegistry.getInstrumentation().targetContext).darkMode()
+        )
+    }
+
+    @Test
+    fun darkModeSettingPersists() {
+        val settings = AppSettings(InstrumentationRegistry.getInstrumentation().targetContext)
+        settings.setDarkMode(DarkModePreference.ENABLED.id)
+        org.junit.Assert.assertEquals(DarkModePreference.ENABLED.id, settings.darkMode())
+    }
 }

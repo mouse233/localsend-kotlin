@@ -22,6 +22,7 @@ import android.widget.TextView
 import android.widget.Toast
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.AppLocale
+import io.github.mouse233.localsendkotlin.settings.DarkModePreference
 import io.github.mouse233.localsendkotlin.settings.DeviceType
 import io.github.mouse233.localsendkotlin.settings.ThemeColorPreset
 import io.github.mouse233.localsendkotlin.discovery.NetworkInterfaceCatalog
@@ -34,6 +35,7 @@ class SettingsActivity : Activity() {
     private lateinit var deviceInfoValue: TextView
     private lateinit var languageValue: TextView
     private lateinit var themeColorSwatch: View
+    private lateinit var darkModeValue: TextView
     private lateinit var portValue: TextView
     private lateinit var multicastAddressValue: TextView
     private lateinit var networkInterfacesValue: TextView
@@ -48,6 +50,7 @@ class SettingsActivity : Activity() {
         deviceInfoValue = findViewById(R.id.device_info_value)
         languageValue = findViewById(R.id.language_value)
         themeColorSwatch = findViewById(R.id.theme_color_swatch)
+        darkModeValue = findViewById(R.id.dark_mode_value)
         portValue = findViewById(R.id.port_value)
         multicastAddressValue = findViewById(R.id.multicast_address_value)
         networkInterfacesValue = findViewById(R.id.network_interfaces_value)
@@ -56,6 +59,7 @@ class SettingsActivity : Activity() {
         findViewById<android.view.View>(R.id.settings_back_button).setOnClickListener { finish() }
         findViewById<android.view.View>(R.id.language_row).setOnClickListener { showLanguagePicker() }
         findViewById<View>(R.id.theme_color_row).setOnClickListener { showThemeColorPicker() }
+        findViewById<View>(R.id.dark_mode_row).setOnClickListener { showDarkModePicker() }
         findViewById<android.view.View>(R.id.device_info_row).setOnClickListener { showDeviceInfoDialog() }
         val hideIpv6Switch = findViewById<Switch>(R.id.hide_ipv6_switch).apply {
             isChecked = settings.hideIpv6BindAddresses()
@@ -273,6 +277,21 @@ class SettingsActivity : Activity() {
         ThemeColors.apply(dialog)
     }
 
+    private fun showDarkModePicker() {
+        val modes = DarkModePreference.values()
+        val selected = modes.indexOf(DarkModePreference.fromId(settings.darkMode()))
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.settings_dark_mode)
+            .setSingleChoiceItems(modes.map { getString(it.labelRes) }.toTypedArray(), selected) { picker, which ->
+                settings.setDarkMode(modes[which].id)
+                picker.dismiss()
+                recreate()
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
+        ThemeColors.apply(dialog)
+    }
+
     private fun showPortEditor() = showEditor(R.string.settings_port, settings.port().toString(), InputType.TYPE_CLASS_NUMBER) { value ->
         val port = value.toIntOrNull()
         if (port == null || port !in 1..65535) {
@@ -315,6 +334,7 @@ class SettingsActivity : Activity() {
         val list = content.findViewById<LinearLayout>(R.id.network_interfaces_list)
         interfaces.forEachIndexed { index, networkInterface ->
             val row = layoutInflater.inflate(R.layout.item_network_interface, list, false)
+            ThemeColors.apply(row)
             val checkbox = row.findViewById<CheckBox>(R.id.network_interface_checkbox)
             row.findViewById<TextView>(R.id.network_interface_name).text =
                 "[#${index + 1}] ${networkInterface.name}"
@@ -393,6 +413,7 @@ class SettingsActivity : Activity() {
             shape = GradientDrawable.OVAL
             setColor(ThemeColors.color(this@SettingsActivity, ThemeColorPreset.fromId(settings.themeColor())))
         }
+        darkModeValue.text = getString(DarkModePreference.fromId(settings.darkMode()).labelRes)
         portValue.text = settings.port().toString()
         multicastAddressValue.text = settings.multicastAddress()
         networkInterfacesValue.text = networkInterfaceSummary()

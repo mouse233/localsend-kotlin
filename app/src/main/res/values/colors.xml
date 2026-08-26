@@ -2,6 +2,12 @@
 <resources>
     <color name="brand_primary">#1976D2</color>
     <color name="window_background">#F5F7FA</color>
+    <color name="dark_window_background">#111111</color>
+    <color name="dark_surface">#1B1B1B</color>
+    <color name="dark_dialog_background">#222222</color>
+    <color name="dark_primary_text">#F5F5F5</color>
+    <color name="dark_secondary_text">#BDBDBD</color>
+    <color name="dark_item_border">#333333</color>
     <color name="primary_text">#1B1F23</color>
     <color name="secondary_text">#5F6368</color>
     <color name="header_subtitle">#D7E9FF</color>

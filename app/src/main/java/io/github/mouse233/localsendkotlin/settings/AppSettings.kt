@@ -54,6 +54,12 @@ class AppSettings(context: Context) {
         preferences.edit().putString(THEME_COLOR_KEY, ThemeColorPreset.fromId(id).id).apply()
     }
 
+    fun darkMode(): String = DarkModePreference.fromId(preferences.getString(DARK_MODE_KEY, null)).id
+
+    fun setDarkMode(mode: String) {
+        preferences.edit().putString(DARK_MODE_KEY, DarkModePreference.fromId(mode).id).apply()
+    }
+
     fun language(): String = preferences.getString(LANGUAGE_KEY, AppLocale.SYSTEM) ?: AppLocale.SYSTEM
     fun setLanguage(language: String) = preferences.edit().putString(LANGUAGE_KEY, language).apply()
 
@@ -145,6 +151,7 @@ class AppSettings(context: Context) {
         const val HIDE_IPV6_BIND_ADDRESSES_KEY = "hide_ipv6_bind_addresses"
         const val KEEP_SCREEN_AWAKE_KEY = "keep_screen_awake_during_transfer"
         const val THEME_COLOR_KEY = "theme_color"
+        const val DARK_MODE_KEY = "dark_mode"
         const val LANGUAGE_KEY = "language"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"
