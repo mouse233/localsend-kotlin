@@ -6,6 +6,7 @@ import android.Manifest
 import android.annotation.TargetApi
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Intent
@@ -19,6 +20,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.text.InputType
 import android.view.MotionEvent
@@ -60,6 +62,7 @@ class MainActivity : Activity(), TransferService.Listener {
     private lateinit var contentActionMenu: android.view.View
     private lateinit var contentActionFab: android.widget.ImageButton
     private var selectedFiles: List<Uri> = emptyList()
+    private var selectedMessageText: String? = null
     private var contentMenuOpen = false
     private var appliedLanguage: String? = null
     private var transferService: TransferService? = null
@@ -190,7 +193,10 @@ class MainActivity : Activity(), TransferService.Listener {
             val decide = pendingVerificationDecision
             pendingVerificationRequest = null
             pendingVerificationDecision = null
-            if (request != null && decide != null) showIncomingRequest(request, decide, pendingReceiveSettingsOptions)
+            if (request != null && decide != null) {
+                if (request.messageText() != null) showIncomingMessage(request, decide)
+                else showIncomingRequest(request, decide, pendingReceiveSettingsOptions)
+            }
             return
         }
         if (requestCode == RECEIVE_SETTINGS_REQUEST) {
@@ -253,20 +259,34 @@ class MainActivity : Activity(), TransferService.Listener {
         type = "*/*"
     }, FILE_REQUEST)
 
-    private fun chooseMedia() = startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-        addCategory(Intent.CATEGORY_OPENABLE)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-        type = "*/*"
-        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
-    }, MEDIA_REQUEST)
+    private fun chooseMedia() {
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                type = "*/*"
+                putExtra(
+                    MediaStore.EXTRA_PICK_IMAGES_MAX,
+                    minOf(999, MediaStore.getPickImagesMaxLimit())
+                )
+            }
+        } else {
+            Intent(Intent.ACTION_GET_CONTENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                type = "*/*"
+                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
+            }
+        }
+        startActivityForResult(intent, MEDIA_REQUEST)
+    }
 
     private fun chooseFolder() = startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
     }, FOLDER_REQUEST)
 
-    private fun setSelectedFiles(files: List<Uri>) {
+    private fun setSelectedFiles(files: List<Uri>, messageText: String? = null) {
         selectedFiles = files
+        selectedMessageText = messageText
         if (files.isNotEmpty()) statusText.text = getString(R.string.files_selected, files.size)
     }
 
@@ -355,7 +375,7 @@ class MainActivity : Activity(), TransferService.Listener {
                 val file = File(cacheDir, "message_${UUID.randomUUID()}.txt")
                 file.writeText(text, Charsets.UTF_8)
                 val uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
-                mainHandler.post { setSelectedFiles(listOf(uri)) }
+                mainHandler.post { setSelectedFiles(listOf(uri), text) }
             } catch (_: Exception) {
                 mainHandler.post { Toast.makeText(this, R.string.content_action_text_empty, Toast.LENGTH_SHORT).show() }
             }
@@ -460,14 +480,14 @@ class MainActivity : Activity(), TransferService.Listener {
             }
             dialog.dismiss()
             statusText.text = getString(R.string.manual_send_connecting)
-            transferService?.sendManual(selectedFiles, endpoint)
+            transferService?.sendManual(selectedFiles, endpoint, selectedMessageText)
                 ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun sendToDevice(device: RemoteDevice) {
         if (selectedFiles.isEmpty()) { Toast.makeText(this, R.string.select_file_first, Toast.LENGTH_SHORT).show(); return }
-        transferService?.send(selectedFiles, device) ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
+        transferService?.send(selectedFiles, device, selectedMessageText) ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
     }
 
     private fun verifyDevice(device: RemoteDevice) {
@@ -553,7 +573,45 @@ class MainActivity : Activity(), TransferService.Listener {
 
     override fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit) {
         if (isFinishing || isDestroyed) { decide(null); return }
+        if (request.messageText() != null) {
+            // Keep the prepare request pending until the user finishes with
+            // the message. This is when LocalSend sends the 204 response.
+            showIncomingMessage(request, decide)
+            return
+        }
         showIncomingRequest(request, decide, IncomingReceiveOptions.forAll(request, AppSettings(this)))
+    }
+
+    private fun showIncomingMessage(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit) {
+        val message = request.messageText() ?: return
+        val content = layoutInflater.inflate(R.layout.dialog_incoming_request, null)
+        content.findViewById<TextView>(R.id.incoming_file_list).apply {
+            text = message
+            setTextIsSelectable(true)
+        }
+        fun finishMessage() {
+            decide(IncomingReceiveOptions.forAll(request, AppSettings(this)))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.incoming_message_title, request.info.alias))
+            .setView(content)
+            .setNegativeButton(R.string.close) { _, _ -> finishMessage() }
+            .setNeutralButton(R.string.content_action_clipboard) { _, _ ->
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
+                clipboard?.setPrimaryClip(ClipData.newPlainText("LocalSend", message))
+                finishMessage()
+            }
+            .setPositiveButton(R.string.verification_title) { _, _ ->
+                pendingVerificationRequest = request
+                pendingVerificationDecision = decide
+                startActivityForResult(
+                    Intent(this, VerificationActivity::class.java)
+                        .putExtra(VerificationActivity.EXTRA_FINGERPRINT, request.info.fingerprint),
+                    VERIFICATION_REQUEST
+                )
+            }
+            .setOnCancelListener { finishMessage() }
+            .show()
     }
 
     private fun showIncomingRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit, options: IncomingReceiveOptions?) {

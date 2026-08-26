@@ -148,7 +148,7 @@ class TransferService : Service(), DiscoveryListener {
 
     fun send(uri: Uri, device: RemoteDevice) = send(listOf(uri), device)
 
-    fun sendManual(uris: List<Uri>, endpoint: ManualEndpoint) {
+    fun sendManual(uris: List<Uri>, endpoint: ManualEndpoint, messageText: String? = null) {
         if (uris.isEmpty()) return
         notifyListeners { it.onUploadStatus(getString(R.string.manual_send_connecting)) }
         networkExecutor.execute {
@@ -161,13 +161,13 @@ class TransferService : Service(), DiscoveryListener {
                 }
                 if (discoveredDevice != null) {
                     mainHandler.post {
-                        if (!serviceDestroyed) send(uris, discoveredDevice)
+                        if (!serviceDestroyed) send(uris, discoveredDevice, messageText)
                     }
                     return@execute
                 }
                 val device = ManualDeviceConnector(this).resolve(endpoint)
                 mainHandler.post {
-                    if (!serviceDestroyed) send(uris, device)
+                    if (!serviceDestroyed) send(uris, device, messageText)
                 }
             } catch (_: Exception) {
                 notifyListeners { it.onUploadError(getString(R.string.manual_send_failed, endpoint.host, endpoint.port)) }
@@ -175,7 +175,7 @@ class TransferService : Service(), DiscoveryListener {
         }
     }
 
-    fun send(uris: List<Uri>, device: RemoteDevice) {
+    fun send(uris: List<Uri>, device: RemoteDevice, messageText: String? = null) {
         notificationGeneration++
         cancellationRequested = false
         hasActiveTransfer = true
@@ -184,7 +184,7 @@ class TransferService : Service(), DiscoveryListener {
         resetTransferMetrics()
         activeNotificationTitle = getString(R.string.notification_uploading)
         activeNotificationProgress = 0
-        uploadClient.send(uris, device, object : UploadClient.Listener {
+        uploadClient.send(uris, device, messageText, object : UploadClient.Listener {
             override fun onStatus(message: String) {
                 if (cancellationRequested) return
                 activeNotificationTitle = message
@@ -305,6 +305,20 @@ class TransferService : Service(), DiscoveryListener {
         request: IncomingTransferManager.PrepareUploadRequest,
         decide: (IncomingReceiveOptions?) -> Unit
     ) {
+        // A message must reach the foreground UI even when automatic file
+        // saving is enabled; otherwise it would be acknowledged and silently
+        // disappear because it has no file session to display.
+        if (request.messageText() != null) {
+            val listener = listeners.firstOrNull()
+            if (listener == null) {
+                pendingIncoming?.decide?.invoke(null)
+                pendingIncoming = PendingIncoming(request, decide)
+                showIncomingRequestNotification(request)
+            } else {
+                mainHandler.post { listener.onIncomingTransferRequest(request, decide) }
+            }
+            return
+        }
         if (settings.autoSaveReceivedFiles()) {
             decide(IncomingReceiveOptions.forAll(request, settings))
             return
@@ -463,10 +477,11 @@ class TransferService : Service(), DiscoveryListener {
     }
 
     private fun showIncomingRequestNotification(request: IncomingTransferManager.PrepareUploadRequest) {
-        val files = request.files.values.joinToString(", ") { it.fileName }
+        val message = request.messageText()
+        val files = message ?: request.files.values.joinToString(", ") { it.fileName }
         val notification = NotificationCompat.Builder(this, CHANNEL_INCOMING)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(getString(R.string.notification_incoming_title, request.info.alias))
+            .setContentTitle(getString(if (message == null) R.string.notification_incoming_title else R.string.incoming_message_title, request.info.alias))
             .setContentText(files)
             .setContentIntent(openAppIntent())
             .setOngoing(true)

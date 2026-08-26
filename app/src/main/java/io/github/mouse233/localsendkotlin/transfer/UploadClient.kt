@@ -43,9 +43,11 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     @Volatile private var activeDevice: RemoteDevice? = null
     @Volatile private var activeCancelFlag: AtomicBoolean? = null
 
-    fun send(uri: Uri, device: RemoteDevice, listener: Listener) = send(listOf(uri), device, listener)
+    fun send(uri: Uri, device: RemoteDevice, listener: Listener) = send(listOf(uri), device, null, listener)
 
-    fun send(uris: List<Uri>, device: RemoteDevice, listener: Listener) {
+    fun send(uris: List<Uri>, device: RemoteDevice, listener: Listener) = send(uris, device, null, listener)
+
+    fun send(uris: List<Uri>, device: RemoteDevice, messageText: String?, listener: Listener) {
         executor.execute {
             try {
                 require(uris.isNotEmpty()) { "至少选择一个文件" }
@@ -55,14 +57,22 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 listener.onStatus("正在准备 ${uris.size} 个文件…")
                 val files = uris.mapIndexed { index, uri ->
                     listener.onStatus("正在准备文件 ${index + 1}/${uris.size}…")
-                    val file = readFile(uri)
+                    val file = readFile(uri, messageText.takeIf { uris.size == 1 })
                     file.copy(
                         id = UUID.randomUUID().toString(),
                         sha256 = if (settings.createChecksums()) sha256(uri) { cancelled.get() } else null
                     )
                 }
                 listener.onStatus("正在请求 ${device.alias} 接收文件…")
-                val prepared = prepareWithPin(device, files, listener, cancelled)
+                val prepareResult = prepareWithPin(device, files, listener, cancelled)
+                if (prepareResult is PrepareResult.NoTransfer) {
+                    // Message requests carry their content in the prepare-upload
+                    // preview and are acknowledged with HTTP 204. No upload
+                    // session or file body is created in that case.
+                    listener.onCompleted(files.map { it.fileName })
+                    return@execute
+                }
+                val prepared = (prepareResult as PrepareResult.Success).response
                 activeTransfers[prepared.sessionId] = cancelled
                 activeSessionId = prepared.sessionId
                 val acceptedFiles = files.filter { it.id in prepared.files }
@@ -121,12 +131,12 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         files: List<FileInfo>,
         listener: Listener,
         cancelled: AtomicBoolean
-    ): PrepareResponse {
+    ): PrepareResult {
         var pin: String? = null
         var attempt = 0
         while (true) {
             when (val result = prepare(device, files, pin)) {
-                is PrepareResult.Success -> return result.response
+                is PrepareResult.Success, PrepareResult.NoTransfer -> return result
                 PrepareResult.PinRequired -> {
                     attempt++
                     if (attempt > MAX_PIN_ATTEMPTS) {
@@ -150,6 +160,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         client(device).newCall(request).execute().use { response ->
             if (response.code == 401) return PrepareResult.PinRequired
             if (response.code == 429) throw IllegalStateException(appContext.getString(R.string.pin_too_many_attempts))
+            if (response.code == 204) return PrepareResult.NoTransfer
             if (!response.isSuccessful) throw IllegalStateException("接收方拒绝请求（${response.code}）")
             return PrepareResult.Success(
                 gson.fromJson(response.body?.charStream(), PrepareResponse::class.java)
@@ -199,14 +210,14 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         return "${device.protocol}://$formattedHost:${device.port}$path".toHttpUrl()
     }
 
-    private fun readFile(uri: Uri): FileInfo {
+    private fun readFile(uri: Uri, preview: String? = null): FileInfo {
         var name = "shared-file"
         var size = -1L
         resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) { name = cursor.getString(0) ?: name; size = cursor.getLong(1) }
         }
         if (size < 0) throw IllegalArgumentException("无法确定文件大小")
-        return FileInfo("", uri, name, size, resolver.getType(uri) ?: "application/octet-stream", null)
+        return FileInfo("", uri, name, size, resolver.getType(uri) ?: "application/octet-stream", null, preview)
     }
 
     private fun sha256(uri: Uri, shouldCancel: () -> Boolean): String {
@@ -237,9 +248,10 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     private data class PrepareResponse(val sessionId: String, val files: Map<String, String>)
     private sealed interface PrepareResult {
         data class Success(val response: PrepareResponse) : PrepareResult
+        data object NoTransfer : PrepareResult
         data object PinRequired : PrepareResult
     }
-    private data class FileInfo(val id: String, val uri: Uri, val fileName: String, val size: Long, val fileType: String, val sha256: String?)
+    private data class FileInfo(val id: String, val uri: Uri, val fileName: String, val size: Long, val fileType: String, val sha256: String?, val preview: String? = null)
     private fun FileInfo.toQueueFile() = QueueFile(id, fileName, size)
     private class StreamBody(private val type: String, private val length: Long, private val source: () -> java.io.InputStream, private val progress: (Long) -> Unit, private val shouldCancel: () -> Boolean) : RequestBody() {
         override fun contentType(): MediaType? = type.toMediaTypeOrNull()

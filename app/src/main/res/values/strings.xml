@@ -149,6 +149,7 @@
     <string name="history_empty">还没有接收记录</string>
     <string name="receive_history_details">%1$s - %2$s - %3$s</string>
     <string name="incoming_request_title">%1$s 请求发送文件</string>
+    <string name="incoming_message_title">%1$s 发送给你了一条消息</string>
     <string name="incoming_request_accept">接收</string>
     <string name="incoming_request_reject">拒绝</string>
     <string name="incoming_settings">设置</string>
