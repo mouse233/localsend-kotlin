@@ -56,16 +56,24 @@ class ReceiveHistoryAdapter(
         ) {
             icon.setImageResource(FileTypeIcon.forMimeType(entry.mimeType))
             name.text = entry.displayName
-            details.text = itemView.context.getString(
-                R.string.receive_history_details,
-                DATE_FORMAT.format(Date(entry.receivedAt)),
-                formatBytes(entry.size),
-                entry.senderAlias
-            )
+            details.text = if (entry.isMessage) {
+                itemView.context.getString(
+                    R.string.receive_history_message_details,
+                    DATE_FORMAT.format(Date(entry.receivedAt)),
+                    entry.senderAlias
+                )
+            } else {
+                itemView.context.getString(
+                    R.string.receive_history_details,
+                    DATE_FORMAT.format(Date(entry.receivedAt)),
+                    formatBytes(entry.size),
+                    entry.senderAlias
+                )
+            }
             itemView.setOnClickListener { onOpen(entry) }
             more.setOnClickListener { anchor ->
                 PopupMenu(anchor.context, anchor).apply {
-                    menu.add(0, MENU_OPEN, 0, R.string.open_file)
+                    menu.add(0, MENU_OPEN, 0, if (entry.isMessage) R.string.view_message else R.string.open_file)
                     menu.add(0, MENU_DETAILS, 1, R.string.file_details)
                     menu.add(0, MENU_DELETE, 2, R.string.delete_history_item)
                     setOnMenuItemClickListener { item: MenuItem ->

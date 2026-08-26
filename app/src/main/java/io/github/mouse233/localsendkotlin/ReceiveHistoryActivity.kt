@@ -2,6 +2,8 @@ package io.github.mouse233.localsendkotlin
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -18,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.history.ReceiveHistoryStore
 import io.github.mouse233.localsendkotlin.model.ReceiveHistoryEntry
 import io.github.mouse233.localsendkotlin.settings.AppSettings
+import io.github.mouse233.localsendkotlin.transfer.IncomingMessageLink
 import io.github.mouse233.localsendkotlin.ui.ReceiveHistoryAdapter
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 import java.text.SimpleDateFormat
@@ -64,6 +67,10 @@ class ReceiveHistoryActivity : Activity() {
     }
 
     private fun openFile(entry: ReceiveHistoryEntry) {
+        if (entry.isMessage) {
+            showMessage(entry)
+            return
+        }
         if (!fileExists(entry)) {
             Toast.makeText(this, R.string.file_no_longer_exists, Toast.LENGTH_SHORT).show()
             return
@@ -76,6 +83,50 @@ class ReceiveHistoryActivity : Activity() {
         } catch (_: Exception) {
             Toast.makeText(this, R.string.open_file_failed, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showMessage(entry: ReceiveHistoryEntry) {
+        val message = entry.displayName
+        val linkUri = IncomingMessageLink.detect(message)?.let(Uri::parse)
+        val content = layoutInflater.inflate(R.layout.dialog_incoming_request, null)
+        content.findViewById<TextView>(R.id.incoming_file_list).apply {
+            text = message
+            setTextIsSelectable(true)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.incoming_message_title, entry.senderAlias))
+            .setView(content)
+            .setNegativeButton(R.string.close, null)
+            .setPositiveButton(R.string.content_action_clipboard) { _, _ ->
+                copyMessage(message)
+            }
+            .create()
+        dialog.show()
+        if (linkUri != null) {
+            val copyButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            val buttonPanel = copyButton?.parent as? android.view.ViewGroup
+            if (copyButton != null && buttonPanel != null) {
+                val openButton = android.widget.Button(this, null, android.R.attr.buttonBarNeutralButtonStyle).apply {
+                    setText(R.string.open_file)
+                    isAllCaps = false
+                    setOnClickListener {
+                        try {
+                            startActivity(Intent(Intent.ACTION_VIEW, linkUri))
+                            dialog.dismiss()
+                        } catch (_: Exception) {
+                            Toast.makeText(this@ReceiveHistoryActivity, R.string.open_external_link_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                buttonPanel.addView(openButton, buttonPanel.indexOfChild(copyButton) + 1)
+            }
+        }
+    }
+
+    private fun copyMessage(message: String) {
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
+        clipboard?.setPrimaryClip(ClipData.newPlainText("LocalSend", message))
+        Toast.makeText(this, R.string.content_action_copied, Toast.LENGTH_SHORT).show()
     }
 
     private fun openDirectory() {

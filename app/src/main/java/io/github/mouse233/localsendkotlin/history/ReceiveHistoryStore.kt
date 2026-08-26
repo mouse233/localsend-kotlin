@@ -8,7 +8,7 @@ import android.net.Uri
 import io.github.mouse233.localsendkotlin.model.ReceiveHistoryEntry
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 
-/** Persistent history of successfully received files. Deleting it never deletes files. */
+/** Persistent history of successfully received files and messages. Deleting it never deletes files. */
 class ReceiveHistoryStore(context: Context) : SQLiteOpenHelper(context.applicationContext, DATABASE_NAME, null, DATABASE_VERSION) {
     override fun onCreate(database: SQLiteDatabase) {
         database.execSQL(
@@ -19,11 +19,18 @@ class ReceiveHistoryStore(context: Context) : SQLiteOpenHelper(context.applicati
                 "$COLUMN_MIME_TYPE TEXT NOT NULL, " +
                 "$COLUMN_SIZE INTEGER NOT NULL, " +
                 "$COLUMN_SENDER TEXT NOT NULL, " +
-                "$COLUMN_RECEIVED_AT INTEGER NOT NULL)"
+                "$COLUMN_RECEIVED_AT INTEGER NOT NULL, " +
+                "$COLUMN_IS_MESSAGE INTEGER NOT NULL DEFAULT 0)"
         )
     }
 
-    override fun onUpgrade(database: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(database: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            database.execSQL(
+                "ALTER TABLE $TABLE_NAME ADD COLUMN $COLUMN_IS_MESSAGE INTEGER NOT NULL DEFAULT 0"
+            )
+        }
+    }
 
     fun add(file: ReceivedFile, senderAlias: String?) {
         writableDatabase.insert(TABLE_NAME, null, ContentValues().apply {
@@ -33,6 +40,20 @@ class ReceiveHistoryStore(context: Context) : SQLiteOpenHelper(context.applicati
             put(COLUMN_SIZE, file.size)
             put(COLUMN_SENDER, senderAlias?.takeIf { it.isNotBlank() } ?: UNKNOWN_SENDER)
             put(COLUMN_RECEIVED_AT, System.currentTimeMillis())
+        })
+    }
+
+    fun addMessage(message: String, senderAlias: String?) {
+        writableDatabase.insert(TABLE_NAME, null, ContentValues().apply {
+            // LocalSend represents a received message as history content rather
+            // than creating a temporary text file for it.
+            put(COLUMN_NAME, message)
+            put(COLUMN_URI, "")
+            put(COLUMN_MIME_TYPE, "text/plain")
+            put(COLUMN_SIZE, message.toByteArray(Charsets.UTF_8).size.toLong())
+            put(COLUMN_SENDER, senderAlias?.takeIf { it.isNotBlank() } ?: UNKNOWN_SENDER)
+            put(COLUMN_RECEIVED_AT, System.currentTimeMillis())
+            put(COLUMN_IS_MESSAGE, 1)
         })
     }
 
@@ -53,6 +74,7 @@ class ReceiveHistoryStore(context: Context) : SQLiteOpenHelper(context.applicati
             val size = cursor.getColumnIndexOrThrow(COLUMN_SIZE)
             val sender = cursor.getColumnIndexOrThrow(COLUMN_SENDER)
             val receivedAt = cursor.getColumnIndexOrThrow(COLUMN_RECEIVED_AT)
+            val isMessage = cursor.getColumnIndexOrThrow(COLUMN_IS_MESSAGE)
             while (cursor.moveToNext()) {
                 add(ReceiveHistoryEntry(
                     cursor.getLong(id),
@@ -61,7 +83,8 @@ class ReceiveHistoryStore(context: Context) : SQLiteOpenHelper(context.applicati
                     cursor.getString(mimeType),
                     cursor.getLong(size),
                     cursor.getString(sender),
-                    cursor.getLong(receivedAt)
+                    cursor.getLong(receivedAt),
+                    cursor.getInt(isMessage) != 0
                 ))
             }
         }
@@ -77,7 +100,7 @@ class ReceiveHistoryStore(context: Context) : SQLiteOpenHelper(context.applicati
 
     private companion object {
         const val DATABASE_NAME = "receive-history.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
         const val TABLE_NAME = "receive_history"
         const val COLUMN_ID = "id"
         const val COLUMN_NAME = "display_name"
@@ -86,6 +109,7 @@ class ReceiveHistoryStore(context: Context) : SQLiteOpenHelper(context.applicati
         const val COLUMN_SIZE = "file_size"
         const val COLUMN_SENDER = "sender_alias"
         const val COLUMN_RECEIVED_AT = "received_at"
+        const val COLUMN_IS_MESSAGE = "is_message"
         const val UNKNOWN_SENDER = "未知设备"
     }
 }

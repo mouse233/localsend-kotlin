@@ -100,6 +100,7 @@
     <string name="content_action_media">媒体</string>
     <string name="content_action_text">文本</string>
     <string name="content_action_clipboard">剪贴板</string>
+    <string name="content_action_copied">已复制到剪贴板</string>
     <string name="content_action_close">关闭</string>
     <string name="content_action_text_title">发送文本</string>
     <string name="content_action_text_hint">输入要发送的文本</string>
@@ -131,6 +132,7 @@
     <string name="download_completed">已接收：%1$s</string>
     <string name="active_transfers">当前传输</string>
     <string name="open_file">打开</string>
+    <string name="view_message">查看消息</string>
     <string name="file_details">详细信息</string>
     <string name="file_info_title">文件信息</string>
     <string name="file_info_message">文件名：%1$s\n路径：%2$s\n大小：%3$s\n发送者：%4$s\n时间：%5$s</string>
@@ -150,6 +152,7 @@
     <string name="clear_history_message">这不会删除已接收的文件。</string>
     <string name="history_empty">还没有接收记录</string>
     <string name="receive_history_details">%1$s - %2$s - %3$s</string>
+    <string name="receive_history_message_details">%1$s - 消息 - %2$s</string>
     <string name="incoming_request_title">%1$s 请求发送文件</string>
     <string name="incoming_message_title">%1$s 发送给你了一条消息</string>
     <string name="incoming_request_accept">接收</string>

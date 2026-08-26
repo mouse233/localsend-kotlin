@@ -135,6 +135,13 @@ class TransferService : Service(), DiscoveryListener {
 
     fun refreshDevices() = discoveryManager?.refresh()
 
+    fun recordReceivedMessage(message: String, senderAlias: String?) {
+        if (!settings.saveReceiveHistory()) return
+        networkExecutor.execute {
+            if (!serviceDestroyed) receiveHistory.addMessage(message, senderAlias)
+        }
+    }
+
     private fun restartNetwork() {
         if (serviceDestroyed) return
         networkExecutor.execute {

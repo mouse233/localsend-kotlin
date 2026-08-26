@@ -40,6 +40,7 @@ import io.github.mouse233.localsendkotlin.discovery.ManualEndpoint
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
+import io.github.mouse233.localsendkotlin.transfer.IncomingMessageLink
 import io.github.mouse233.localsendkotlin.transfer.IncomingReceiveOptions
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
@@ -59,7 +60,7 @@ class MainActivity : Activity(), TransferService.Listener {
     private lateinit var localEndpointDeviceName: TextView
     private lateinit var localEndpointBindLabel: TextView
     private lateinit var localEndpointAddresses: TextView
-    private lateinit var contentActionMenu: android.view.View
+    private lateinit var contentActionMenu: android.view.ViewGroup
     private lateinit var contentActionFab: android.widget.ImageButton
     private var selectedFiles: List<Uri> = emptyList()
     private var selectedMessageText: String? = null
@@ -425,31 +426,89 @@ class MainActivity : Activity(), TransferService.Listener {
 
     private fun setContentActionMenuOpen(open: Boolean) {
         contentMenuOpen = open
-        contentActionMenu.animate().cancel()
+        cancelContentActionItemAnimations()
         contentActionFab.animate().cancel()
-        contentActionMenu.animate().setListener(null)
         contentActionFab.animate().setListener(null)
-        val interpolator = android.view.animation.PathInterpolator(0.2f, 0f, 0f, 1f)
-        val offset = 24f * resources.displayMetrics.density
+        val interpolator = android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f)
         if (open) {
             contentActionFab.setImageResource(R.drawable.ic_close)
             contentActionFab.contentDescription = getString(R.string.content_action_close)
             contentActionMenu.visibility = android.view.View.VISIBLE
-            contentActionMenu.alpha = 0f
-            contentActionMenu.translationY = offset
-            contentActionFab.animate().rotation(45f).setDuration(180L).setInterpolator(interpolator).start()
-            contentActionMenu.animate().alpha(1f).translationY(0f).setDuration(180L).setInterpolator(interpolator).start()
+            contentActionMenu.alpha = 1f
+            contentActionFab.animate().rotation(45f).setDuration(200L).setInterpolator(interpolator).start()
+            animateContentActionItems(true, interpolator)
         } else {
             contentActionFab.setImageResource(R.drawable.ic_add)
             contentActionFab.contentDescription = getString(R.string.content_action_add)
-            contentActionFab.animate().rotation(0f).setDuration(150L).setInterpolator(interpolator).start()
-            contentActionMenu.animate().alpha(0f).translationY(offset).setDuration(150L).setInterpolator(interpolator)
-                .setListener(object : AnimatorListenerAdapter() {
+            contentActionFab.animate().rotation(0f).setDuration(200L).setInterpolator(interpolator).start()
+            animateContentActionItems(false, interpolator)
+        }
+    }
+
+    private fun animateContentActionItems(
+        open: Boolean,
+        interpolator: android.view.animation.Interpolator
+    ) {
+        val restingElevation = 6f * resources.displayMetrics.density
+        val itemCount = contentActionMenu.childCount
+        for (index in 0 until itemCount) {
+            val row = contentActionMenu.getChildAt(index) as? android.view.ViewGroup ?: continue
+            val label = row.getChildAt(0) as? TextView
+            val button = row.getChildAt(1) as? android.widget.ImageButton ?: continue
+            val delay = if (open) 15L * (itemCount - index) else 15L * index
+            if (open) {
+                label?.alpha = 0f
+                button.alpha = 0f
+                button.scaleX = 0f
+                button.scaleY = 0f
+                button.translationZ = -restingElevation
+            }
+            label?.animate()?.alpha(if (open) 1f else 0f)
+                ?.setStartDelay(delay)
+                ?.setDuration(150L)
+                ?.setInterpolator(interpolator)
+                ?.start()
+            val animation = button.animate()
+                .alpha(if (open) 1f else 0f)
+                .scaleX(if (open) 1f else 0f)
+                .scaleY(if (open) 1f else 0f)
+                .translationZ(if (open) 0f else -restingElevation)
+                .setStartDelay(delay)
+                .setDuration(150L)
+                .setInterpolator(interpolator)
+            if (!open && index == itemCount - 1) {
+                animation.setListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
-                        contentActionMenu.visibility = android.view.View.GONE
-                        contentActionMenu.translationY = 0f
+                        if (!contentMenuOpen) {
+                            contentActionMenu.visibility = android.view.View.GONE
+                            resetContentActionItems()
+                        }
                     }
-                }).start()
+                })
+            }
+            animation.start()
+        }
+    }
+
+    private fun cancelContentActionItemAnimations() {
+        for (index in 0 until contentActionMenu.childCount) {
+            val row = contentActionMenu.getChildAt(index) as? android.view.ViewGroup ?: continue
+            row.getChildAt(0)?.animate()?.cancel()
+            row.getChildAt(1)?.animate()?.cancel()
+            row.getChildAt(1)?.animate()?.setListener(null)
+        }
+    }
+
+    private fun resetContentActionItems() {
+        for (index in 0 until contentActionMenu.childCount) {
+            val row = contentActionMenu.getChildAt(index) as? android.view.ViewGroup ?: continue
+            (row.getChildAt(0) as? TextView)?.alpha = 1f
+            (row.getChildAt(1) as? android.widget.ImageButton)?.let { button ->
+                button.alpha = 1f
+                button.scaleX = 1f
+                button.scaleY = 1f
+                button.translationZ = 0f
+            }
         }
     }
 
@@ -586,24 +645,39 @@ class MainActivity : Activity(), TransferService.Listener {
 
     private fun showIncomingMessage(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit) {
         val message = request.messageText() ?: return
+        val linkUri = IncomingMessageLink.detect(message)?.let(Uri::parse)
         val content = layoutInflater.inflate(R.layout.dialog_incoming_request, null)
         content.findViewById<TextView>(R.id.incoming_file_list).apply {
             text = message
             setTextIsSelectable(true)
         }
+        var historyRecorded = false
         fun finishMessage() {
+            if (!historyRecorded) {
+                historyRecorded = true
+                transferService?.recordReceivedMessage(message, request.info.alias)
+            }
             decide(IncomingReceiveOptions.forAll(request, AppSettings(this)))
         }
-        AlertDialog.Builder(this)
+        fun copyMessage() {
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
+            clipboard?.setPrimaryClip(ClipData.newPlainText("LocalSend", message))
+            finishMessage()
+        }
+        fun openLink() {
+            val uri = linkUri ?: return
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, uri))
+                finishMessage()
+            } catch (_: Exception) {
+                Toast.makeText(this, R.string.open_external_link_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+        val dialog = AlertDialog.Builder(this)
             .setTitle(getString(R.string.incoming_message_title, request.info.alias))
             .setView(content)
             .setNegativeButton(R.string.close) { _, _ -> finishMessage() }
-            .setNeutralButton(R.string.content_action_clipboard) { _, _ ->
-                val clipboard = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
-                clipboard?.setPrimaryClip(ClipData.newPlainText("LocalSend", message))
-                finishMessage()
-            }
-            .setPositiveButton(R.string.verification_title) { _, _ ->
+            .setNeutralButton(R.string.verification_title) { _, _ ->
                 pendingVerificationRequest = request
                 pendingVerificationDecision = decide
                 startActivityForResult(
@@ -612,8 +686,27 @@ class MainActivity : Activity(), TransferService.Listener {
                     VERIFICATION_REQUEST
                 )
             }
+            .setPositiveButton(if (linkUri == null) R.string.content_action_clipboard else R.string.open_file) { _, _ ->
+                if (linkUri == null) copyMessage() else openLink()
+            }
             .setOnCancelListener { finishMessage() }
-            .show()
+            .create()
+        dialog.show()
+        if (linkUri != null) {
+            val openButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            val buttonPanel = openButton?.parent as? android.view.ViewGroup
+            if (openButton != null && buttonPanel != null) {
+                val copyButton = android.widget.Button(this, null, android.R.attr.buttonBarNeutralButtonStyle).apply {
+                    setText(R.string.content_action_clipboard)
+                    isAllCaps = false
+                    setOnClickListener {
+                        dialog.dismiss()
+                        copyMessage()
+                    }
+                }
+                buttonPanel.addView(copyButton, buttonPanel.indexOfChild(openButton))
+            }
+        }
     }
 
     private fun showIncomingRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit, options: IncomingReceiveOptions?) {
