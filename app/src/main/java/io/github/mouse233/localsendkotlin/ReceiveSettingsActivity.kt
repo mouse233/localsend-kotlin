@@ -141,6 +141,7 @@ class ReceiveSettingsActivity : Activity() {
             .setPositiveButton(R.string.save, null)
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val name = input.text.toString().trim()
             if (name.isBlank()) {

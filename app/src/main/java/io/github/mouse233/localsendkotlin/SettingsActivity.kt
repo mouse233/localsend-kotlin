@@ -166,6 +166,7 @@ class SettingsActivity : Activity() {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -194,6 +195,7 @@ class SettingsActivity : Activity() {
             .setOnCancelListener { if (!saved) pinSwitch.isChecked = false }
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -214,7 +216,7 @@ class SettingsActivity : Activity() {
         )
         val codes = arrayOf(AppLocale.SYSTEM, AppLocale.CHINESE, AppLocale.ENGLISH)
         val selected = codes.indexOf(settings.language()).coerceAtLeast(0)
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.settings_language)
             .setSingleChoiceItems(languages, selected) { dialog, which ->
                 settings.setLanguage(codes[which])
@@ -223,6 +225,7 @@ class SettingsActivity : Activity() {
                 recreate()
             }
             .show()
+        ThemeColors.apply(dialog)
     }
 
     private fun showThemeColorPicker() {
@@ -275,6 +278,7 @@ class SettingsActivity : Activity() {
             content.addView(row, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56)))
         }
         dialog.show()
+        ThemeColors.apply(dialog)
     }
 
     private fun showPortEditor() = showEditor(R.string.settings_port, settings.port().toString(), InputType.TYPE_CLASS_NUMBER) { value ->
@@ -350,6 +354,7 @@ class SettingsActivity : Activity() {
             }
         }
         dialog.show()
+        ThemeColors.apply(dialog)
     }
 
     private fun showEditor(
@@ -372,6 +377,7 @@ class SettingsActivity : Activity() {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {

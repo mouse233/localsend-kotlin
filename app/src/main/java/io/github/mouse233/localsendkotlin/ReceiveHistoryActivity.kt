@@ -104,6 +104,7 @@ class ReceiveHistoryActivity : Activity() {
             }
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         if (linkUri != null) {
             val copyButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
             val buttonPanel = copyButton?.parent as? android.view.ViewGroup
@@ -212,15 +213,16 @@ class ReceiveHistoryActivity : Activity() {
         detailsView.findViewById<TextView>(R.id.file_info_size).text = formatBytes(entry.size)
         detailsView.findViewById<TextView>(R.id.file_info_sender).text = entry.senderAlias
         detailsView.findViewById<TextView>(R.id.file_info_time).text = DATE_FORMAT.format(Date(entry.receivedAt))
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.file_info_title)
             .setView(detailsView)
             .setPositiveButton(R.string.close, null)
             .show()
+        ThemeColors.apply(dialog)
     }
 
     private fun confirmClear() {
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.clear_history_title)
             .setMessage(R.string.clear_history_message)
             .setNegativeButton(android.R.string.cancel, null)
@@ -228,6 +230,7 @@ class ReceiveHistoryActivity : Activity() {
                 Thread { store.clear(); runOnUiThread(::reload) }.start()
             }
             .show()
+        ThemeColors.apply(dialog)
     }
 
     private fun deleteEntry(entry: ReceiveHistoryEntry) {

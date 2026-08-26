@@ -1,6 +1,7 @@
 package io.github.mouse233.localsendkotlin.ui
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -46,6 +47,21 @@ object ThemeColors {
             intArrayOf(withAlpha(primary, 0x66), 0x55000000)
         )
         applyToView(root, originalPrimary, primary, tint, switchThumbTint, switchTrackTint)
+    }
+
+    fun apply(dialog: AlertDialog) {
+        val primary = primaryColor(dialog.context)
+        val root = dialog.window?.decorView ?: return
+        applyDialogButtons(root, primary)
+    }
+
+    private fun applyDialogButtons(view: View, primary: Int) {
+        if (view is Button) view.setTextColor(primary)
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                applyDialogButtons(view.getChildAt(index), primary)
+            }
+        }
     }
 
     private fun applyToView(

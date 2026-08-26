@@ -363,6 +363,7 @@ class MainActivity : Activity(), TransferService.Listener {
             .setPositiveButton(android.R.string.ok, null)
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -534,6 +535,7 @@ class MainActivity : Activity(), TransferService.Listener {
             .setPositiveButton(R.string.manual_send, null)
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -606,6 +608,7 @@ class MainActivity : Activity(), TransferService.Listener {
             .setOnCancelListener { respond(null) }
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val pin = input.text.toString().trim()
             if (pin.isEmpty()) {
@@ -711,6 +714,7 @@ class MainActivity : Activity(), TransferService.Listener {
                 buttonPanel.addView(copyButton, buttonPanel.indexOfChild(openButton))
             }
         }
+        ThemeColors.apply(dialog)
     }
 
     private fun showIncomingRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit, options: IncomingReceiveOptions?) {
@@ -744,6 +748,7 @@ class MainActivity : Activity(), TransferService.Listener {
             val settingsIndex = buttonPanel.indexOfChild(settingsButton)
             buttonPanel.addView(verifyButton, settingsIndex)
         }
+        ThemeColors.apply(dialog)
     }
     override fun onFileReceiveProgress(file: ActiveTransferFile) {
         activeTransferFiles["${file.sessionId}:${file.fileId}"] = file
