@@ -152,6 +152,8 @@ class MainActivity : Activity(), TransferService.Listener {
 
     override fun onStart() {
         super.onStart()
+        SystemBars.apply(this)
+        ThemeColors.apply(this)
         if (!bound) { bindService(Intent(this, TransferService::class.java), connection, BIND_AUTO_CREATE); bound = true }
     }
 

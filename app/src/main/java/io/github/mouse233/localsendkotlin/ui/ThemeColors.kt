@@ -12,6 +12,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Switch
 import android.widget.TextView
+import androidx.core.graphics.drawable.DrawableCompat
 import io.github.mouse233.localsendkotlin.R
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.ThemeColorPreset
@@ -46,6 +47,7 @@ object ThemeColors {
             arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
             intArrayOf(withAlpha(primary, 0x66), 0x55000000)
         )
+        activity.window.statusBarColor = primary
         applyToView(root, originalPrimary, primary, tint, switchThumbTint, switchTrackTint)
     }
 
@@ -80,18 +82,26 @@ object ThemeColors {
             view.setBackgroundColor(primary)
         }
         when (view) {
-            is Button -> view.backgroundTintList = tint
+            is Button -> tintBackground(view, tint)
             is Switch -> {
                 view.thumbTintList = switchThumbTint
                 view.trackTintList = switchTrackTint
             }
-            is ImageButton -> if (view.id in COLORED_IMAGE_BUTTON_IDS) view.backgroundTintList = tint
+            is ImageButton -> if (view.id in COLORED_IMAGE_BUTTON_IDS) tintBackground(view, tint)
         }
         if (view is ViewGroup) {
             for (index in 0 until view.childCount) {
                 applyToView(view.getChildAt(index), originalPrimary, primary, tint, switchThumbTint, switchTrackTint)
             }
         }
+    }
+
+    private fun tintBackground(view: View, tint: ColorStateList) {
+        view.background?.mutate()?.let { drawable ->
+            DrawableCompat.setTintList(drawable, tint)
+            view.background = drawable
+        }
+        view.backgroundTintList = tint
     }
 
     private fun withAlpha(color: Int, alpha: Int): Int = Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
