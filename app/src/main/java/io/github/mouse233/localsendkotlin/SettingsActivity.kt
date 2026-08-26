@@ -229,7 +229,6 @@ class SettingsActivity : Activity() {
 
     private fun showThemeColorPicker() {
         val presets = ThemeColorPreset.values()
-        val selectedId = settings.themeColor()
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), 0, dp(24), dp(8))
@@ -237,6 +236,7 @@ class SettingsActivity : Activity() {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.settings_theme_color)
             .setView(content)
+            .setNegativeButton(R.string.close, null)
             .create()
         presets.toList().chunked(4).forEach { rowPresets ->
             val row = LinearLayout(this).apply {
@@ -254,10 +254,6 @@ class SettingsActivity : Activity() {
                     background = GradientDrawable().apply {
                         shape = GradientDrawable.OVAL
                         setColor(color)
-                        setStroke(
-                            if (preset.id == selectedId) dp(3) else dp(1),
-                            if (preset.id == selectedId) ThemeColors.foregroundColor(color) else 0x33000000
-                        )
                     }
                 }
                 cell.addView(swatch)
@@ -274,6 +270,7 @@ class SettingsActivity : Activity() {
             content.addView(row, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64)))
         }
         dialog.show()
+        ThemeColors.apply(dialog)
     }
 
     private fun showPortEditor() = showEditor(R.string.settings_port, settings.port().toString(), InputType.TYPE_CLASS_NUMBER) { value ->
