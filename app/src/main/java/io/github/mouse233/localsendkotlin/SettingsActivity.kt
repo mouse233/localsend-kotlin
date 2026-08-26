@@ -10,8 +10,10 @@ import android.text.InputFilter
 import android.text.InputType
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.Switch
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import io.github.mouse233.localsendkotlin.settings.AppSettings
@@ -23,9 +25,7 @@ import io.github.mouse233.localsendkotlin.ui.SystemBars
 
 class SettingsActivity : Activity() {
     private lateinit var settings: AppSettings
-    private lateinit var deviceNameValue: TextView
-    private lateinit var deviceTypeValue: TextView
-    private lateinit var deviceModelValue: TextView
+    private lateinit var deviceInfoValue: TextView
     private lateinit var languageValue: TextView
     private lateinit var portValue: TextView
     private lateinit var multicastAddressValue: TextView
@@ -37,9 +37,7 @@ class SettingsActivity : Activity() {
         SystemBars.apply(this)
         setContentView(R.layout.activity_settings)
         settings = AppSettings(this)
-        deviceNameValue = findViewById(R.id.device_name_value)
-        deviceTypeValue = findViewById(R.id.device_type_value)
-        deviceModelValue = findViewById(R.id.device_model_value)
+        deviceInfoValue = findViewById(R.id.device_info_value)
         languageValue = findViewById(R.id.language_value)
         portValue = findViewById(R.id.port_value)
         multicastAddressValue = findViewById(R.id.multicast_address_value)
@@ -48,9 +46,7 @@ class SettingsActivity : Activity() {
         refreshValues()
         findViewById<android.view.View>(R.id.settings_back_button).setOnClickListener { finish() }
         findViewById<android.view.View>(R.id.language_row).setOnClickListener { showLanguagePicker() }
-        findViewById<android.view.View>(R.id.device_name_row).setOnClickListener { showDeviceNameEditor() }
-        findViewById<android.view.View>(R.id.device_type_row).setOnClickListener { showDeviceTypePicker() }
-        findViewById<android.view.View>(R.id.device_model_row).setOnClickListener { showDeviceModelEditor() }
+        findViewById<android.view.View>(R.id.device_info_row).setOnClickListener { showDeviceInfoDialog() }
         val hideIpv6Switch = findViewById<Switch>(R.id.hide_ipv6_switch).apply {
             isChecked = settings.hideIpv6BindAddresses()
             setOnCheckedChangeListener { _, checked -> settings.setHideIpv6BindAddresses(checked) }
@@ -116,16 +112,46 @@ class SettingsActivity : Activity() {
         }
     }
 
-    private fun showDeviceNameEditor() {
-        showEditor(
-            R.string.settings_device_name,
-            settings.deviceName(),
-            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
-            InputFilter.LengthFilter(64)
-        ) { value ->
-            settings.saveDeviceName(value)
+    private fun showDeviceInfoDialog() {
+        val content = layoutInflater.inflate(R.layout.dialog_device_info, null)
+        val nameInput = content.findViewById<EditText>(R.id.device_info_name_editor).apply {
+            setText(settings.deviceName())
+            setSelection(length())
+            filters = arrayOf(InputFilter.LengthFilter(64))
+        }
+        val modelInput = content.findViewById<EditText>(R.id.device_info_model_editor).apply {
+            setText(settings.deviceModel())
+            setSelection(length())
+            filters = arrayOf(InputFilter.LengthFilter(64))
+        }
+        val types = arrayOf(
+            DeviceType.MOBILE to R.string.device_type_mobile,
+            DeviceType.DESKTOP to R.string.device_type_desktop,
+            DeviceType.WEB to R.string.device_type_web,
+            DeviceType.HEADLESS to R.string.device_type_headless,
+            DeviceType.SERVER to R.string.device_type_server
+        )
+        val typeSpinner = content.findViewById<Spinner>(R.id.device_info_type_spinner)
+        typeSpinner.adapter = ArrayAdapter(this, R.layout.item_device_type_spinner, types.map { getString(it.second) }).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        typeSpinner.setSelection(types.indexOfFirst { it.first.value == settings.deviceType() }.coerceAtLeast(0))
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.settings_device_information)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.save, null)
+            .show()
+        val customPanelId = resources.getIdentifier("customPanel", "id", "android")
+        if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            settings.saveDeviceName(nameInput.text.toString())
+            settings.setDeviceType(types[typeSpinner.selectedItemPosition].first.value)
+            settings.saveDeviceModel(modelInput.text.toString())
             refreshValues()
-            true
+            reloadNetwork()
+            dialog.dismiss()
         }
     }
 
@@ -156,41 +182,6 @@ class SettingsActivity : Activity() {
             settings.setReceivePin(pin)
             saved = true
             dialog.dismiss()
-        }
-    }
-
-    private fun showDeviceTypePicker() {
-        val types = arrayOf(
-            DeviceType.MOBILE to R.string.device_type_mobile,
-            DeviceType.DESKTOP to R.string.device_type_desktop,
-            DeviceType.WEB to R.string.device_type_web,
-            DeviceType.HEADLESS to R.string.device_type_headless,
-            DeviceType.SERVER to R.string.device_type_server
-        )
-        val labels = types.map { getString(it.second) }.toTypedArray()
-        val selected = types.indexOfFirst { it.first.value == settings.deviceType() }.coerceAtLeast(0)
-        AlertDialog.Builder(this)
-            .setTitle(R.string.settings_device_type)
-            .setSingleChoiceItems(labels, selected) { dialog, which ->
-                settings.setDeviceType(types[which].first.value)
-                refreshValues()
-                reloadNetwork()
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-    private fun showDeviceModelEditor() {
-        showEditor(
-            R.string.settings_device_model,
-            settings.deviceModel(),
-            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
-            InputFilter.LengthFilter(64)
-        ) { value ->
-            settings.saveDeviceModel(value)
-            refreshValues()
-            reloadNetwork()
-            true
         }
     }
 
@@ -314,9 +305,12 @@ class SettingsActivity : Activity() {
     }
 
     private fun refreshValues() {
-        deviceNameValue.text = settings.deviceName()
-        deviceTypeValue.text = deviceTypeLabel(settings.deviceType())
-        deviceModelValue.text = settings.deviceModel()
+        deviceInfoValue.text = getString(
+            R.string.settings_device_information_summary,
+            settings.deviceName(),
+            deviceTypeLabel(settings.deviceType()),
+            settings.deviceModel()
+        )
         languageValue.text = when (settings.language()) {
             AppLocale.CHINESE -> getString(R.string.language_chinese)
             AppLocale.ENGLISH -> getString(R.string.language_english)

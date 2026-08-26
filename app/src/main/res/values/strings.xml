@@ -12,6 +12,8 @@
     <string name="settings_device_name">设备名称</string>
     <string name="settings_device_type">设备类型</string>
     <string name="settings_device_model">设备型号</string>
+    <string name="settings_device_information">设备信息</string>
+    <string name="settings_device_information_summary">名称：%1$s\n类型：%2$s\n型号：%3$s</string>
     <string name="settings_hide_ipv6_addresses">隐藏 IPv6 绑定地址</string>
     <string name="settings_hide_ipv6_addresses_summary">仅隐藏主页显示，不影响监听和传输。</string>
     <string name="device_type_mobile">移动设备</string>

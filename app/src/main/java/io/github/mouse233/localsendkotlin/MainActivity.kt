@@ -358,6 +358,8 @@ class MainActivity : Activity(), TransferService.Listener {
             .setPositiveButton(android.R.string.ok, null)
             .create()
         dialog.show()
+        val customPanelId = resources.getIdentifier("customPanel", "id", "android")
+        if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val text = input.text.toString()
             if (text.isBlank()) {
