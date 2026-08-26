@@ -82,11 +82,10 @@ object ThemeColors {
             view.setBackgroundColor(primary)
         }
         when (view) {
-            is Button -> tintBackground(view, tint)
             is Switch -> {
-                view.thumbTintList = switchThumbTint
-                view.trackTintList = switchTrackTint
+                tintSwitch(view, switchThumbTint, switchTrackTint)
             }
+            is Button -> tintBackground(view, tint)
             is ImageButton -> if (view.id in COLORED_IMAGE_BUTTON_IDS) tintBackground(view, tint)
         }
         if (view is ViewGroup) {
@@ -102,6 +101,19 @@ object ThemeColors {
             view.background = drawable
         }
         view.backgroundTintList = tint
+    }
+
+    private fun tintSwitch(view: Switch, thumbTint: ColorStateList, trackTint: ColorStateList) {
+        view.thumbTintList = thumbTint
+        view.trackTintList = trackTint
+        view.thumbDrawable?.mutate()?.let { drawable ->
+            DrawableCompat.setTintList(drawable, thumbTint)
+            view.thumbDrawable = drawable
+        }
+        view.trackDrawable?.mutate()?.let { drawable ->
+            DrawableCompat.setTintList(drawable, trackTint)
+            view.trackDrawable = drawable
+        }
     }
 
     private fun withAlpha(color: Int, alpha: Int): Int = Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
