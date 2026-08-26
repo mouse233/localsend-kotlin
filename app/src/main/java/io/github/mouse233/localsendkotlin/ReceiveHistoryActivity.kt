@@ -23,6 +23,7 @@ import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.transfer.IncomingMessageLink
 import io.github.mouse233.localsendkotlin.ui.ReceiveHistoryAdapter
 import io.github.mouse233.localsendkotlin.ui.SystemBars
+import io.github.mouse233.localsendkotlin.ui.ThemeColors
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -38,6 +39,7 @@ class ReceiveHistoryActivity : Activity() {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)
         setContentView(R.layout.activity_receive_history)
+        ThemeColors.apply(this)
         store = ReceiveHistoryStore(this)
         settings = AppSettings(this)
         emptyView = findViewById(R.id.receive_history_empty)

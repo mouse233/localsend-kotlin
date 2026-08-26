@@ -3,15 +3,20 @@ package io.github.mouse233.localsendkotlin
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.text.InputFilter
 import android.text.InputType
+import android.view.Gravity
+import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
+import android.widget.RadioButton
 import android.widget.Switch
 import android.widget.Spinner
 import android.widget.TextView
@@ -19,14 +24,17 @@ import android.widget.Toast
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.settings.DeviceType
+import io.github.mouse233.localsendkotlin.settings.ThemeColorPreset
 import io.github.mouse233.localsendkotlin.discovery.NetworkInterfaceCatalog
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.SystemBars
+import io.github.mouse233.localsendkotlin.ui.ThemeColors
 
 class SettingsActivity : Activity() {
     private lateinit var settings: AppSettings
     private lateinit var deviceInfoValue: TextView
     private lateinit var languageValue: TextView
+    private lateinit var themeColorValue: TextView
     private lateinit var portValue: TextView
     private lateinit var multicastAddressValue: TextView
     private lateinit var networkInterfacesValue: TextView
@@ -36,9 +44,11 @@ class SettingsActivity : Activity() {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)
         setContentView(R.layout.activity_settings)
+        ThemeColors.apply(this)
         settings = AppSettings(this)
         deviceInfoValue = findViewById(R.id.device_info_value)
         languageValue = findViewById(R.id.language_value)
+        themeColorValue = findViewById(R.id.theme_color_value)
         portValue = findViewById(R.id.port_value)
         multicastAddressValue = findViewById(R.id.multicast_address_value)
         networkInterfacesValue = findViewById(R.id.network_interfaces_value)
@@ -46,6 +56,7 @@ class SettingsActivity : Activity() {
         refreshValues()
         findViewById<android.view.View>(R.id.settings_back_button).setOnClickListener { finish() }
         findViewById<android.view.View>(R.id.language_row).setOnClickListener { showLanguagePicker() }
+        findViewById<View>(R.id.theme_color_row).setOnClickListener { showThemeColorPicker() }
         findViewById<android.view.View>(R.id.device_info_row).setOnClickListener { showDeviceInfoDialog() }
         val hideIpv6Switch = findViewById<Switch>(R.id.hide_ipv6_switch).apply {
             isChecked = settings.hideIpv6BindAddresses()
@@ -214,6 +225,58 @@ class SettingsActivity : Activity() {
             .show()
     }
 
+    private fun showThemeColorPicker() {
+        val presets = ThemeColorPreset.values()
+        val selectedId = settings.themeColor()
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.settings_theme_color)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        presets.forEach { preset ->
+            val row = LinearLayout(this).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                minimumHeight = dp(56)
+            }
+            val swatch = View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(40), dp(40)).apply {
+                    marginEnd = dp(16)
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(ThemeColors.color(this@SettingsActivity, preset))
+                }
+                contentDescription = getString(preset.labelRes)
+            }
+            val label = TextView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                text = getString(preset.labelRes)
+                textSize = 16f
+            }
+            val radio = RadioButton(this).apply {
+                isClickable = false
+                isChecked = preset.id == selectedId
+                buttonTintList = ColorStateList.valueOf(ThemeColors.color(this@SettingsActivity, preset))
+            }
+            row.addView(swatch)
+            row.addView(label)
+            row.addView(radio)
+            row.setOnClickListener {
+                settings.setThemeColor(preset.id)
+                dialog.dismiss()
+                recreate()
+            }
+            content.addView(row, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56)))
+        }
+        dialog.show()
+    }
+
     private fun showPortEditor() = showEditor(R.string.settings_port, settings.port().toString(), InputType.TYPE_CLASS_NUMBER) { value ->
         val port = value.toIntOrNull()
         if (port == null || port !in 1..65535) {
@@ -328,6 +391,7 @@ class SettingsActivity : Activity() {
             AppLocale.ENGLISH -> getString(R.string.language_english)
             else -> getString(R.string.language_system)
         }
+        themeColorValue.text = getString(ThemeColorPreset.fromId(settings.themeColor()).labelRes)
         portValue.text = settings.port().toString()
         multicastAddressValue.text = settings.multicastAddress()
         networkInterfacesValue.text = networkInterfaceSummary()
@@ -402,6 +466,8 @@ class SettingsActivity : Activity() {
             Toast.makeText(this, R.string.open_external_link_failed, Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
 
     private companion object {
         const val RECEIVE_DIRECTORY_REQUEST = 1002

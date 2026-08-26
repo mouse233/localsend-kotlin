@@ -48,6 +48,12 @@ class AppSettings(context: Context) {
         preferences.edit().putBoolean(KEEP_SCREEN_AWAKE_KEY, enabled).apply()
     }
 
+    fun themeColor(): String = ThemeColorPreset.fromId(preferences.getString(THEME_COLOR_KEY, null)).id
+
+    fun setThemeColor(id: String) {
+        preferences.edit().putString(THEME_COLOR_KEY, ThemeColorPreset.fromId(id).id).apply()
+    }
+
     fun language(): String = preferences.getString(LANGUAGE_KEY, AppLocale.SYSTEM) ?: AppLocale.SYSTEM
     fun setLanguage(language: String) = preferences.edit().putString(LANGUAGE_KEY, language).apply()
 
@@ -138,6 +144,7 @@ class AppSettings(context: Context) {
         const val DEVICE_MODEL_KEY = "device_model"
         const val HIDE_IPV6_BIND_ADDRESSES_KEY = "hide_ipv6_bind_addresses"
         const val KEEP_SCREEN_AWAKE_KEY = "keep_screen_awake_during_transfer"
+        const val THEME_COLOR_KEY = "theme_color"
         const val LANGUAGE_KEY = "language"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"

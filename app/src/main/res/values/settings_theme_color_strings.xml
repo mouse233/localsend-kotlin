@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_theme_color">主题色</string>
+    <string name="theme_color_blue">蓝色</string>
+    <string name="theme_color_green">绿色</string>
+    <string name="theme_color_purple">紫色</string>
+    <string name="theme_color_orange">橙色</string>
+    <string name="theme_color_teal">青绿色</string>
+</resources>

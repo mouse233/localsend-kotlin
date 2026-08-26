@@ -34,4 +34,11 @@ class AppSettingsTest {
         settings.setKeepScreenAwakeDuringTransfer(true)
         assertTrue(settings.keepScreenAwakeDuringTransfer())
     }
+
+    @Test
+    fun themeColorSettingPersists() {
+        val settings = AppSettings(InstrumentationRegistry.getInstrumentation().targetContext)
+        settings.setThemeColor(ThemeColorPreset.PURPLE.id)
+        org.junit.Assert.assertEquals(ThemeColorPreset.PURPLE.id, settings.themeColor())
+    }
 }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_theme_color">Theme color</string>
+    <string name="theme_color_blue">Blue</string>
+    <string name="theme_color_green">Green</string>
+    <string name="theme_color_purple">Purple</string>
+    <string name="theme_color_orange">Orange</string>
+    <string name="theme_color_teal">Teal</string>
+</resources>

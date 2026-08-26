@@ -20,6 +20,7 @@ import io.github.mouse233.localsendkotlin.transfer.IncomingReceiveOptions
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.ui.FileTypeIcon
 import io.github.mouse233.localsendkotlin.ui.SystemBars
+import io.github.mouse233.localsendkotlin.ui.ThemeColors
 
 /** Edits choices for the pending receive request without changing global settings. */
 class ReceiveSettingsActivity : Activity() {
@@ -34,6 +35,7 @@ class ReceiveSettingsActivity : Activity() {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)
         setContentView(R.layout.activity_receive_settings)
+        ThemeColors.apply(this)
         fileList = findViewById(R.id.receive_settings_file_list)
         directoryButton = findViewById(R.id.receive_settings_directory_button)
         gallerySwitch = findViewById(R.id.receive_settings_gallery_switch)

@@ -10,7 +10,7 @@ object SystemBars {
     @Suppress("DEPRECATION")
     fun apply(activity: Activity) {
         val window = activity.window
-        window.statusBarColor = activity.resources.getColor(R.color.brand_primary)
+        window.statusBarColor = ThemeColors.primaryColor(activity)
         window.navigationBarColor = activity.resources.getColor(R.color.window_background)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.navigationBarDividerColor = activity.resources.getColor(R.color.window_background)

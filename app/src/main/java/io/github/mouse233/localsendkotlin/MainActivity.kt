@@ -46,6 +46,7 @@ import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
 import io.github.mouse233.localsendkotlin.ui.ActiveTransferAdapter
 import io.github.mouse233.localsendkotlin.ui.SystemBars
+import io.github.mouse233.localsendkotlin.ui.ThemeColors
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -96,6 +97,7 @@ class MainActivity : Activity(), TransferService.Listener {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)
         setContentView(R.layout.activity_main)
+        ThemeColors.apply(this)
         statusText = findViewById(R.id.discovery_status)
         transferProgress = findViewById(R.id.transfer_progress)
         cancelTransferButton = findViewById(R.id.cancel_transfer_button)
@@ -155,6 +157,8 @@ class MainActivity : Activity(), TransferService.Listener {
 
     override fun onResume() {
         super.onResume()
+        SystemBars.apply(this)
+        ThemeColors.apply(this)
         val language = AppSettings(this).language()
         if (language != appliedLanguage) {
             AppLocale.apply(this, language)

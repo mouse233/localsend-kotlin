@@ -7,5 +7,13 @@
     <color name="header_subtitle">#D7E9FF</color>
     <color name="item_border">#D7DCE1</color>
     <color name="brand_primary_pressed">#125AA0</color>
+    <color name="theme_green">#2E7D32</color>
+    <color name="theme_green_pressed">#1B5E20</color>
+    <color name="theme_purple">#7B1FA2</color>
+    <color name="theme_purple_pressed">#4A148C</color>
+    <color name="theme_orange">#EF6C00</color>
+    <color name="theme_orange_pressed">#E65100</color>
+    <color name="theme_teal">#00897B</color>
+    <color name="theme_teal_pressed">#00695C</color>
     <color name="fab_ripple">#33FFFFFF</color>
 </resources>

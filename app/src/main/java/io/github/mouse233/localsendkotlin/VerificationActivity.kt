@@ -10,12 +10,14 @@ import android.widget.TextView
 import io.github.mouse233.localsendkotlin.discovery.LocalIdentity
 import io.github.mouse233.localsendkotlin.security.VerificationCode
 import io.github.mouse233.localsendkotlin.ui.SystemBars
+import io.github.mouse233.localsendkotlin.ui.ThemeColors
 
 class VerificationActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)
         setContentView(R.layout.activity_verification)
+        ThemeColors.apply(this)
         findViewById<View>(R.id.verification_back_button).setOnClickListener { finish() }
         val remoteFingerprint = intent.getStringExtra(EXTRA_FINGERPRINT).orEmpty()
         if (remoteFingerprint.isBlank()) { finish(); return }
