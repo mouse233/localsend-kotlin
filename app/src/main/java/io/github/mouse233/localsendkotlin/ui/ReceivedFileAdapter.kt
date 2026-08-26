@@ -38,9 +38,11 @@ class ReceivedFileAdapter(private val onOpenFile: (ReceivedFile) -> Unit) : Recy
         notifyItemInserted(0)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder = ViewHolder(
-        LayoutInflater.from(parent.context).inflate(R.layout.item_received_file, parent, false)
-    )
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val itemView = LayoutInflater.from(parent.context).inflate(R.layout.item_received_file, parent, false)
+        ThemeColors.apply(itemView)
+        return ViewHolder(itemView)
+    }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(files[position], onOpenFile)
     override fun getItemCount(): Int = files.size

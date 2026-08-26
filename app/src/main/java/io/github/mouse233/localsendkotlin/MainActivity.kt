@@ -46,6 +46,7 @@ import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
 import io.github.mouse233.localsendkotlin.ui.ActiveTransferAdapter
 import io.github.mouse233.localsendkotlin.ui.SystemBars
+import io.github.mouse233.localsendkotlin.ui.ThemeColors
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -96,6 +97,7 @@ class MainActivity : Activity(), TransferService.Listener {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)
         setContentView(R.layout.activity_main)
+        ThemeColors.apply(this)
         statusText = findViewById(R.id.discovery_status)
         transferProgress = findViewById(R.id.transfer_progress)
         cancelTransferButton = findViewById(R.id.cancel_transfer_button)
@@ -150,11 +152,15 @@ class MainActivity : Activity(), TransferService.Listener {
 
     override fun onStart() {
         super.onStart()
+        SystemBars.apply(this)
+        ThemeColors.apply(this)
         if (!bound) { bindService(Intent(this, TransferService::class.java), connection, BIND_AUTO_CREATE); bound = true }
     }
 
     override fun onResume() {
         super.onResume()
+        SystemBars.apply(this)
+        ThemeColors.apply(this)
         val language = AppSettings(this).language()
         if (language != appliedLanguage) {
             AppLocale.apply(this, language)
@@ -163,6 +169,14 @@ class MainActivity : Activity(), TransferService.Listener {
             return
         }
         updateLocalEndpoint()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            ThemeColors.apply(this)
+            SystemBars.apply(this)
+        }
     }
 
     override fun onStop() {
@@ -359,6 +373,7 @@ class MainActivity : Activity(), TransferService.Listener {
             .setPositiveButton(android.R.string.ok, null)
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -530,6 +545,7 @@ class MainActivity : Activity(), TransferService.Listener {
             .setPositiveButton(R.string.manual_send, null)
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -602,6 +618,7 @@ class MainActivity : Activity(), TransferService.Listener {
             .setOnCancelListener { respond(null) }
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val pin = input.text.toString().trim()
             if (pin.isEmpty()) {
@@ -707,6 +724,7 @@ class MainActivity : Activity(), TransferService.Listener {
                 buttonPanel.addView(copyButton, buttonPanel.indexOfChild(openButton))
             }
         }
+        ThemeColors.apply(dialog)
     }
 
     private fun showIncomingRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit, options: IncomingReceiveOptions?) {
@@ -740,6 +758,7 @@ class MainActivity : Activity(), TransferService.Listener {
             val settingsIndex = buttonPanel.indexOfChild(settingsButton)
             buttonPanel.addView(verifyButton, settingsIndex)
         }
+        ThemeColors.apply(dialog)
     }
     override fun onFileReceiveProgress(file: ActiveTransferFile) {
         activeTransferFiles["${file.sessionId}:${file.fileId}"] = file

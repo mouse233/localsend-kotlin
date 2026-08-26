@@ -1,5 +1,41 @@
 # Changelog
 
+## [v0.7.1-alpha] - 2026-08-26
+
+### Added
+
+- Added preset theme colors and dark mode with system, enabled, and disabled options.
+- Added an optional keep-screen-awake mode during active transfers.
+
+### Changed
+
+- Refined settings lists with adaptive two- and three-line rows, consistent alignment, spacing, and themed switches.
+- Applied the selected theme color consistently to controls, dialogs, and system bars.
+
+### Fixed
+
+- Fixed verification icons using an unreadable day-mode color in dark mode.
+- Fixed dialogs appearing too close to the screen edges by applying Material Design spacing constraints.
+
+## 中文说明
+
+### v0.7.1-alpha（2026-08-26）
+
+#### 新增
+
+- 新增预设主题色，并支持跟随系统、启用、禁用三种深色模式。
+- 新增传输期间保持屏幕唤醒的可选设置。
+
+#### 调整
+
+- 按自适应两行/三行列表规范优化设置页，统一条目对齐、间距和开关样式。
+- 将所选主题色统一应用到控件、对话框和系统栏。
+
+#### 修复
+
+- 修复深色模式下验证界面的图标使用日间颜色而难以辨认的问题。
+- 修复对话框贴近屏幕边缘的问题，应用 Material Design 间距规范。
+
 ## [v0.7.0-alpha] - 2026-08-26
 
 ### Added

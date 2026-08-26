@@ -4,12 +4,14 @@ import android.app.Activity
 import android.os.Bundle
 import android.widget.TextView
 import io.github.mouse233.localsendkotlin.ui.SystemBars
+import io.github.mouse233.localsendkotlin.ui.ThemeColors
 
 class ChangelogActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)
         setContentView(R.layout.activity_changelog)
+        ThemeColors.apply(this)
         findViewById<android.view.View>(R.id.changelog_back_button).setOnClickListener { finish() }
         findViewById<TextView>(R.id.changelog_content).text = try {
             assets.open(CHANGELOG_FILE).bufferedReader().use { it.readText() }

@@ -35,9 +35,11 @@ class ActiveTransferAdapter(private val onCancelFile: (String, String) -> Unit) 
         notifyItemChanged(index)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
-        LayoutInflater.from(parent.context).inflate(R.layout.item_active_transfer, parent, false)
-    )
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val itemView = LayoutInflater.from(parent.context).inflate(R.layout.item_active_transfer, parent, false)
+        ThemeColors.apply(itemView)
+        return ViewHolder(itemView)
+    }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(files[position], onCancelFile)
     override fun getItemCount() = files.size

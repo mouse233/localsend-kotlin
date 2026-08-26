@@ -26,6 +26,7 @@
     <string name="local_endpoint_waiting_for_network_value">Waiting for network (port %1$d)</string>
     <string name="local_endpoint_ipv6_hidden_value">IPv6 addresses hidden</string>
     <string name="settings_general_section">General</string>
+    <string name="settings_keep_screen_awake">Keep screen awake during transfers</string>
     <string name="settings_hide_ipv6_addresses">Hide IPv6 bind addresses</string>
     <string name="settings_hide_ipv6_addresses_summary">Only hides them on the home screen; listening and transfers are unaffected.</string>
     <string name="local_endpoint_ipv6_hidden">Device name: %1$s\nBind address: IPv6 addresses hidden</string>

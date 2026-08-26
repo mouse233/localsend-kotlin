@@ -3,14 +3,18 @@ package io.github.mouse233.localsendkotlin
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.text.InputFilter
 import android.text.InputType
+import android.view.Gravity
+import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ArrayAdapter
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.Spinner
@@ -18,15 +22,20 @@ import android.widget.TextView
 import android.widget.Toast
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.settings.AppLocale
+import io.github.mouse233.localsendkotlin.settings.DarkModePreference
 import io.github.mouse233.localsendkotlin.settings.DeviceType
+import io.github.mouse233.localsendkotlin.settings.ThemeColorPreset
 import io.github.mouse233.localsendkotlin.discovery.NetworkInterfaceCatalog
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.SystemBars
+import io.github.mouse233.localsendkotlin.ui.ThemeColors
 
 class SettingsActivity : Activity() {
     private lateinit var settings: AppSettings
     private lateinit var deviceInfoValue: TextView
     private lateinit var languageValue: TextView
+    private lateinit var themeColorSwatch: View
+    private lateinit var darkModeValue: TextView
     private lateinit var portValue: TextView
     private lateinit var multicastAddressValue: TextView
     private lateinit var networkInterfacesValue: TextView
@@ -36,9 +45,12 @@ class SettingsActivity : Activity() {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)
         setContentView(R.layout.activity_settings)
+        ThemeColors.apply(this)
         settings = AppSettings(this)
         deviceInfoValue = findViewById(R.id.device_info_value)
         languageValue = findViewById(R.id.language_value)
+        themeColorSwatch = findViewById(R.id.theme_color_swatch)
+        darkModeValue = findViewById(R.id.dark_mode_value)
         portValue = findViewById(R.id.port_value)
         multicastAddressValue = findViewById(R.id.multicast_address_value)
         networkInterfacesValue = findViewById(R.id.network_interfaces_value)
@@ -46,12 +58,22 @@ class SettingsActivity : Activity() {
         refreshValues()
         findViewById<android.view.View>(R.id.settings_back_button).setOnClickListener { finish() }
         findViewById<android.view.View>(R.id.language_row).setOnClickListener { showLanguagePicker() }
+        findViewById<View>(R.id.theme_color_row).setOnClickListener { showThemeColorPicker() }
+        findViewById<View>(R.id.dark_mode_row).setOnClickListener { showDarkModePicker() }
         findViewById<android.view.View>(R.id.device_info_row).setOnClickListener { showDeviceInfoDialog() }
         val hideIpv6Switch = findViewById<Switch>(R.id.hide_ipv6_switch).apply {
             isChecked = settings.hideIpv6BindAddresses()
             setOnCheckedChangeListener { _, checked -> settings.setHideIpv6BindAddresses(checked) }
         }
         findViewById<android.view.View>(R.id.hide_ipv6_row).setOnClickListener { hideIpv6Switch.toggle() }
+        val keepScreenAwakeSwitch = findViewById<Switch>(R.id.keep_screen_awake_switch).apply {
+            isChecked = settings.keepScreenAwakeDuringTransfer()
+            setOnCheckedChangeListener { _, checked ->
+                settings.setKeepScreenAwakeDuringTransfer(checked)
+                notifyTransferServiceOfScreenAwakeChange()
+            }
+        }
+        findViewById<android.view.View>(R.id.keep_screen_awake_row).setOnClickListener { keepScreenAwakeSwitch.toggle() }
         val checksumSwitch = findViewById<Switch>(R.id.checksum_switch).apply {
             isChecked = settings.createChecksums()
             setOnCheckedChangeListener { _, checked -> settings.setCreateChecksums(checked) }
@@ -112,6 +134,10 @@ class SettingsActivity : Activity() {
         }
     }
 
+    private fun notifyTransferServiceOfScreenAwakeChange() {
+        startService(Intent(this, TransferService::class.java).setAction(TransferService.ACTION_REFRESH_SCREEN_AWAKE))
+    }
+
     private fun showDeviceInfoDialog() {
         val content = layoutInflater.inflate(R.layout.dialog_device_info, null)
         val nameInput = content.findViewById<EditText>(R.id.device_info_name_editor).apply {
@@ -143,6 +169,7 @@ class SettingsActivity : Activity() {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -171,6 +198,7 @@ class SettingsActivity : Activity() {
             .setOnCancelListener { if (!saved) pinSwitch.isChecked = false }
             .create()
         dialog.show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -191,7 +219,7 @@ class SettingsActivity : Activity() {
         )
         val codes = arrayOf(AppLocale.SYSTEM, AppLocale.CHINESE, AppLocale.ENGLISH)
         val selected = codes.indexOf(settings.language()).coerceAtLeast(0)
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.settings_language)
             .setSingleChoiceItems(languages, selected) { dialog, which ->
                 settings.setLanguage(codes[which])
@@ -200,6 +228,68 @@ class SettingsActivity : Activity() {
                 recreate()
             }
             .show()
+        ThemeColors.apply(dialog)
+    }
+
+    private fun showThemeColorPicker() {
+        val presets = ThemeColorPreset.values()
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), 0, dp(24), dp(8))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.settings_theme_color)
+            .setView(content)
+            .setNegativeButton(R.string.close, null)
+            .create()
+        presets.toList().chunked(4).forEach { rowPresets ->
+            val row = LinearLayout(this).apply {
+                gravity = Gravity.CENTER
+            }
+            rowPresets.forEach { preset ->
+                val color = ThemeColors.color(this@SettingsActivity, preset)
+                val cell = FrameLayout(this).apply {
+                    isClickable = true
+                    isFocusable = true
+                    contentDescription = getString(preset.labelRes)
+                }
+                val swatch = View(this).apply {
+                    layoutParams = FrameLayout.LayoutParams(dp(48), dp(48), Gravity.CENTER)
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(color)
+                    }
+                }
+                cell.addView(swatch)
+                cell.setOnClickListener {
+                    settings.setThemeColor(preset.id)
+                    dialog.dismiss()
+                    recreate()
+                }
+                row.addView(cell, LinearLayout.LayoutParams(0, dp(64), 1f))
+            }
+            while (row.childCount < 4) {
+                row.addView(View(this), LinearLayout.LayoutParams(0, dp(64), 1f))
+            }
+            content.addView(row, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64)))
+        }
+        dialog.show()
+        ThemeColors.apply(dialog)
+    }
+
+    private fun showDarkModePicker() {
+        val modes = DarkModePreference.values()
+        val selected = modes.indexOf(DarkModePreference.fromId(settings.darkMode()))
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.settings_dark_mode)
+            .setSingleChoiceItems(modes.map { getString(it.labelRes) }.toTypedArray(), selected) { picker, which ->
+                settings.setDarkMode(modes[which].id)
+                picker.dismiss()
+                recreate()
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
+        ThemeColors.apply(dialog)
     }
 
     private fun showPortEditor() = showEditor(R.string.settings_port, settings.port().toString(), InputType.TYPE_CLASS_NUMBER) { value ->
@@ -244,6 +334,7 @@ class SettingsActivity : Activity() {
         val list = content.findViewById<LinearLayout>(R.id.network_interfaces_list)
         interfaces.forEachIndexed { index, networkInterface ->
             val row = layoutInflater.inflate(R.layout.item_network_interface, list, false)
+            ThemeColors.apply(row)
             val checkbox = row.findViewById<CheckBox>(R.id.network_interface_checkbox)
             row.findViewById<TextView>(R.id.network_interface_name).text =
                 "[#${index + 1}] ${networkInterface.name}"
@@ -275,6 +366,7 @@ class SettingsActivity : Activity() {
             }
         }
         dialog.show()
+        ThemeColors.apply(dialog)
     }
 
     private fun showEditor(
@@ -297,6 +389,7 @@ class SettingsActivity : Activity() {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .show()
+        ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
         if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -310,12 +403,17 @@ class SettingsActivity : Activity() {
             settings.deviceName(),
             deviceTypeLabel(settings.deviceType()),
             settings.deviceModel()
-        )
+        ).replace("\n", getString(R.string.settings_device_information_separator))
         languageValue.text = when (settings.language()) {
             AppLocale.CHINESE -> getString(R.string.language_chinese)
             AppLocale.ENGLISH -> getString(R.string.language_english)
             else -> getString(R.string.language_system)
         }
+        themeColorSwatch.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(ThemeColors.color(this@SettingsActivity, ThemeColorPreset.fromId(settings.themeColor())))
+        }
+        darkModeValue.text = getString(DarkModePreference.fromId(settings.darkMode()).labelRes)
         portValue.text = settings.port().toString()
         multicastAddressValue.text = settings.multicastAddress()
         networkInterfacesValue.text = networkInterfaceSummary()
@@ -390,6 +488,8 @@ class SettingsActivity : Activity() {
             Toast.makeText(this, R.string.open_external_link_failed, Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
 
     private companion object {
         const val RECEIVE_DIRECTORY_REQUEST = 1002

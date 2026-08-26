@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_theme_color">Theme color</string>
+    <string name="theme_color_red">Red</string>
+    <string name="theme_color_pink">Pink</string>
+    <string name="theme_color_purple">Purple</string>
+    <string name="theme_color_deep_purple">Deep purple</string>
+    <string name="theme_color_indigo">Indigo</string>
+    <string name="theme_color_blue">Blue</string>
+    <string name="theme_color_light_blue">Light blue</string>
+    <string name="theme_color_cyan">Cyan</string>
+    <string name="theme_color_teal">Teal</string>
+    <string name="theme_color_green">Green</string>
+    <string name="theme_color_light_green">Light green</string>
+    <string name="theme_color_lime">Lime</string>
+    <string name="theme_color_yellow">Yellow</string>
+    <string name="theme_color_amber">Amber</string>
+    <string name="theme_color_orange">Orange</string>
+    <string name="theme_color_deep_orange">Deep orange</string>
+    <string name="theme_color_brown">Brown</string>
+    <string name="theme_color_grey">Grey</string>
+    <string name="theme_color_blue_grey">Blue grey</string>
+    <string name="theme_color_black">Black</string>
+</resources>

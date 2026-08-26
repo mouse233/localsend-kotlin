@@ -34,6 +34,7 @@ class DeviceAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DeviceViewHolder {
         val itemView = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_device, parent, false)
+        ThemeColors.apply(itemView)
         return DeviceViewHolder(itemView)
     }
 

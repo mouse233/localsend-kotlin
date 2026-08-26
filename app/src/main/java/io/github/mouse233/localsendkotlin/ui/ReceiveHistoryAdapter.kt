@@ -35,9 +35,11 @@ class ReceiveHistoryAdapter(
         diff.dispatchUpdatesTo(this)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
-        LayoutInflater.from(parent.context).inflate(R.layout.item_receive_history, parent, false)
-    )
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val itemView = LayoutInflater.from(parent.context).inflate(R.layout.item_receive_history, parent, false)
+        ThemeColors.apply(itemView)
+        return ViewHolder(itemView)
+    }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(entries[position], onOpen, onDetails, onDelete)
     override fun getItemCount() = entries.size
