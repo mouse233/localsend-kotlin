@@ -1,5 +1,35 @@
 # Changelog
 
+## [v0.7.0-alpha] - 2026-08-26
+
+### Added
+
+- Added a Material Design 1 floating content action menu for sending files, folders, media, text, and clipboard content.
+- Added receive history entries for text messages without creating temporary `.txt` files.
+- Added full-message history details with copy support and link opening for URI messages.
+- Added link detection and an Open action for incoming URI messages.
+
+### Changed
+
+- Refined the floating action menu animation, mini FAB shadows, and dialog layouts.
+- Preserved the LocalSend message acknowledgement flow until the receiver closes, copies, or opens a message.
+
+## 中文说明
+
+### v0.7.0-alpha（2026-08-26）
+
+#### 新增
+
+- 新增符合 Material Design 1 的浮动内容菜单，可发送文件、文件夹、媒体、文本和剪贴板内容。
+- 接收历史新增文本消息记录，不再创建临时 `.txt` 文件。
+- 新增文本消息历史详情对话框，支持完整显示、复制；URI 消息支持打开链接。
+- 接收链接消息时新增“打开”操作，并自动识别 URI。
+
+#### 调整
+
+- 优化浮动菜单动画、mini FAB 阴影和对话框布局。
+- 保留 LocalSend 消息确认流程，接收端关闭、复制或打开消息后才结束等待并响应发送端。
+
 ## [v0.6.5-alpha] - 2026-08-26
 
 ### Added

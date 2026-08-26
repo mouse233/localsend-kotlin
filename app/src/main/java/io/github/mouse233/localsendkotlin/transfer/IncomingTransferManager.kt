@@ -44,6 +44,13 @@ class IncomingTransferManager(
         val selectedFiles = options.selectedFiles(request)
         if (selectedFiles.isEmpty()) return null
 
+        // LocalSend messages are represented by one text item whose content
+        // is carried in the optional preview field. They are acknowledged at
+        // prepare time and must never create a .txt destination file.
+        if (request.messageText() != null) {
+            return PrepareUploadResponse("", emptyMap())
+        }
+
         val sessionId = UUID.randomUUID().toString()
         val effectiveFiles = selectedFiles.mapValues { (fileId, file) ->
             file.copy(fileName = options.displayName(fileId, file.fileName))
@@ -176,8 +183,15 @@ class IncomingTransferManager(
         return WriteResult.CANCELLED
     }
 
-    data class PrepareUploadRequest(val info: DeviceInfo, val files: Map<String, IncomingFile>)
-    data class IncomingFile(val id: String, val fileName: String, val size: Long, val fileType: String, val sha256: String?)
+    data class PrepareUploadRequest(val info: DeviceInfo, val files: Map<String, IncomingFile>) {
+        fun messageText(): String? {
+            if (files.size != 1) return null
+            val file = files.values.first()
+            if (!file.fileType.equals("text", ignoreCase = true) && !file.fileType.startsWith("text/", ignoreCase = true)) return null
+            return file.preview
+        }
+    }
+    data class IncomingFile(val id: String, val fileName: String, val size: Long, val fileType: String, val sha256: String?, val preview: String? = null)
     data class PrepareUploadResponse(val sessionId: String, val files: Map<String, String>)
     enum class WriteResult { COMPLETED, CANCELLED, REJECTED }
     @Volatile private var activeSessionId: String? = null

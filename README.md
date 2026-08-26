@@ -4,7 +4,7 @@
 
 An unofficial, lightweight native Android LocalSend client written in Kotlin. This project is not affiliated with or endorsed by the official LocalSend project. It aims to interoperate with the official LocalSend clients and provide secure file transfer on local networks, including older Android devices.
 
-> Current version: `v0.6.5-alpha`
+> Current version: `v0.7.0-alpha`
 >
 > The core workflow is usable, but compatibility across Android versions, vendor-specific background policies, and long-running transfers still needs more real-device validation.
 
@@ -17,6 +17,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
   - Selectable network interfaces with per-interface address display
 - File sending
   - System file picker
+  - Floating content action menu for files, folders, media, text, and clipboard content
   - Multi-file selection and sequential send queue
   - Manual `IP:port` connection with HTTP/HTTPS protocol probing
   - Per-file and session progress
@@ -31,7 +32,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
   - Per-transfer receive settings: temporary directory, gallery saving for photos/videos, file selection, and renaming
   - Optional SHA-256 checksum verification when the sender provides one
   - Optional receive PIN; the PIN field is visible and accepts any non-empty text after trimming surrounding whitespace, and senders are challenged through the LocalSend v2.1 `pin` query parameter
-  - Receive history with file details, direct opening, and history clearing
+  - Receive history with file and text-message details, direct opening/copying, and history clearing
 - Secure transfer
   - HTTPS encryption
   - Mutual identity verification using device certificate fingerprints

@@ -106,6 +106,9 @@ class LocalSendServer(
             return forbidden()
         }
         val response = incomingTransfers.prepare(request, session.remoteIpAddress) ?: return rejected()
+        if (response.files.isEmpty()) {
+            return newFixedLengthResponse(Response.Status.NO_CONTENT, MIME_PLAINTEXT, "")
+        }
         return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(response))
     }
 
