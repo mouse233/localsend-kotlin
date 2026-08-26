@@ -44,7 +44,7 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">@dimen/settings_list_section_height</item>
         <item name="android:gravity">center_vertical</item>
-        <item name="android:paddingStart">@dimen/settings_list_content_spacing</item>
+        <item name="android:paddingStart">@dimen/settings_list_text_start</item>
         <item name="android:paddingEnd">@dimen/settings_list_horizontal_padding</item>
         <item name="android:textColor">@color/brand_primary</item>
         <item name="android:textSize">14sp</item>
