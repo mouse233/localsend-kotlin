@@ -6,4 +6,6 @@
     <color name="secondary_text">#5F6368</color>
     <color name="header_subtitle">#D7E9FF</color>
     <color name="item_border">#D7DCE1</color>
+    <color name="brand_primary_pressed">#125AA0</color>
+    <color name="fab_ripple">#33FFFFFF</color>
 </resources>

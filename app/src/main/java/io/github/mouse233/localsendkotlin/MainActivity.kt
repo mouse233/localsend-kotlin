@@ -1,22 +1,33 @@
 package io.github.mouse233.localsendkotlin
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.Manifest
 import android.annotation.TargetApi
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.graphics.Outline
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.text.InputType
+import android.view.MotionEvent
+import android.view.ViewOutlineProvider
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
@@ -32,6 +43,11 @@ import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
 import io.github.mouse233.localsendkotlin.ui.ActiveTransferAdapter
 import io.github.mouse233.localsendkotlin.ui.SystemBars
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : Activity(), TransferService.Listener {
     private lateinit var statusText: TextView
@@ -41,7 +57,10 @@ class MainActivity : Activity(), TransferService.Listener {
     private lateinit var localEndpointDeviceName: TextView
     private lateinit var localEndpointBindLabel: TextView
     private lateinit var localEndpointAddresses: TextView
+    private lateinit var contentActionMenu: android.view.View
+    private lateinit var contentActionFab: android.widget.ImageButton
     private var selectedFiles: List<Uri> = emptyList()
+    private var contentMenuOpen = false
     private var appliedLanguage: String? = null
     private var transferService: TransferService? = null
     private var bound = false
@@ -52,6 +71,8 @@ class MainActivity : Activity(), TransferService.Listener {
     private var pendingReceiveSettingsDecision: ((IncomingReceiveOptions?) -> Unit)? = null
     private var pendingReceiveSettingsOptions: IncomingReceiveOptions? = null
     private val activeTransferFiles = LinkedHashMap<String, ActiveTransferFile>()
+    private val contentExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val activeTransferAdapter = ActiveTransferAdapter { sessionId, fileId ->
         transferService?.cancelIncomingFile(sessionId, fileId)
     }
@@ -78,6 +99,8 @@ class MainActivity : Activity(), TransferService.Listener {
         localEndpointDeviceName = findViewById(R.id.local_endpoint_device_name)
         localEndpointBindLabel = findViewById(R.id.local_endpoint_bind_label)
         localEndpointAddresses = findViewById(R.id.local_endpoint_addresses)
+        contentActionMenu = findViewById(R.id.content_action_menu)
+        contentActionFab = findViewById(R.id.select_file_fab)
         appliedLanguage = AppSettings(this).language()
         findViewById<android.view.View>(R.id.history_button).setOnClickListener {
             startActivity(Intent(this, ReceiveHistoryActivity::class.java))
@@ -100,7 +123,13 @@ class MainActivity : Activity(), TransferService.Listener {
         }
         findViewById<android.view.View>(R.id.refresh_button).setOnClickListener { transferService?.refreshDevices() }
         findViewById<android.view.View>(R.id.manual_send_button).setOnClickListener { showManualSendDialog() }
-        findViewById<android.view.View>(R.id.select_file_button).setOnClickListener { chooseFile() }
+        contentActionFab.setOnClickListener { setContentActionMenuOpen(!contentMenuOpen) }
+        configureFabShadow(contentActionFab)
+        findViewById<android.view.View>(R.id.content_action_file).setOnClickListener { closeContentActionMenu(); chooseFile() }
+        findViewById<android.view.View>(R.id.content_action_folder).setOnClickListener { closeContentActionMenu(); chooseFolder() }
+        findViewById<android.view.View>(R.id.content_action_media).setOnClickListener { closeContentActionMenu(); chooseMedia() }
+        findViewById<android.view.View>(R.id.content_action_text).setOnClickListener { closeContentActionMenu(); showTextInput() }
+        findViewById<android.view.View>(R.id.content_action_clipboard).setOnClickListener { closeContentActionMenu(); chooseClipboard() }
         onDevicesChanged(emptyList())
         updateLocalEndpoint()
         requestLegacyStoragePermission()
@@ -129,6 +158,21 @@ class MainActivity : Activity(), TransferService.Listener {
         transferService?.removeListener(this)
         if (bound) { unbindService(connection); bound = false }
         super.onStop()
+    }
+
+    override fun onDestroy() {
+        contentExecutor.shutdownNow()
+        super.onDestroy()
+    }
+
+    @Suppress("DEPRECATION")
+    @Deprecated("Legacy Activity back handling supports Android 5.0")
+    override fun onBackPressed() {
+        if (contentMenuOpen) {
+            closeContentActionMenu()
+            return
+        }
+        super.onBackPressed()
     }
 
     @Deprecated("Legacy Activity result API supports Android 5.0")
@@ -163,15 +207,35 @@ class MainActivity : Activity(), TransferService.Listener {
             if (request != null && decide != null) showIncomingRequest(request, decide, pendingReceiveSettingsOptions)
             return
         }
-        if (requestCode == FILE_REQUEST && resultCode == RESULT_OK) {
-            selectedFiles = buildList {
+        if ((requestCode == FILE_REQUEST || requestCode == MEDIA_REQUEST) && resultCode == RESULT_OK) {
+            val files = buildList {
                 data?.clipData?.let { clips -> for (index in 0 until clips.itemCount) add(clips.getItemAt(index).uri) }
                     ?: data?.data?.let(::add)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) selectedFiles.forEach { uri ->
-                try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
+            persistReadPermissions(files)
+            setSelectedFiles(files)
+            return
+        }
+        if (requestCode == FOLDER_REQUEST && resultCode == RESULT_OK) {
+            val treeUri = data?.data ?: return
+            try {
+                contentResolver.takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (_: Exception) { }
+            statusText.text = getString(R.string.content_action_folder_scanning)
+            contentExecutor.execute {
+                try {
+                    val files = collectFolderFiles(treeUri)
+                    mainHandler.post {
+                        if (files.isEmpty()) {
+                            Toast.makeText(this, R.string.content_action_folder_empty, Toast.LENGTH_SHORT).show()
+                        } else {
+                            setSelectedFiles(files)
+                        }
+                    }
+                } catch (_: Exception) {
+                    mainHandler.post { Toast.makeText(this, R.string.content_action_folder_failed, Toast.LENGTH_SHORT).show() }
+                }
             }
-            if (selectedFiles.isNotEmpty()) statusText.text = getString(R.string.files_selected, selectedFiles.size)
         }
     }
 
@@ -181,6 +245,184 @@ class MainActivity : Activity(), TransferService.Listener {
         putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         type = "*/*"
     }, FILE_REQUEST)
+
+    private fun chooseMedia() = startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        type = "*/*"
+        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
+    }, MEDIA_REQUEST)
+
+    private fun chooseFolder() = startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+    }, FOLDER_REQUEST)
+
+    private fun setSelectedFiles(files: List<Uri>) {
+        selectedFiles = files
+        if (files.isNotEmpty()) statusText.text = getString(R.string.files_selected, files.size)
+    }
+
+    private fun persistReadPermissions(uris: List<Uri>) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) uris.forEach { uri ->
+            try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
+        }
+    }
+
+    private fun collectFolderFiles(treeUri: Uri): List<Uri> {
+        val files = mutableListOf<Uri>()
+        val rootDocumentId = DocumentsContract.getTreeDocumentId(treeUri)
+        fun visit(documentId: String) {
+            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, documentId)
+            val projection = arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_MIME_TYPE
+            )
+            contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                val typeColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                while (cursor.moveToNext()) {
+                    val childId = cursor.getString(idColumn)
+                    val childType = cursor.getString(typeColumn)
+                    if (childType == DocumentsContract.Document.MIME_TYPE_DIR) visit(childId)
+                    else files += DocumentsContract.buildDocumentUriUsingTree(treeUri, childId)
+                }
+            }
+        }
+        visit(rootDocumentId)
+        return files
+    }
+
+    private fun chooseClipboard() {
+        @Suppress("DEPRECATION")
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
+        val clip = clipboard?.primaryClip
+        if (clip == null || clip.itemCount == 0) {
+            Toast.makeText(this, R.string.content_action_no_clipboard, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val text = clip.getItemAt(0).coerceToText(this).toString().takeIf { it.isNotBlank() }
+        if (text != null) {
+            createOutgoingText(text)
+            return
+        }
+        val uris = buildList { for (index in 0 until clip.itemCount) clip.getItemAt(index).uri?.let(::add) }
+        if (uris.isEmpty()) {
+            Toast.makeText(this, R.string.content_action_no_clipboard, Toast.LENGTH_SHORT).show()
+            return
+        }
+        contentExecutor.execute {
+            try {
+                val copied = uris.mapIndexed { index, uri -> copyToCache(uri, "clipboard_$index") }
+                mainHandler.post { setSelectedFiles(copied) }
+            } catch (_: Exception) {
+                mainHandler.post { Toast.makeText(this, R.string.content_action_no_clipboard, Toast.LENGTH_SHORT).show() }
+            }
+        }
+    }
+
+    private fun showTextInput() {
+        val content = layoutInflater.inflate(R.layout.dialog_text_message, null)
+        val input = content.findViewById<EditText>(R.id.text_message_editor)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.content_action_text_title)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok, null)
+            .create()
+        dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val text = input.text.toString()
+            if (text.isBlank()) {
+                input.error = getString(R.string.content_action_text_empty)
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            createOutgoingText(text)
+        }
+    }
+
+    private fun createOutgoingText(text: String) {
+        contentExecutor.execute {
+            try {
+                val file = File(cacheDir, "message_${UUID.randomUUID()}.txt")
+                file.writeText(text, Charsets.UTF_8)
+                val uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
+                mainHandler.post { setSelectedFiles(listOf(uri)) }
+            } catch (_: Exception) {
+                mainHandler.post { Toast.makeText(this, R.string.content_action_text_empty, Toast.LENGTH_SHORT).show() }
+            }
+        }
+    }
+
+    private fun copyToCache(sourceUri: Uri, prefix: String): Uri {
+        var name = sourceUri.lastPathSegment?.substringAfterLast('/').orEmpty()
+        contentResolver.query(sourceUri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) name = cursor.getString(0).orEmpty()
+        }
+        if (name.isBlank()) name = "$prefix.bin"
+        val file = File(cacheDir, "${prefix}_${UUID.randomUUID()}_${File(name).name}")
+        contentResolver.openInputStream(sourceUri)?.use { input -> FileOutputStream(file).use { output -> input.copyTo(output) } }
+            ?: throw IllegalStateException("无法读取剪贴板文件")
+        return FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
+    }
+
+    private fun closeContentActionMenu() {
+        if (contentMenuOpen) setContentActionMenuOpen(false)
+    }
+
+    private fun configureFabShadow(button: android.widget.ImageButton) {
+        val restingElevation = 6f * resources.displayMetrics.density
+        val pressedElevation = 12f * resources.displayMetrics.density
+        button.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: android.view.View, outline: Outline) {
+                outline.setOval(0, 0, view.measuredWidth, view.measuredHeight)
+            }
+        }
+        button.clipToOutline = true
+        button.elevation = restingElevation
+        button.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            view.invalidateOutline()
+        }
+        button.post { button.invalidateOutline() }
+        button.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> view.elevation = pressedElevation
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> view.elevation = restingElevation
+            }
+            false
+        }
+    }
+
+    private fun setContentActionMenuOpen(open: Boolean) {
+        contentMenuOpen = open
+        contentActionMenu.animate().cancel()
+        contentActionFab.animate().cancel()
+        contentActionMenu.animate().setListener(null)
+        contentActionFab.animate().setListener(null)
+        val interpolator = android.view.animation.PathInterpolator(0.2f, 0f, 0f, 1f)
+        val offset = 24f * resources.displayMetrics.density
+        if (open) {
+            contentActionFab.setImageResource(R.drawable.ic_close)
+            contentActionFab.contentDescription = getString(R.string.content_action_close)
+            contentActionMenu.visibility = android.view.View.VISIBLE
+            contentActionMenu.alpha = 0f
+            contentActionMenu.translationY = offset
+            contentActionFab.animate().rotation(45f).setDuration(180L).setInterpolator(interpolator).start()
+            contentActionMenu.animate().alpha(1f).translationY(0f).setDuration(180L).setInterpolator(interpolator).start()
+        } else {
+            contentActionFab.setImageResource(R.drawable.ic_add)
+            contentActionFab.contentDescription = getString(R.string.content_action_add)
+            contentActionFab.animate().rotation(0f).setDuration(150L).setInterpolator(interpolator).start()
+            contentActionMenu.animate().alpha(0f).translationY(offset).setDuration(150L).setInterpolator(interpolator)
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        contentActionMenu.visibility = android.view.View.GONE
+                        contentActionMenu.translationY = 0f
+                    }
+                }).start()
+        }
+    }
 
     private fun showManualSendDialog() {
         if (selectedFiles.isEmpty()) {
@@ -418,5 +660,7 @@ class MainActivity : Activity(), TransferService.Listener {
         const val NOTIFICATION_PERMISSION_REQUEST = 1003
         const val VERIFICATION_REQUEST = 1004
         const val RECEIVE_SETTINGS_REQUEST = 1005
+        const val MEDIA_REQUEST = 1006
+        const val FOLDER_REQUEST = 1007
     }
 }
