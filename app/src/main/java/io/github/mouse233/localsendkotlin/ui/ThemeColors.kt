@@ -34,7 +34,7 @@ object ThemeColors {
         val root = activity.findViewById<View>(android.R.id.content) ?: return
         val primary = primaryColor(activity)
         val pressed = pressedColor(activity)
-        val originalPrimary = activity.resources.getColor(R.color.brand_primary)
+        val presetColors = ThemeColorPreset.values().mapTo(mutableSetOf()) { color(activity, it) }
         val tint = ColorStateList(
             arrayOf(intArrayOf(android.R.attr.state_pressed), intArrayOf()),
             intArrayOf(pressed, primary)
@@ -48,7 +48,7 @@ object ThemeColors {
             intArrayOf(withAlpha(primary, 0x66), 0x55000000)
         )
         activity.window.statusBarColor = primary
-        applyToView(root, originalPrimary, primary, tint, switchThumbTint, switchTrackTint)
+        applyToView(root, presetColors, primary, tint, switchThumbTint, switchTrackTint)
     }
 
     fun apply(dialog: AlertDialog) {
@@ -68,17 +68,17 @@ object ThemeColors {
 
     private fun applyToView(
         view: View,
-        originalPrimary: Int,
+        presetColors: Set<Int>,
         primary: Int,
         tint: ColorStateList,
         switchThumbTint: ColorStateList,
         switchTrackTint: ColorStateList
     ) {
-        if (view is TextView && view.textColors.defaultColor == originalPrimary) {
+        if (view is TextView && view.textColors.defaultColor in presetColors) {
             view.setTextColor(primary)
         }
         val background = view.background
-        if (background is ColorDrawable && background.color == originalPrimary) {
+        if (background is ColorDrawable && background.color in presetColors) {
             view.setBackgroundColor(primary)
         }
         when (view) {
@@ -91,7 +91,7 @@ object ThemeColors {
         }
         if (view is ViewGroup) {
             for (index in 0 until view.childCount) {
-                applyToView(view.getChildAt(index), originalPrimary, primary, tint, switchThumbTint, switchTrackTint)
+                applyToView(view.getChildAt(index), presetColors, primary, tint, switchThumbTint, switchTrackTint)
             }
         }
     }

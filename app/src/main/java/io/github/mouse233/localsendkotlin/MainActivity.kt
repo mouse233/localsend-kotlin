@@ -171,6 +171,14 @@ class MainActivity : Activity(), TransferService.Listener {
         updateLocalEndpoint()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            ThemeColors.apply(this)
+            SystemBars.apply(this)
+        }
+    }
+
     override fun onStop() {
         transferService?.removeListener(this)
         if (bound) { unbindService(connection); bound = false }
