@@ -34,7 +34,7 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_gravity="center_vertical"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/action_button_ripple"
             android:contentDescription="@string/history"
             android:padding="12dp"
             android:src="@drawable/ic_history"
@@ -45,7 +45,7 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_gravity="center_vertical"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/action_button_ripple"
             android:contentDescription="@string/settings"
             android:padding="12dp"
             android:src="@drawable/ic_settings"
@@ -151,29 +151,48 @@
         android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="8dp">
+        android:paddingBottom="0dp">
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text="@string/nearby_devices"
             android:textColor="@color/primary_text"
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/manual_send_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="@string/manual_send" />
-
-        <Button
+        <ImageButton
             android:id="@+id/refresh_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/refresh_devices" />
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/action_button_ripple"
+            android:contentDescription="@string/refresh_devices"
+            android:padding="4dp"
+            android:src="@drawable/ic_refresh"
+            android:tint="@color/brand_primary" />
+
+        <ImageButton
+            android:id="@+id/manual_send_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="-8dp"
+            android:background="@drawable/action_button_ripple"
+            android:contentDescription="@string/manual_send"
+            android:padding="4dp"
+            android:src="@drawable/ic_send"
+            android:tint="@color/brand_primary" />
+
+        <ImageButton
+            android:id="@+id/favorites_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="-8dp"
+            android:background="@drawable/action_button_ripple"
+            android:contentDescription="@string/favorites"
+            android:padding="4dp"
+            android:src="@drawable/ic_favorite"
+            android:tint="@color/brand_primary" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -183,7 +202,7 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:paddingStart="8dp"
-        android:paddingTop="8dp"
+        android:paddingTop="0dp"
         android:paddingEnd="8dp"
         android:paddingBottom="88dp" />
 

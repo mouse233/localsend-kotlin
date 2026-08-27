@@ -339,7 +339,9 @@ class TransferService : Service(), DiscoveryListener {
             }
             return
         }
-        if (settings.autoSaveReceivedFiles()) {
+        val shouldAutoSave = settings.autoSaveReceivedFiles() ||
+            (settings.autoSaveFavoriteReceivedFiles() && settings.isFavorite(request.info.fingerprint))
+        if (shouldAutoSave) {
             decide(IncomingReceiveOptions.forAll(request, settings))
             return
         }

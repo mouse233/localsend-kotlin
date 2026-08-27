@@ -1,5 +1,35 @@
 # Changelog
 
+## [v0.7.2-alpha] - 2026-08-27
+
+### Added
+
+- Added favorite devices matched by TLS certificate fingerprint, with trusted-device indicators in the nearby-device list.
+- Added a Favorites shortcut, editable favorite name/address/port fields, and favorite deletion with confirmation.
+- Added optional automatic saving of files received from favorite devices.
+- Added device-type icons for mobile, desktop, web, headless, and server devices.
+
+### Changed
+
+- Replaced nearby-device text actions with compact themed icon actions for refresh, manual send, and Favorites.
+- Refined favorite and device dialogs with wider content, balanced margins, compact list spacing, and consistent themed controls.
+
+## 中文说明
+
+### v0.7.2-alpha（2026-08-27）
+
+#### 新增
+
+- 新增按 TLS 证书指纹识别的收藏设备，并在附近设备列表显示受信任标识。
+- 新增收藏夹快捷入口，支持编辑收藏设备名称、地址、端口，以及带确认的删除操作。
+- 新增自动保存来自收藏设备的文件选项。
+- 新增移动设备、桌面设备、Web、无界面程序和服务器设备图标。
+
+#### 调整
+
+- 将附近设备的文字操作改为紧凑的主题色图标操作，包括刷新、手动发送和收藏夹。
+- 优化收藏夹和设备对话框，统一加宽内容区域、左右边距、列表间距和主题控件样式。
+
 ## [v0.7.1-alpha] - 2026-08-26
 
 ### Added
