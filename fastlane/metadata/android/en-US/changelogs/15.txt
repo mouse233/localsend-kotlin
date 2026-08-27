@@ -1,0 +1,9 @@
+### Added
+
+- Favorite devices matched by TLS fingerprint, trusted indicators, editable name/address/port, deletion confirmation, and optional auto-save from favorites.
+- Device-type icons for mobile, desktop, web, headless, and server devices.
+
+### Changed
+
+- Nearby-device actions now use compact themed icons for refresh, manual send, and Favorites.
+- Favorite/device dialogs now have wider content, balanced margins, compact spacing, and consistent themed controls.
