@@ -8,53 +8,28 @@
 >
 > 基本功能已经可以使用，但跨 Android 版本、不同厂商后台策略和长时间传输仍需要更多实机验证。
 
+<a href="https://github.com/mouse233/localsend-kotlin/releases/latest"><img src="https://raw.githubusercontent.com/rubenpgrady/get-it-on-github/main/get-it-on-github.png" alt="Get it on GitHub" height="60"></a>&nbsp;&nbsp;<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.github.mouse233.localsendkotlin%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fmouse233%2Flocalsend-kotlin%22%2C%22author%22%3A%22mouse233%22%2C%22name%22%3A%22LocalSend%20Kotlin%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Atrue%7D%22%7D"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="60"></a>
+
 ## 已实现功能
 
 - 局域网设备发现
-  - LocalSend v2 多播 UDP 发现（`224.0.0.167:53317`）
-  - 多播失败时使用 HTTPS 局域网扫描作为兼容回退
-  - 支持 Android 5.0（API 21）的网络绑定方式
-  - 支持选择多个网络接口，并显示各接口绑定地址
-- 文件发送
-  - 从系统文件选择器选择文件
-  - 通过浮动内容菜单选择文件、文件夹、媒体、文本和剪贴板内容
-  - 支持多选文件并按队列依次发送
-  - 支持输入 `IP:端口` 手动连接，并自动探测 HTTP/HTTPS
-  - 显示单文件和整个会话的进度
-  - 支持发送端取消整个会话
-  - 接收端取消时，发送端会停止上传
-  - 可选创建 SHA-256 校验和
-- 文件接收
-  - 接收前显示确认对话框
-  - 多文件会话按文件分别显示接收进度
-  - 支持取消单个接收文件或整个会话
-  - 可配置接收目录，默认保存到 `Download/LocalSend Kotlin`
-  - 每次接收可临时设置保存目录、将照片/视频保存到相册、选择文件和修改文件名
-  - 发送方提供校验和时，可选验证 SHA-256 校验和
-  - 可选设置接收 PIN；PIN 输入框按明文显示，并支持去除首尾空白后的任意非空文本，发送方通过 LocalSend v2.1 的 `pin` 查询参数完成验证
-  - 提供文件和文本消息的接收历史、详情、打开/复制和清空历史功能
+  - LocalSend v2 多播 UDP 发现，多播失败时回退到 HTTPS 扫描；支持选择网络接口和 Android 5.0（API 21）兼容
+- 文件传输
+  - 支持文件、文件夹、媒体、文本和剪贴板内容的发送与接收，包括多文件队列、进度、取消、可配置接收行为和历史记录
 - 安全传输
-  - HTTPS 加密
-  - 基于设备证书指纹的双向身份校验
-  - 支持通过文本安全码或 Material 图标序列进行可视化设备验证
-  - 支持按证书指纹收藏设备，并显示受信任设备标识
+  - 支持 HTTPS、基于证书指纹的设备身份校验、可选 PIN 验证和 SHA-256 校验和
 - 界面与设置
-  - 可在应用内选择系统默认、简体中文或 English
-  - 主页显示本机设备名称和绑定地址
-  - 支持预设主题色和跟随系统、启用、禁用三种深色模式
-  - 可设置设备名称、设备类型、设备型号、网络接口、服务器、端口、加密、多播地址、接收行为、接收 PIN 和校验和
-  - 可选择自动保存来自收藏设备的文件
-  - 可选择在主页隐藏 IPv6 绑定地址
-- 后台传输与通知
-  - 使用前台服务支持后台和锁屏状态下传输
-  - 可选在传输期间保持屏幕唤醒
-  - 通知栏支持接受、拒绝和取消传输
-  - 通知显示进度、已完成大小、传输速度和预计剩余时间
+  - 支持系统默认、简体中文和 English，以及主题色、深色模式、设备与收藏设备管理和网络/传输设置
+- 后台传输
+  - 使用前台服务支持锁屏传输、通知操作和可选保持屏幕唤醒
 
 ## 未实现功能
 
-- 网络中断或应用重启后的断点续传。
-- 高级搜索超时控制。
+- 更完善的传输队列界面。
+- 注册为 Android 系统分享入口。
+- 通过浏览器链接接收文件。
+- 多线程传输。
+- 大文件性能优化。
 - 实验性 Android 4.x 支持。
 
 ## 技术栈
