@@ -29,6 +29,8 @@ import io.github.mouse233.localsendkotlin.discovery.NetworkInterfaceCatalog
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 import io.github.mouse233.localsendkotlin.ui.ThemeColors
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class SettingsActivity : Activity() {
     private lateinit var settings: AppSettings
@@ -40,6 +42,8 @@ class SettingsActivity : Activity() {
     private lateinit var multicastAddressValue: TextView
     private lateinit var networkInterfacesValue: TextView
     private lateinit var receiveDirectoryValue: TextView
+    private val backgroundExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+    private var networkSummaryRequest = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -137,6 +141,11 @@ class SettingsActivity : Activity() {
         findViewById<android.view.View>(R.id.third_party_licenses_row).setOnClickListener {
             openDocument(R.string.settings_third_party_licenses, NOTICE_FILE)
         }
+    }
+
+    override fun onDestroy() {
+        backgroundExecutor.shutdownNow()
+        super.onDestroy()
     }
 
     private fun notifyTransferServiceOfScreenAwakeChange() {
@@ -421,7 +430,15 @@ class SettingsActivity : Activity() {
         darkModeValue.text = getString(DarkModePreference.fromId(settings.darkMode()).labelRes)
         portValue.text = settings.port().toString()
         multicastAddressValue.text = settings.multicastAddress()
-        networkInterfacesValue.text = networkInterfaceSummary()
+        networkInterfacesValue.text = getString(R.string.settings_network_interfaces_loading)
+        val request = ++networkSummaryRequest
+        backgroundExecutor.execute {
+            val summary = networkInterfaceSummary()
+            runOnUiThread {
+                if (request != networkSummaryRequest || isFinishing || isDestroyed) return@runOnUiThread
+                networkInterfacesValue.text = summary
+            }
+        }
         receiveDirectoryValue.text = settings.receiveDirectoryName() ?: getString(R.string.settings_default_receive_directory)
     }
 

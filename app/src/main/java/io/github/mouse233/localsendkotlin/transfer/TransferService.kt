@@ -38,6 +38,7 @@ class TransferService : Service(), DiscoveryListener {
         fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit)
         fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest)
         fun onOutgoingSessionPrepared(sessionId: String, files: List<ActiveTransferFile>)
+        fun onActiveTransfersRestored(files: List<ActiveTransferFile>)
         fun onFileReceiveProgress(file: ActiveTransferFile)
         fun onFileSendProgress(file: ActiveTransferFile)
         fun onFileReceiveCancelled(file: ActiveTransferFile, sessionComplete: Boolean)
@@ -130,6 +131,12 @@ class TransferService : Service(), DiscoveryListener {
                     listener.onOutgoingSessionPrepared(sessionId, files.values.toList())
                 }
             }
+            val activeSnapshot = synchronized(incomingFiles) {
+                incomingFiles.values.flatMap { it.values }
+            } + synchronized(outgoingFiles) {
+                outgoingFiles.values.flatMap { it.values }
+            }
+            listener.onActiveTransfersRestored(activeSnapshot)
         }
     }
 
@@ -534,6 +541,7 @@ class TransferService : Service(), DiscoveryListener {
         cancellationExecutor.shutdownNow()
         networkExecutor.shutdownNow()
         discoveryManager?.stop()
+        if (::receiveHistory.isInitialized) receiveHistory.close()
         stopForeground(true)
         notificationManager().cancel(NOTIFICATION_ID)
         notificationManager().cancel(PROGRESS_NOTIFICATION_ID)

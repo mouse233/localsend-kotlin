@@ -25,7 +25,6 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 
 ## Not implemented yet
 
-- A more polished transfer queue interface.
 - Registration as an Android system share target.
 - Receiving files through browser links.
 - Multi-threaded transfers.
