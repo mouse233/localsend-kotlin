@@ -240,7 +240,8 @@ object ThemeColors {
 
     private fun constrainDialogWidth(window: Window) {
         val context = window.context
-        val horizontalMargin = dp(context, 40)
+        // Keep a visible edge margin while giving compact dialogs more usable width.
+        val horizontalMargin = dp(context, 24)
         val availableWidth = (context.resources.displayMetrics.widthPixels - horizontalMargin * 2).coerceAtLeast(1)
         val maxWidth = dp(context, 560)
         window.setLayout(kotlin.math.min(availableWidth, maxWidth), WindowManager.LayoutParams.WRAP_CONTENT)

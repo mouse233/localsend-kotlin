@@ -64,4 +64,11 @@ class AppSettingsTest {
         settings.setDarkMode(DarkModePreference.ENABLED.id)
         org.junit.Assert.assertEquals(DarkModePreference.ENABLED.id, settings.darkMode())
     }
+
+    @Test
+    fun favoriteAutoSaveSettingPersists() {
+        val settings = AppSettings(InstrumentationRegistry.getInstrumentation().targetContext)
+        settings.setAutoSaveFavoriteReceivedFiles(true)
+        assertTrue(settings.autoSaveFavoriteReceivedFiles())
+    }
 }

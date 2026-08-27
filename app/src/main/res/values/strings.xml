@@ -1,4 +1,10 @@
 <resources>
+    <string name="settings_auto_save_favorites">自动保存收藏设备文件</string>
+    <string name="settings_auto_save_favorites_summary">自动保存来自“收藏夹”设备的文件。</string>
+    <string name="device_actions">设备操作</string>
+    <string name="favorite_device">收藏</string>
+    <string name="unfavorite_device">取消收藏</string>
+    <string name="trusted_device">受信任设备</string>
     <string name="app_name">LocalSend Kotlin</string>
     <string name="about">关于</string>
     <string name="settings">设置</string>

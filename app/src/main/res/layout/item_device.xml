@@ -2,38 +2,73 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
+    android:layout_marginStart="8dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginBottom="4dp"
     android:background="@drawable/device_item_background"
     android:padding="16dp">
 
     <ImageButton
-        android:id="@+id/device_verify_button"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:id="@+id/device_info_button"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_alignParentEnd="true"
         android:layout_centerVertical="true"
         android:background="?android:attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/verification_title"
-        android:padding="8dp"
-        android:src="@drawable/ic_verify"
+        android:contentDescription="@string/device_actions"
+        android:padding="12dp"
+        android:src="@drawable/ic_info"
         android:tint="@color/secondary_text" />
 
-    <TextView
-        android:id="@+id/device_alias"
+    <ImageView
+        android:id="@+id/device_type_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
+        android:contentDescription="@string/device_type_mobile"
+        android:src="@drawable/ic_device"
+        android:tint="@color/secondary_text" />
+
+    <LinearLayout
+        android:id="@+id/device_name_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_toStartOf="@id/device_verify_button"
+        android:layout_toEndOf="@id/device_type_icon"
+        android:layout_toStartOf="@id/device_info_button"
+        android:layout_marginStart="16dp"
         android:layout_marginEnd="8dp"
-        android:textColor="@color/primary_text"
-        android:textSize="17sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <TextView
+            android:id="@+id/device_alias"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/primary_text"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+        <ImageView
+            android:id="@+id/device_trusted_icon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="4dp"
+            android:contentDescription="@string/trusted_device"
+            android:src="@drawable/ic_trusted"
+            android:tint="@color/brand_primary"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/device_details"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/device_alias"
-        android:layout_toStartOf="@id/device_verify_button"
+        android:layout_below="@id/device_name_row"
+        android:layout_toEndOf="@id/device_type_icon"
+        android:layout_toStartOf="@id/device_info_button"
+        android:layout_marginStart="16dp"
         android:layout_marginEnd="8dp"
         android:layout_marginTop="4dp"
         android:textColor="@color/secondary_text"

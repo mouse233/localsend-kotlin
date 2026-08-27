@@ -1,4 +1,10 @@
 <resources>
+    <string name="settings_auto_save_favorites">Auto-save from favorites</string>
+    <string name="settings_auto_save_favorites_summary">Automatically save files from devices in Favorites.</string>
+    <string name="device_actions">Device actions</string>
+    <string name="favorite_device">Favorite</string>
+    <string name="unfavorite_device">Remove from favorites</string>
+    <string name="trusted_device">Trusted device</string>
     <string name="app_name">LocalSend Kotlin</string><string name="about">About</string><string name="settings">Settings</string><string name="save">Save</string>
     <string name="content_action_add">Add content</string>
     <string name="content_action_file">File</string><string name="content_action_folder">Folder</string><string name="content_action_media">Media</string><string name="content_action_text">Text</string><string name="content_action_clipboard">Clipboard</string><string name="content_action_copied">Copied to clipboard</string><string name="content_action_close">Close</string><string name="content_action_text_title">Send text</string><string name="content_action_text_hint">Enter text to send</string><string name="content_action_text_empty">Enter text to send</string><string name="content_action_no_clipboard">There is no sendable content in the clipboard</string><string name="content_action_folder_scanning">Reading folder…</string><string name="content_action_folder_empty">This folder has no sendable files</string><string name="content_action_folder_failed">Could not read this folder</string>

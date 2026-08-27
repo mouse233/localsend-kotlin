@@ -24,7 +24,9 @@ import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.text.InputType
 import android.view.MotionEvent
+import android.view.Menu
 import android.view.ViewOutlineProvider
+import android.widget.PopupMenu
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -69,7 +71,8 @@ class MainActivity : Activity(), TransferService.Listener {
     private var appliedLanguage: String? = null
     private var transferService: TransferService? = null
     private var bound = false
-    private val deviceAdapter = DeviceAdapter(::sendToDevice, ::verifyDevice)
+    private val settings by lazy { AppSettings(this) }
+    private val deviceAdapter = DeviceAdapter(::sendToDevice, ::showDeviceMenu) { fingerprint -> settings.isFavorite(fingerprint) }
     private var pendingVerificationRequest: IncomingTransferManager.PrepareUploadRequest? = null
     private var pendingVerificationDecision: ((IncomingReceiveOptions?) -> Unit)? = null
     private var pendingReceiveSettingsRequest: IncomingTransferManager.PrepareUploadRequest? = null
@@ -571,6 +574,32 @@ class MainActivity : Activity(), TransferService.Listener {
         startActivity(Intent(this, VerificationActivity::class.java).putExtra(VerificationActivity.EXTRA_FINGERPRINT, device.fingerprint))
     }
 
+    private fun showDeviceMenu(anchor: android.view.View, device: RemoteDevice) {
+        val popup = PopupMenu(this, anchor)
+        popup.menu.add(
+            Menu.NONE,
+            FAVORITE_MENU_ID,
+            Menu.NONE,
+            getString(if (settings.isFavorite(device.fingerprint)) R.string.unfavorite_device else R.string.favorite_device)
+        )
+        popup.menu.add(Menu.NONE, VERIFY_MENU_ID, Menu.NONE, R.string.verification_title)
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                FAVORITE_MENU_ID -> {
+                    settings.toggleFavorite(device)
+                    deviceAdapter.refreshFavoriteStates()
+                    true
+                }
+                VERIFY_MENU_ID -> {
+                    verifyDevice(device)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
     private fun startTransferService() {
         val intent = Intent(this, TransferService::class.java)
         // This is called while the Activity is visible. Starting normally avoids
@@ -579,6 +608,7 @@ class MainActivity : Activity(), TransferService.Listener {
     }
 
     override fun onDevicesChanged(devices: List<RemoteDevice>) {
+        devices.forEach(settings::refreshFavorite)
         deviceAdapter.submitDevices(devices)
         if (selectedFiles.isEmpty()) statusText.text = if (devices.isEmpty()) getString(R.string.discovery_scanning) else resources.getQuantityString(R.plurals.device_count, devices.size, devices.size)
     }
@@ -841,5 +871,7 @@ class MainActivity : Activity(), TransferService.Listener {
         const val RECEIVE_SETTINGS_REQUEST = 1005
         const val MEDIA_REQUEST = 1006
         const val FOLDER_REQUEST = 1007
+        const val FAVORITE_MENU_ID = 1008
+        const val VERIFY_MENU_ID = 1009
     }
 }

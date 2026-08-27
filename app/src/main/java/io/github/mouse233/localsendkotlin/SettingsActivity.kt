@@ -84,6 +84,11 @@ class SettingsActivity : Activity() {
             setOnCheckedChangeListener { _, checked -> settings.setAutoSaveReceivedFiles(checked) }
         }
         findViewById<android.view.View>(R.id.auto_save_row).setOnClickListener { autoSaveSwitch.toggle() }
+        val autoSaveFavoritesSwitch = findViewById<Switch>(R.id.auto_save_favorites_switch).apply {
+            isChecked = settings.autoSaveFavoriteReceivedFiles()
+            setOnCheckedChangeListener { _, checked -> settings.setAutoSaveFavoriteReceivedFiles(checked) }
+        }
+        findViewById<android.view.View>(R.id.auto_save_favorites_row).setOnClickListener { autoSaveFavoritesSwitch.toggle() }
         val receivePinSwitch = findViewById<Switch>(R.id.receive_pin_switch).apply {
             isChecked = settings.receivePin() != null
             setOnCheckedChangeListener { _, checked ->

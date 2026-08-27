@@ -3,12 +3,16 @@ package io.github.mouse233.localsendkotlin.settings
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import com.google.gson.Gson
+import io.github.mouse233.localsendkotlin.model.FavoriteDevice
+import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import java.util.UUID
 
 /** Persistent user choices that affect LocalSend identity and transfers. */
 class AppSettings(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    private val gson = Gson()
 
     fun deviceName(): String = preferences.getString(DEVICE_NAME_KEY, null)?.trim().orEmpty()
         .ifBlank { defaultDeviceName() }
@@ -71,6 +75,48 @@ class AppSettings(context: Context) {
 
     fun autoSaveReceivedFiles(): Boolean = preferences.getBoolean(AUTO_SAVE_KEY, false)
     fun setAutoSaveReceivedFiles(enabled: Boolean) = preferences.edit().putBoolean(AUTO_SAVE_KEY, enabled).apply()
+
+    fun autoSaveFavoriteReceivedFiles(): Boolean = preferences.getBoolean(AUTO_SAVE_FAVORITES_KEY, false)
+    fun setAutoSaveFavoriteReceivedFiles(enabled: Boolean) = preferences.edit().putBoolean(AUTO_SAVE_FAVORITES_KEY, enabled).apply()
+
+    fun favoriteDevices(): List<FavoriteDevice> {
+        val raw = preferences.getString(FAVORITES_KEY, null) ?: return emptyList()
+        return runCatching {
+            gson.fromJson(raw, Array<FavoriteDevice>::class.java)?.toList().orEmpty()
+        }.getOrDefault(emptyList())
+    }
+
+    fun isFavorite(fingerprint: String): Boolean = favoriteDevices().any {
+        it.fingerprint.equals(fingerprint, ignoreCase = true)
+    }
+
+    /** Adds a device when absent and removes it when already favorited. */
+    fun toggleFavorite(device: RemoteDevice): Boolean {
+        val favorites = favoriteDevices().toMutableList()
+        val existingIndex = favorites.indexOfFirst { it.matches(device) }
+        return if (existingIndex >= 0) {
+            favorites.removeAt(existingIndex)
+            saveFavoriteDevices(favorites)
+            false
+        } else {
+            favorites += FavoriteDevice(device.fingerprint, device.alias, device.address, device.port, device.protocol)
+            saveFavoriteDevices(favorites)
+            true
+        }
+    }
+
+    /** Refreshes endpoint metadata while retaining the fingerprint-based identity. */
+    fun refreshFavorite(device: RemoteDevice) {
+        val favorites = favoriteDevices().toMutableList()
+        val index = favorites.indexOfFirst { it.matches(device) }
+        if (index < 0) return
+        val refreshed = favorites[index].refreshedFrom(device)
+        if (refreshed != favorites[index]) saveFavoriteDevices(favorites.apply { set(index, refreshed) })
+    }
+
+    private fun saveFavoriteDevices(favorites: List<FavoriteDevice>) {
+        preferences.edit().putString(FAVORITES_KEY, gson.toJson(favorites)).apply()
+    }
 
     /** A non-blank PIN enables the LocalSend prepare-upload PIN gate. */
     fun receivePin(): String? = preferences.getString(RECEIVE_PIN_KEY, null)?.trim()?.takeIf { it.isNotEmpty() }
@@ -155,6 +201,8 @@ class AppSettings(context: Context) {
         const val LANGUAGE_KEY = "language"
         const val CREATE_CHECKSUMS_KEY = "create_checksums"
         const val AUTO_SAVE_KEY = "auto_save_received_files"
+        const val AUTO_SAVE_FAVORITES_KEY = "auto_save_favorite_received_files"
+        const val FAVORITES_KEY = "favorite_devices"
         const val RECEIVE_PIN_KEY = "receive_pin"
         const val RECEIVE_DIRECTORY_URI_KEY = "receive_directory_uri"
         const val RECEIVE_DIRECTORY_NAME_KEY = "receive_directory_name"
