@@ -9,6 +9,7 @@ import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ComponentName
+import android.content.res.ColorStateList
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
@@ -26,6 +27,8 @@ import android.text.InputType
 import android.view.MotionEvent
 import android.view.Menu
 import android.view.ViewOutlineProvider
+import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.EditText
 import android.widget.ProgressBar
@@ -36,6 +39,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
+import io.github.mouse233.localsendkotlin.model.FavoriteDevice
 import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
 import io.github.mouse233.localsendkotlin.discovery.LocalNetworkAddress
 import io.github.mouse233.localsendkotlin.discovery.ManualEndpoint
@@ -101,6 +105,10 @@ class MainActivity : Activity(), TransferService.Listener {
         SystemBars.apply(this)
         setContentView(R.layout.activity_main)
         ThemeColors.apply(this)
+        val actionIconTint = ColorStateList.valueOf(ThemeColors.primaryColor(this))
+        findViewById<ImageButton>(R.id.manual_send_button).imageTintList = actionIconTint
+        findViewById<ImageButton>(R.id.refresh_button).imageTintList = actionIconTint
+        findViewById<ImageButton>(R.id.favorites_button).imageTintList = actionIconTint
         statusText = findViewById(R.id.discovery_status)
         transferProgress = findViewById(R.id.transfer_progress)
         cancelTransferButton = findViewById(R.id.cancel_transfer_button)
@@ -132,6 +140,7 @@ class MainActivity : Activity(), TransferService.Listener {
         }
         findViewById<android.view.View>(R.id.refresh_button).setOnClickListener { transferService?.refreshDevices() }
         findViewById<android.view.View>(R.id.manual_send_button).setOnClickListener { showManualSendDialog() }
+        findViewById<android.view.View>(R.id.favorites_button).setOnClickListener { showFavoritesDialog() }
         contentActionFab.setOnClickListener { setContentActionMenuOpen(!contentMenuOpen) }
         configureFabShadow(contentActionFab)
         listOf(
@@ -563,6 +572,146 @@ class MainActivity : Activity(), TransferService.Listener {
             transferService?.sendManual(selectedFiles, endpoint, selectedMessageText)
                 ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showFavoritesDialog() {
+        val favorites = settings.favoriteDevices()
+        if (favorites.isEmpty()) {
+            val dialog = AlertDialog.Builder(this)
+                .setTitle(R.string.favorites)
+                .setMessage(R.string.favorites_empty)
+                .setPositiveButton(R.string.close, null)
+                .create()
+            dialog.show()
+            ThemeColors.apply(dialog)
+            return
+        }
+
+        val content = layoutInflater.inflate(R.layout.dialog_favorite_devices, null)
+        val list = content.findViewById<LinearLayout>(R.id.favorite_devices_list)
+        val rows = mutableListOf<Pair<android.view.View, FavoriteDevice>>()
+        favorites.forEach { favorite ->
+            val row = layoutInflater.inflate(R.layout.item_favorite_device, list, false)
+            row.findViewById<TextView>(R.id.favorite_device_text).text = favoriteDisplayName(favorite)
+            rows += row to favorite
+            list.addView(row)
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.favorites)
+            .setView(content)
+            .setNegativeButton(R.string.close, null)
+            .create()
+        dialog.show()
+        ThemeColors.apply(dialog)
+        val actionIconTint = ColorStateList.valueOf(ThemeColors.primaryColor(this))
+        rows.forEach { (row, favorite) ->
+            row.setOnClickListener {
+                dialog.dismiss()
+                sendToFavorite(favorite)
+            }
+            row.findViewById<ImageButton>(R.id.favorite_edit_button).apply {
+                imageTintList = actionIconTint
+                setOnClickListener {
+                    dialog.dismiss()
+                    showEditFavoriteDialog(favorite)
+                }
+            }
+        }
+    }
+
+    private fun showEditFavoriteDialog(favorite: FavoriteDevice) {
+        val content = layoutInflater.inflate(R.layout.dialog_edit_favorite, null)
+        val nameInput = content.findViewById<EditText>(R.id.favorite_name_editor).apply {
+            setText(favorite.alias)
+            setSelection(length())
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        }
+        val addressInput = content.findViewById<EditText>(R.id.favorite_address_editor).apply {
+            setText(favorite.address)
+            setSelection(length())
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+        }
+        val portInput = content.findViewById<EditText>(R.id.favorite_port_editor).apply {
+            setText(favorite.port.toString())
+            setSelection(length())
+            inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.edit_favorite_device)
+            .setView(content)
+            .setNeutralButton(R.string.delete_favorite_device, null)
+            .setNegativeButton(android.R.string.cancel) { _, _ -> showFavoritesDialog() }
+            .setPositiveButton(R.string.save, null)
+            .create()
+        dialog.show()
+        ThemeColors.apply(dialog)
+        val customPanelId = resources.getIdentifier("customPanel", "id", "android")
+        if (customPanelId != 0) dialog.findViewById<android.view.View>(customPanelId)?.minimumHeight = 0
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val alias = nameInput.text.toString().trim()
+            val address = addressInput.text.toString().trim()
+            val port = portInput.text.toString().trim().toIntOrNull()
+            when {
+                alias.isEmpty() -> {
+                    nameInput.error = getString(R.string.favorite_name_required)
+                    return@setOnClickListener
+                }
+                address.isEmpty() -> {
+                    addressInput.error = getString(R.string.favorite_address_required)
+                    return@setOnClickListener
+                }
+                port == null || port !in 1..65535 -> {
+                    portInput.error = getString(R.string.favorite_port_invalid)
+                    return@setOnClickListener
+                }
+            }
+            settings.updateFavorite(favorite, alias, address, port)
+            dialog.dismiss()
+            showFavoritesDialog()
+        }
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+            dialog.dismiss()
+            showDeleteFavoriteConfirmation(favorite)
+        }
+    }
+
+    private fun showDeleteFavoriteConfirmation(favorite: FavoriteDevice) {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.delete_favorite_device)
+            .setMessage(getString(R.string.delete_favorite_device_message, favorite.alias))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.delete_favorite_device) { _, _ ->
+                settings.removeFavorite(favorite.fingerprint)
+                deviceAdapter.refreshFavoriteStates()
+                showFavoritesDialog()
+            }
+            .create()
+        dialog.show()
+        ThemeColors.apply(dialog)
+    }
+
+    private fun favoriteDisplayName(favorite: FavoriteDevice): String = getString(
+        R.string.favorite_device_item_format,
+        favorite.alias,
+        favorite.address,
+        favorite.port
+    )
+
+    private fun sendToFavorite(favorite: FavoriteDevice) {
+        sendToDevice(
+            RemoteDevice(
+                alias = favorite.alias,
+                deviceModel = null,
+                deviceType = null,
+                fingerprint = favorite.fingerprint,
+                address = favorite.address,
+                port = favorite.port,
+                protocol = favorite.protocol,
+                downloadEnabled = true
+            )
+        )
     }
 
     private fun sendToDevice(device: RemoteDevice) {

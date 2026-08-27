@@ -24,6 +24,15 @@ class FavoriteDeviceTest {
         assertEquals(53318, refreshed.port)
     }
 
+    @Test
+    fun customAliasIsKeptWhenEndpointMetadataIsRefreshed() {
+        val favorite = FavoriteDevice("ABC123", "My saved name", "192.168.1.10", 53317, "https", customAlias = true)
+        val refreshed = favorite.refreshedFrom(device(alias = "Discovered name", address = "192.168.1.20"))
+
+        assertEquals("My saved name", refreshed.alias)
+        assertEquals("192.168.1.20", refreshed.address)
+    }
+
     private fun device(
         alias: String = "Peer",
         address: String = "192.168.1.10",

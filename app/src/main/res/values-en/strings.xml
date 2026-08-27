@@ -1,4 +1,16 @@
 <resources>
+    <string name="favorites">Favorites</string>
+    <string name="favorites_empty">No favorite devices yet.</string>
+    <string name="favorite_device_item_format">%1$s\n%2$s:%3$d</string>
+    <string name="edit_favorite_device">Edit favorite device</string>
+    <string name="favorite_name">Device name</string>
+    <string name="favorite_address">Address</string>
+    <string name="favorite_port">Port</string>
+    <string name="delete_favorite_device">Delete favorite</string>
+    <string name="delete_favorite_device_message">Remove “%1$s” from Favorites?</string>
+    <string name="favorite_name_required">Device name cannot be empty</string>
+    <string name="favorite_address_required">Address cannot be empty</string>
+    <string name="favorite_port_invalid">Enter a port from 1 to 65535</string>
     <string name="settings_auto_save_favorites">Auto-save from favorites</string>
     <string name="settings_auto_save_favorites_summary">Automatically save files from devices in Favorites.</string>
     <string name="device_actions">Device actions</string>

@@ -114,6 +114,31 @@ class AppSettings(context: Context) {
         if (refreshed != favorites[index]) saveFavoriteDevices(favorites.apply { set(index, refreshed) })
     }
 
+    /** Updates the user-editable fields of a favorite by its certificate identity. */
+    fun updateFavorite(favorite: FavoriteDevice, alias: String, address: String, port: Int): Boolean {
+        val favorites = favoriteDevices().toMutableList()
+        val index = favorites.indexOfFirst {
+            it.fingerprint.equals(favorite.fingerprint, ignoreCase = true)
+        }
+        if (index < 0) return false
+        favorites[index] = favorites[index].copy(
+            alias = alias.trim(),
+            address = address.trim(),
+            port = port,
+            customAlias = true
+        )
+        saveFavoriteDevices(favorites)
+        return true
+    }
+
+    /** Removes a favorite by its certificate identity. */
+    fun removeFavorite(fingerprint: String): Boolean {
+        val favorites = favoriteDevices().toMutableList()
+        val removed = favorites.removeAll { it.fingerprint.equals(fingerprint, ignoreCase = true) }
+        if (removed) saveFavoriteDevices(favorites)
+        return removed
+    }
+
     private fun saveFavoriteDevices(favorites: List<FavoriteDevice>) {
         preferences.edit().putString(FAVORITES_KEY, gson.toJson(favorites)).apply()
     }

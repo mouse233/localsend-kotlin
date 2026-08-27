@@ -6,12 +6,13 @@ data class FavoriteDevice(
     val alias: String,
     val address: String,
     val port: Int,
-    val protocol: String
+    val protocol: String,
+    val customAlias: Boolean = false
 ) {
     fun matches(device: RemoteDevice): Boolean = fingerprint.equals(device.fingerprint, ignoreCase = true)
 
     fun refreshedFrom(device: RemoteDevice): FavoriteDevice = copy(
-        alias = device.alias,
+        alias = if (customAlias) alias else device.alias,
         address = device.address,
         port = device.port,
         protocol = device.protocol

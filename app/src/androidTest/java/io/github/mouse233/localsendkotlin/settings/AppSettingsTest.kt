@@ -2,7 +2,9 @@ package io.github.mouse233.localsendkotlin.settings
 
 import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -70,5 +72,20 @@ class AppSettingsTest {
         val settings = AppSettings(InstrumentationRegistry.getInstrumentation().targetContext)
         settings.setAutoSaveFavoriteReceivedFiles(true)
         assertTrue(settings.autoSaveFavoriteReceivedFiles())
+    }
+
+    @Test
+    fun favoriteCanBeEditedAndRemovedByFingerprint() {
+        val settings = AppSettings(InstrumentationRegistry.getInstrumentation().targetContext)
+        val device = RemoteDevice("Original", "Android", "mobile", "ABC123", "192.168.1.10", 53317, "https", true)
+
+        assertTrue(settings.toggleFavorite(device))
+        val favorite = settings.favoriteDevices().single()
+        assertTrue(settings.updateFavorite(favorite, "Saved name", "192.168.1.20", 53318))
+        assertEquals("Saved name", settings.favoriteDevices().single().alias)
+        assertEquals("192.168.1.20", settings.favoriteDevices().single().address)
+        assertEquals(53318, settings.favoriteDevices().single().port)
+        assertTrue(settings.removeFavorite("abc123"))
+        assertTrue(settings.favoriteDevices().isEmpty())
     }
 }
