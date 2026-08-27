@@ -8,53 +8,28 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 >
 > The core workflow is usable, but compatibility across Android versions, vendor-specific background policies, and long-running transfers still needs more real-device validation.
 
+<a href="https://github.com/mouse233/localsend-kotlin/releases/latest"><img src="https://raw.githubusercontent.com/rubenpgrady/get-it-on-github/main/get-it-on-github.png" alt="Get it on GitHub" height="60"></a>&nbsp;&nbsp;<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.github.mouse233.localsendkotlin%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fmouse233%2Flocalsend-kotlin%22%2C%22author%22%3A%22mouse233%22%2C%22name%22%3A%22LocalSend%20Kotlin%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Atrue%7D%22%7D"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="60"></a>
+
 ## Implemented
 
 - LAN device discovery
-  - LocalSend v2 UDP multicast discovery (`224.0.0.167:53317`)
-  - HTTPS LAN scanning fallback when multicast is unavailable
-  - Android 5.0 (API 21) network binding compatibility
-  - Selectable network interfaces with per-interface address display
-- File sending
-  - System file picker
-  - Floating content action menu for files, folders, media, text, and clipboard content
-  - Multi-file selection and sequential send queue
-  - Manual `IP:port` connection with HTTP/HTTPS protocol probing
-  - Per-file and session progress
-  - Sender-side whole-session cancellation
-  - Stops uploading when the receiver cancels
-  - Optional SHA-256 checksum creation
-- File receiving
-  - Confirmation dialog before receiving
-  - Per-file progress for multi-file sessions
-  - Cancel an individual received file or the whole session
-  - Configurable receive directory; defaults to `Download/LocalSend Kotlin`
-  - Per-transfer receive settings: temporary directory, gallery saving for photos/videos, file selection, and renaming
-  - Optional SHA-256 checksum verification when the sender provides one
-  - Optional receive PIN; the PIN field is visible and accepts any non-empty text after trimming surrounding whitespace, and senders are challenged through the LocalSend v2.1 `pin` query parameter
-  - Receive history with file and text-message details, direct opening/copying, and history clearing
+  - LocalSend v2 UDP multicast with an HTTPS scanning fallback, selectable network interfaces, and Android 5.0 (API 21) compatibility
+- File transfer
+  - Send and receive files, folders, media, text, and clipboard content with multi-file queues, progress, cancellation, configurable receive behavior, and history
 - Secure transfer
-  - HTTPS encryption
-  - Mutual identity verification using device certificate fingerprints
-  - Visual device-verification screen with matching text codes or Material icon sequences
-  - Favorite devices matched by certificate fingerprint, with a trusted-device indicator
+  - HTTPS, certificate-fingerprint identity verification, optional PIN authentication, and SHA-256 checksums
 - Interface and settings
-  - In-app language choice: System Default, Simplified Chinese, or English
-  - Local device name and bind address on the main screen
-  - Preset theme colors and dark mode with system, enabled, and disabled options
-  - Settings for the device name, device type, device model, network interfaces, server, port, encryption, multicast address, receive behavior, receive PIN, and checksums
-  - Optional automatic saving of files from favorite devices
-  - Optional hiding of IPv6 bind addresses on the main screen
-- Background transfer and notifications
-  - Foreground service for background and lock-screen transfers
-  - Optional keep-screen-awake mode during active transfers
-  - Notification actions for accepting, rejecting, and cancelling transfers
-  - Progress, completed size, transfer speed, and ETA in transfer notifications
+  - System Default, Simplified Chinese, and English, plus theme colors, dark mode, device and favorite management, and network/transfer settings
+- Background transfer
+  - Foreground-service transfers with lock-screen support, notifications, and an optional keep-screen-awake mode
 
 ## Not implemented yet
 
-- Resumable transfers after an interrupted connection or app restart.
-- Advanced discovery controls such as discovery timeout are not implemented yet.
+- A more polished transfer queue interface.
+- Registration as an Android system share target.
+- Receiving files through browser links.
+- Multi-threaded transfers.
+- Large-file performance optimizations.
 - Experimental Android 4.x support.
 
 ## Technology stack
