@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.7.4-alpha] - 2026-08-27
+
+### Changed
+
+- Excluded embedded dependency metadata from release APKs so F-Droid can verify developer-signed reproducible builds.
+
+## 中文说明
+
+### v0.7.4-alpha（2026-08-27）
+
+#### 调整
+
+- 移除 release APK 中嵌入的依赖元数据，以便 F-Droid 验证开发者签名的可复现构建。
+
 ## [v0.7.3-alpha] - 2026-08-27
 
 ### Fixed
