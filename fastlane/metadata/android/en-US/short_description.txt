@@ -1,0 +1,1 @@
+An unofficial, lightweight Kotlin LocalSend client for older Android devices.

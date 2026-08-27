@@ -1,0 +1,1 @@
+非官方、轻量的 Kotlin LocalSend 客户端，支持较旧 Android 设备

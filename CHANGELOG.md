@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.7.3-alpha] - 2026-08-27
+
+### Fixed
+
+- Fixed light-theme navigation bars on Android 7.1 and lower by using a dark navigation background so the system's white navigation buttons remain readable.
+
+## 中文说明
+
+### v0.7.3-alpha（2026-08-27）
+
+#### 修复
+
+- 修复 Android 7.1 及更低版本浅色主题下导航栏背景过亮的问题，改用深色导航栏背景以确保系统白色导航按钮清晰可见。
+
 ## [v0.7.2-alpha] - 2026-08-27
 
 ### Added

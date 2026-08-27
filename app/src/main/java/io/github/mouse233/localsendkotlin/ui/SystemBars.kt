@@ -13,10 +13,11 @@ object SystemBars {
         val primary = ThemeColors.primaryColor(activity)
         val dark = ThemeColors.isDark(activity)
         val background = ThemeColors.backgroundColor(activity)
+        val navigationBackground = navigationBarColor(background, dark, Build.VERSION.SDK_INT)
         window.statusBarColor = primary
-        window.navigationBarColor = background
+        window.navigationBarColor = navigationBackground
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            window.navigationBarDividerColor = background
+            window.navigationBarDividerColor = navigationBackground
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isStatusBarContrastEnforced = false
@@ -40,4 +41,12 @@ object SystemBars {
         }
         window.decorView.systemUiVisibility = flags
     }
+
+    /**
+     * Android 7.1 and lower cannot request dark navigation-bar icons. Keep the
+     * navigation background dark there so the system's white button icons stay
+     * readable in the app's light theme.
+     */
+    internal fun navigationBarColor(background: Int, dark: Boolean, sdkInt: Int): Int =
+        if (!dark && sdkInt < Build.VERSION_CODES.O) Color.BLACK else background
 }

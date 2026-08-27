@@ -1,0 +1,3 @@
+### Fixed
+
+- Fixed light-theme navigation bars on Android 7.1 and lower by using a dark navigation background so the system's white navigation buttons remain readable.
