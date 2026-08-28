@@ -120,10 +120,10 @@
     <string name="select_file">选择文件</string>
     <string name="shared_file">共享文件</string>
     <string name="file_size_unknown">大小未知</string>
-    <string name="remove_pending_file">从待发送列表移除</string>
-    <string name="pending_send_title">待发送</string>
-    <string name="pending_send_summary">待发送 %1$d 个文件</string>
-    <string name="pending_send_summary_with_size">待发送 %1$d 个文件 · %2$s</string>
+    <string name="remove_pending_file">从队列移除</string>
+    <string name="pending_send_title">队列</string>
+    <string name="pending_send_summary">队列中有 %1$d 个文件</string>
+    <string name="pending_send_summary_with_size">队列中有 %1$d 个文件 · %2$s</string>
     <string name="view_pending_files">查看</string>
     <string name="clear_pending_files">清空</string>
     <string name="view_transfers">查看传输</string>
@@ -131,6 +131,7 @@
     <string name="transfer_center_active">传输进行中</string>
     <string name="transfer_center_empty">当前没有活动传输</string>
     <string name="transfer_session_sending">发送会话</string>
+    <string name="transfer_checksum_progress">正在计算校验和（%1$d/%2$d）</string>
     <string name="transfer_session_receiving">接收会话</string>
     <string name="transfer_session_summary">%1$d 个文件 · %2$s / %3$s</string>
     <string name="transfer_session_summary_unknown">%1$d 个文件</string>
@@ -155,6 +156,7 @@
     <string name="content_action_folder_failed">无法读取该文件夹</string>
     <string name="local_endpoint_format">设备名称：%1$s\n绑定地址：%2$s:%3$d</string>
     <string name="local_endpoint_format_multi">设备名称：%1$s\n绑定地址：%2$s</string>
+    <string name="local_endpoint_device_label">设备名称：</string>
     <string name="local_endpoint_device_name">设备名称：%1$s</string>
     <string name="local_endpoint_bind_label">绑定地址：</string>
     <string name="local_endpoint_server_disabled_value">已关闭</string>

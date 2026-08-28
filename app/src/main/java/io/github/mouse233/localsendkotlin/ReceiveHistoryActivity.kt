@@ -1,6 +1,5 @@
 package io.github.mouse233.localsendkotlin
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -31,7 +30,7 @@ import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class ReceiveHistoryActivity : Activity() {
+class ReceiveHistoryActivity : LocalizedActivity() {
     private lateinit var store: ReceiveHistoryStore
     private lateinit var settings: AppSettings
     private lateinit var adapter: ReceiveHistoryAdapter

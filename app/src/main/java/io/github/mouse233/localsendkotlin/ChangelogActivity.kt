@@ -1,12 +1,11 @@
 package io.github.mouse233.localsendkotlin
 
-import android.app.Activity
 import android.os.Bundle
 import android.widget.TextView
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 import io.github.mouse233.localsendkotlin.ui.ThemeColors
 
-class ChangelogActivity : Activity() {
+class ChangelogActivity : LocalizedActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)

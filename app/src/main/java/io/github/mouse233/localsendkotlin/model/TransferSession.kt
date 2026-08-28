@@ -21,3 +21,9 @@ fun groupTransferSessions(files: List<ActiveTransferFile>): List<TransferSession
         )
     }
 }
+
+fun TransferSession.isCancelled(): Boolean = files.any {
+    it.status == ActiveTransferFile.Status.CANCELLED
+} && files.none {
+    it.status == ActiveTransferFile.Status.WAITING || it.status == ActiveTransferFile.Status.TRANSFERRING
+}

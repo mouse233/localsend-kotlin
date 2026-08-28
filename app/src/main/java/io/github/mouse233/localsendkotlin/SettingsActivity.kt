@@ -1,6 +1,5 @@
 package io.github.mouse233.localsendkotlin
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.drawable.GradientDrawable
@@ -32,7 +31,7 @@ import io.github.mouse233.localsendkotlin.ui.ThemeColors
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class SettingsActivity : Activity() {
+class SettingsActivity : LocalizedActivity() {
     private lateinit var settings: AppSettings
     private lateinit var deviceInfoValue: TextView
     private lateinit var languageValue: TextView
@@ -237,7 +236,6 @@ class SettingsActivity : Activity() {
             .setTitle(R.string.settings_language)
             .setSingleChoiceItems(languages, selected) { dialog, which ->
                 settings.setLanguage(codes[which])
-                AppLocale.apply(this, codes[which])
                 dialog.dismiss()
                 recreate()
             }

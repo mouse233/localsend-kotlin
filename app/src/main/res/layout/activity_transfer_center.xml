@@ -34,26 +34,7 @@
             android:textSize="20sp"
             android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/transfer_center_cancel_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/cancel_transfer"
-            android:textAllCaps="false"
-            android:textColor="@android:color/white"
-            android:visibility="gone" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/transfer_center_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingTop="12dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="8dp"
-        android:textColor="@color/secondary_text"
-        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/transfer_center_empty"

@@ -1,6 +1,5 @@
 package io.github.mouse233.localsendkotlin
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -8,7 +7,7 @@ import android.widget.TextView
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 import io.github.mouse233.localsendkotlin.ui.ThemeColors
 
-class TextDocumentActivity : Activity() {
+class TextDocumentActivity : LocalizedActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SystemBars.apply(this)

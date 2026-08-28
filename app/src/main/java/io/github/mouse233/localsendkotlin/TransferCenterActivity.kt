@@ -1,6 +1,5 @@
 package io.github.mouse233.localsendkotlin
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Intent
@@ -24,14 +23,13 @@ import io.github.mouse233.localsendkotlin.ui.SystemBars
 import io.github.mouse233.localsendkotlin.ui.ThemeColors
 
 /** Displays active incoming and outgoing sessions independently of the home screen. */
-class TransferCenterActivity : Activity(), TransferService.Listener {
-    private lateinit var status: TextView
+class TransferCenterActivity : LocalizedActivity(), TransferService.Listener {
     private lateinit var empty: TextView
-    private lateinit var cancel: android.widget.Button
     private val files = LinkedHashMap<String, ActiveTransferFile>()
-    private val adapter = ActiveTransferAdapter { sessionId, fileId ->
-        transferService?.cancelIncomingFile(sessionId, fileId)
-    }
+    private val adapter = ActiveTransferAdapter(
+        onCancelFile = { sessionId, fileId -> transferService?.cancelIncomingFile(sessionId, fileId) },
+        onCancelSession = { confirmCancelSession() }
+    )
     private var transferService: TransferService? = null
     private var bound = false
 
@@ -52,11 +50,8 @@ class TransferCenterActivity : Activity(), TransferService.Listener {
         SystemBars.apply(this)
         setContentView(R.layout.activity_transfer_center)
         ThemeColors.apply(this)
-        status = findViewById(R.id.transfer_center_status)
         empty = findViewById(R.id.transfer_center_empty)
-        cancel = findViewById(R.id.transfer_center_cancel_button)
         findViewById<android.view.View>(R.id.transfer_center_back_button).setOnClickListener { finish() }
-        cancel.setOnClickListener { confirmCancelAll() }
         findViewById<RecyclerView>(R.id.transfer_center_list).apply {
             layoutManager = LinearLayoutManager(this@TransferCenterActivity)
             adapter = this@TransferCenterActivity.adapter
@@ -85,7 +80,7 @@ class TransferCenterActivity : Activity(), TransferService.Listener {
     }
 
     override fun onDevicesChanged(devices: List<RemoteDevice>) = Unit
-    override fun onDiscoveryError(message: String) { status.text = getString(R.string.discovery_error, message) }
+    override fun onDiscoveryError(message: String) = Unit
 
     override fun onIncomingTransferRequest(
         request: IncomingTransferManager.PrepareUploadRequest,
@@ -109,49 +104,58 @@ class TransferCenterActivity : Activity(), TransferService.Listener {
         request.files.forEach { (fileId, file) ->
             put(ActiveTransferFile(sessionId, fileId, file.fileName, 0L, file.size, ActiveTransferFile.Status.WAITING))
         }
-        status.text = getString(R.string.notification_receiving_files)
+    }
+
+    override fun onOutgoingSessionPreparing(sessionId: String, files: List<ActiveTransferFile>) {
+        files.forEach(::put)
+    }
+
+    override fun onOutgoingChecksumProgress(sessionId: String, current: Int, total: Int) {
+        adapter.setChecksumProgress(sessionId, current, total)
     }
 
     override fun onOutgoingSessionPrepared(sessionId: String, files: List<ActiveTransferFile>) {
         files.forEach(::put)
-        status.text = getString(R.string.notification_uploading)
+    }
+
+    override fun onOutgoingSessionStarted(preparationSessionId: String, sessionId: String, files: List<ActiveTransferFile>) {
+        adapter.clearChecksumProgress(preparationSessionId)
+        this.files.entries.removeAll { it.value.sessionId == preparationSessionId }
+        files.forEach(::put)
+        refresh()
     }
 
     override fun onActiveTransfersRestored(files: List<ActiveTransferFile>) {
         this.files.clear()
         files.forEach(::put)
-        if (files.isNotEmpty()) status.text = getString(R.string.transfer_center_active)
         refresh()
     }
 
     override fun onFileReceiveProgress(file: ActiveTransferFile) {
         put(file)
-        status.text = getString(R.string.download_progress, file.fileName, percent(file))
     }
 
     override fun onFileSendProgress(file: ActiveTransferFile) {
         put(file)
-        status.text = getString(R.string.transfer_center_active)
     }
 
     override fun onFileReceiveCancelled(file: ActiveTransferFile, sessionComplete: Boolean) {
         put(file)
-        status.text = getString(R.string.download_cancelled, file.fileName)
-        if (sessionComplete) removeSession(file.sessionId)
     }
 
     override fun onFileReceived(sessionId: String, fileId: String, file: ReceivedFile, sessionComplete: Boolean) {
         this.files["$sessionId:$fileId"]?.let {
             put(it.copy(receivedBytes = it.totalBytes, status = ActiveTransferFile.Status.COMPLETED))
         }
-        status.text = getString(R.string.download_completed, file.displayName)
-        if (sessionComplete) removeSession(sessionId)
     }
 
-    override fun onIncomingSessionCompleted(sessionId: String) = removeSession(sessionId)
-    override fun onOutgoingSessionCompleted(sessionId: String) = removeSession(sessionId)
+    override fun onIncomingSessionCompleted(sessionId: String) = refresh()
+    override fun onOutgoingSessionCompleted(sessionId: String) {
+        adapter.clearChecksumProgress(sessionId)
+        refresh()
+    }
 
-    override fun onUploadStatus(message: String) { status.text = message }
+    override fun onUploadStatus(message: String) = Unit
 
     override fun onPinRequired(device: RemoteDevice, attempt: Int, reply: (String?) -> Unit) {
         val input = EditText(this).apply {
@@ -184,21 +188,15 @@ class TransferCenterActivity : Activity(), TransferService.Listener {
     }
 
     override fun onUploadProgress(fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long) {
-        status.text = getString(R.string.upload_file_progress, fileIndex + 1, fileCount, fileName, if (totalBytes > 0) ((totalSent * 100L) / totalBytes).toInt().coerceIn(0, 100) else 0)
     }
 
-    override fun onTransferStateRestored(title: String, percent: Int) { status.text = title; refresh() }
-    override fun onTransferFinished(message: String) { status.text = message; refresh() }
-    override fun onUploadCompleted(names: List<String>) { status.text = getString(R.string.upload_completed, names.joinToString("、")); refresh() }
-    override fun onUploadError(message: String) { status.text = message; refresh() }
+    override fun onTransferStateRestored(title: String, percent: Int) { refresh() }
+    override fun onTransferFinished(message: String) { refresh() }
+    override fun onUploadCompleted(names: List<String>) { refresh() }
+    override fun onUploadError(message: String) { refresh() }
 
     private fun put(file: ActiveTransferFile) {
         files["${file.sessionId}:${file.fileId}"] = file
-        refresh()
-    }
-
-    private fun removeSession(sessionId: String) {
-        files.keys.filter { it.startsWith("$sessionId:") }.toList().forEach(files::remove)
         refresh()
     }
 
@@ -207,10 +205,9 @@ class TransferCenterActivity : Activity(), TransferService.Listener {
         val hasFiles = files.isNotEmpty()
         empty.visibility = if (hasFiles) android.view.View.GONE else android.view.View.VISIBLE
         findViewById<RecyclerView>(R.id.transfer_center_list).visibility = if (hasFiles) android.view.View.VISIBLE else android.view.View.GONE
-        cancel.visibility = if (hasFiles) android.view.View.VISIBLE else android.view.View.GONE
     }
 
-    private fun confirmCancelAll() {
+    private fun confirmCancelSession() {
         if (files.isEmpty()) return
         AlertDialog.Builder(this)
             .setTitle(R.string.cancel_all_transfers_title)
@@ -221,7 +218,6 @@ class TransferCenterActivity : Activity(), TransferService.Listener {
             .also { it.show(); ThemeColors.apply(it) }
     }
 
-    private fun percent(file: ActiveTransferFile): Int = if (file.totalBytes > 0) ((file.receivedBytes * 100L) / file.totalBytes).toInt().coerceIn(0, 100) else 0
     private fun formatBytes(bytes: Long): String = when {
         bytes < 1024 -> "$bytes B"
         bytes < 1024 * 1024 -> "%.1f KB".format(bytes / 1024.0)

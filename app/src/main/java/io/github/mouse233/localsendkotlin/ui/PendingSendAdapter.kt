@@ -27,7 +27,7 @@ class PendingSendAdapter(private val onRemove: (PendingSendFile) -> Unit) : Recy
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder = ViewHolder(
-        LayoutInflater.from(parent.context).inflate(R.layout.item_pending_send, parent, false)
+        LayoutInflater.from(parent.context).inflate(R.layout.item_pending_send, parent, false).also(ThemeColors::apply)
     )
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(files[position], onRemove)

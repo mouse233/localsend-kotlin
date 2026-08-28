@@ -4,7 +4,6 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.Manifest
 import android.annotation.TargetApi
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -48,7 +47,6 @@ import io.github.mouse233.localsendkotlin.model.PendingSendQueue
 import io.github.mouse233.localsendkotlin.discovery.LocalNetworkAddress
 import io.github.mouse233.localsendkotlin.discovery.ManualEndpoint
 import io.github.mouse233.localsendkotlin.settings.AppSettings
-import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.transfer.IncomingMessageLink
 import io.github.mouse233.localsendkotlin.transfer.IncomingReceiveOptions
@@ -63,7 +61,7 @@ import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class MainActivity : Activity(), TransferService.Listener {
+class MainActivity : LocalizedActivity(), TransferService.Listener {
     private lateinit var statusText: TextView
     private lateinit var openTransferButton: android.widget.Button
     private lateinit var pendingSendBar: android.view.View
@@ -178,7 +176,6 @@ class MainActivity : Activity(), TransferService.Listener {
         ThemeColors.apply(this)
         val language = AppSettings(this).language()
         if (language != appliedLanguage) {
-            AppLocale.apply(this, language)
             appliedLanguage = language
             recreate()
             return
@@ -701,12 +698,12 @@ class MainActivity : Activity(), TransferService.Listener {
                 return@setOnClickListener
             }
             dialog.dismiss()
-            statusText.text = getString(R.string.manual_send_connecting)
             val files = selectedFiles
             val message = selectedMessageText
             transferService?.let {
                 clearPendingFiles()
                 it.sendManual(files, endpoint, message)
+                openTransferCenter()
             } ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
         }
     }
@@ -859,6 +856,7 @@ class MainActivity : Activity(), TransferService.Listener {
             pendingSendSheet?.dismiss()
             clearPendingFiles()
             it.send(files, device, message)
+            openTransferCenter()
         } ?: Toast.makeText(this, R.string.service_starting, Toast.LENGTH_SHORT).show()
     }
 
@@ -908,13 +906,22 @@ class MainActivity : Activity(), TransferService.Listener {
     override fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest) {
         showActiveTransferShortcut()
     }
+    override fun onOutgoingSessionPreparing(sessionId: String, files: List<ActiveTransferFile>) {
+        showActiveTransferShortcut()
+    }
+    override fun onOutgoingChecksumProgress(sessionId: String, current: Int, total: Int) {
+        showActiveTransferShortcut()
+    }
     override fun onOutgoingSessionPrepared(sessionId: String, files: List<ActiveTransferFile>) {
+        showActiveTransferShortcut()
+    }
+    override fun onOutgoingSessionStarted(preparationSessionId: String, sessionId: String, files: List<ActiveTransferFile>) {
         showActiveTransferShortcut()
     }
     override fun onActiveTransfersRestored(files: List<ActiveTransferFile>) {
         if (files.isNotEmpty()) showActiveTransferShortcut()
     }
-    override fun onUploadStatus(message: String) { statusText.text = message }
+    override fun onUploadStatus(message: String) = Unit
     override fun onPinRequired(device: RemoteDevice, attempt: Int, reply: (String?) -> Unit) {
         if (isFinishing || isDestroyed) {
             reply(null)
@@ -951,20 +958,14 @@ class MainActivity : Activity(), TransferService.Listener {
         }
     }
     override fun onTransferStateRestored(title: String, percent: Int) {
-        statusText.text = title
         showActiveTransferShortcut()
     }
     override fun onUploadProgress(fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long) {
-        val percent = if (totalBytes > 0) ((totalSent * 100L) / totalBytes).toInt().coerceIn(0, 100) else 0
         showActiveTransferShortcut()
-        statusText.text = getString(R.string.upload_file_progress, fileIndex + 1, fileCount, fileName, percent)
     }
-    override fun onUploadCompleted(names: List<String>) { hideActiveTransferShortcut(); statusText.text = getString(R.string.upload_completed, names.joinToString("、")) }
-    override fun onUploadError(message: String) { hideActiveTransferShortcut(); statusText.text = message }
-    override fun onTransferFinished(message: String) {
-        hideActiveTransferShortcut()
-        statusText.text = message
-    }
+    override fun onUploadCompleted(names: List<String>) = showActiveTransferShortcut()
+    override fun onUploadError(message: String) = showActiveTransferShortcut()
+    override fun onTransferFinished(message: String) = showActiveTransferShortcut()
 
     override fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit) {
         if (isFinishing || isDestroyed) { decide(null); return }
@@ -1055,7 +1056,10 @@ class MainActivity : Activity(), TransferService.Listener {
                 pendingReceiveSettingsOptions = options
                 startActivityForResult(ReceiveSettingsActivity.intent(this, request, options), RECEIVE_SETTINGS_REQUEST)
             }
-            .setPositiveButton(R.string.incoming_request_accept) { _, _ -> decide(options) }
+            .setPositiveButton(R.string.incoming_request_accept) { _, _ ->
+                decide(options)
+                openTransferCenter()
+            }
             .setOnCancelListener { decide(null) }.create()
         dialog.show()
         val settingsButton = dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
@@ -1063,7 +1067,7 @@ class MainActivity : Activity(), TransferService.Listener {
         if (settingsButton != null && buttonPanel != null) {
             val verifyButton = android.widget.Button(this, null, android.R.attr.buttonBarNeutralButtonStyle).apply {
                 setText(R.string.verification_title)
-                isAllCaps = false
+                isAllCaps = true
                 setOnClickListener {
                     pendingVerificationRequest = request
                     pendingVerificationDecision = decide
@@ -1079,36 +1083,28 @@ class MainActivity : Activity(), TransferService.Listener {
     }
     override fun onFileReceiveProgress(file: ActiveTransferFile) {
         showActiveTransferShortcut()
-        val percent = if (file.totalBytes > 0L) ((file.receivedBytes * 100L) / file.totalBytes).toInt().coerceIn(0, 100) else 0
-        statusText.text = getString(R.string.download_progress, file.fileName, percent)
     }
     override fun onFileSendProgress(file: ActiveTransferFile) {
         showActiveTransferShortcut()
     }
     override fun onFileReceiveCancelled(file: ActiveTransferFile, sessionComplete: Boolean) {
-        statusText.text = getString(R.string.download_cancelled, file.fileName)
-        if (sessionComplete) hideActiveTransferShortcut()
+        if (sessionComplete) showActiveTransferShortcut()
     }
     override fun onFileReceived(sessionId: String, fileId: String, file: ReceivedFile, sessionComplete: Boolean) {
         val message = getString(R.string.download_completed, file.displayName)
-        statusText.text = message
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-        if (sessionComplete) hideActiveTransferShortcut()
+        if (sessionComplete) showActiveTransferShortcut()
     }
-    override fun onIncomingSessionCompleted(sessionId: String) { hideActiveTransferShortcut() }
-    override fun onOutgoingSessionCompleted(sessionId: String) { hideActiveTransferShortcut() }
+    override fun onIncomingSessionCompleted(sessionId: String) { showActiveTransferShortcut() }
+    override fun onOutgoingSessionCompleted(sessionId: String) { showActiveTransferShortcut() }
 
     private fun showActiveTransferShortcut() {
         openTransferButton.visibility = android.view.View.VISIBLE
     }
 
-    private fun hideActiveTransferShortcut() {
-        openTransferButton.visibility = android.view.View.GONE
-    }
-
     private fun updateLocalEndpoint() {
         val settings = AppSettings(this)
-        localEndpointDeviceName.text = getString(R.string.local_endpoint_device_name, settings.deviceName())
+        localEndpointDeviceName.text = settings.deviceName()
         localEndpointBindLabel.text = getString(R.string.local_endpoint_bind_label)
         localEndpointAddresses.text = if (!settings.serverEnabled()) {
             getString(R.string.local_endpoint_server_disabled_value)
