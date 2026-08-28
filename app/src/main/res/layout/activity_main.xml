@@ -15,7 +15,7 @@
         android:layout_height="56dp"
         android:gravity="center_vertical"
         android:background="@color/brand_primary"
-        android:elevation="4dp"
+        android:elevation="0dp"
         android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingEnd="8dp">
@@ -61,33 +61,51 @@
         android:layout_marginEnd="16dp"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/local_endpoint_device_name"
+        <TableLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/secondary_text"
-            android:textSize="14sp" />
+            android:stretchColumns="1">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <TextView
-                android:id="@+id/local_endpoint_bind_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/secondary_text"
-                android:textSize="14sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/local_endpoint_device_label"
+                    android:textColor="@color/secondary_text"
+                    android:textSize="14sp" />
 
-            <TextView
-                android:id="@+id/local_endpoint_addresses"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="@color/secondary_text"
-                android:textSize="14sp" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/local_endpoint_device_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="4dp"
+                    android:textColor="@color/secondary_text"
+                    android:textSize="14sp" />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/local_endpoint_bind_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/secondary_text"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/local_endpoint_addresses"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="4dp"
+                    android:textColor="@color/secondary_text"
+                    android:textSize="14sp" />
+            </TableRow>
+        </TableLayout>
     </LinearLayout>
 
     <LinearLayout
@@ -105,44 +123,14 @@
             android:textColor="@color/secondary_text"
             android:textSize="14sp" />
 
-        <ProgressBar
-            android:id="@+id/transfer_progress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="120dp"
-            android:layout_height="wrap_content"
-            android:max="100"
-            android:progress="0"
-            android:visibility="gone" />
-
         <Button
-            android:id="@+id/cancel_transfer_button"
+            android:id="@+id/open_transfer_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="@string/cancel_transfer"
+            android:text="@string/view_transfers"
             android:visibility="gone" />
     </LinearLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="4dp"
-        android:text="@string/active_transfers"
-        android:textColor="@color/primary_text"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:visibility="gone" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/active_transfer_list"
-        android:layout_width="match_parent"
-        android:layout_height="180dp"
-        android:clipToPadding="false"
-        android:padding="8dp"
-        android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -206,6 +194,45 @@
         android:paddingEnd="8dp"
         android:paddingBottom="88dp" />
 
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/pending_send_bar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="88dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/pending_send_bar_background"
+        android:clickable="true"
+        android:elevation="4dp"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/pending_send_summary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/primary_text"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:text="@string/view_pending_files"
+            android:textColor="@color/brand_primary"
+            android:textSize="14sp" />
     </LinearLayout>
 
     <LinearLayout

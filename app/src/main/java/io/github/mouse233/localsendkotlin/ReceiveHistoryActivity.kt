@@ -1,6 +1,5 @@
 package io.github.mouse233.localsendkotlin
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -28,12 +27,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.io.File
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
-class ReceiveHistoryActivity : Activity() {
+class ReceiveHistoryActivity : LocalizedActivity() {
     private lateinit var store: ReceiveHistoryStore
     private lateinit var settings: AppSettings
     private lateinit var adapter: ReceiveHistoryAdapter
     private lateinit var emptyView: TextView
+    private val databaseExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,14 +60,21 @@ class ReceiveHistoryActivity : Activity() {
         reload()
     }
 
+    override fun onDestroy() {
+        if (::store.isInitialized) databaseExecutor.execute { store.close() }
+        databaseExecutor.shutdown()
+        super.onDestroy()
+    }
+
     private fun reload() {
-        Thread {
+        databaseExecutor.execute {
             val entries = store.list()
             runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
                 adapter.submitEntries(entries)
                 emptyView.visibility = if (entries.isEmpty()) View.VISIBLE else View.GONE
             }
-        }.start()
+        }
     }
 
     private fun openFile(entry: ReceiveHistoryEntry) {
@@ -227,14 +236,24 @@ class ReceiveHistoryActivity : Activity() {
             .setMessage(R.string.clear_history_message)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.delete_history_records) { _, _ ->
-                Thread { store.clear(); runOnUiThread(::reload) }.start()
+                databaseExecutor.execute {
+                    store.clear()
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) reload()
+                    }
+                }
             }
             .show()
         ThemeColors.apply(dialog)
     }
 
     private fun deleteEntry(entry: ReceiveHistoryEntry) {
-        Thread { store.delete(entry.id); runOnUiThread(::reload) }.start()
+        databaseExecutor.execute {
+            store.delete(entry.id)
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed) reload()
+            }
+        }
     }
 
     private fun formatBytes(bytes: Long): String = when {

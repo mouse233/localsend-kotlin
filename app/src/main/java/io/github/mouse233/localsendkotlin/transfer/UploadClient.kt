@@ -55,14 +55,24 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 val cancelled = AtomicBoolean(false)
                 activeCancelFlag = cancelled
                 listener.onStatus("正在准备 ${uris.size} 个文件…")
-                val files = uris.mapIndexed { index, uri ->
+                val filesWithoutChecksums = uris.mapIndexed { index, uri ->
+                    if (cancelled.get()) throw IOException("发送已取消")
                     listener.onStatus("正在准备文件 ${index + 1}/${uris.size}…")
                     val file = readFile(uri, messageText.takeIf { uris.size == 1 })
-                    file.copy(
-                        id = UUID.randomUUID().toString(),
-                        sha256 = if (settings.createChecksums()) sha256(uri) { cancelled.get() } else null
-                    )
+                    file.copy(id = UUID.randomUUID().toString())
                 }
+                val preparationSessionId = "preparing-${UUID.randomUUID()}"
+                listener.onPreparationStarted(preparationSessionId, filesWithoutChecksums.map { it.toQueueFile() })
+                val files = if (settings.createChecksums()) {
+                    filesWithoutChecksums.mapIndexed { index, file ->
+                        if (cancelled.get()) throw IOException("发送已取消")
+                        listener.onChecksumProgress(preparationSessionId, index + 1, filesWithoutChecksums.size)
+                        file.copy(sha256 = sha256(file.uri) { cancelled.get() })
+                    }
+                } else {
+                    filesWithoutChecksums
+                }
+                if (cancelled.get()) throw IOException("发送已取消")
                 listener.onStatus("正在请求 ${device.alias} 接收文件…")
                 val prepareResult = prepareWithPin(device, files, listener, cancelled)
                 if (prepareResult is PrepareResult.NoTransfer) {
@@ -77,7 +87,8 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 activeSessionId = prepared.sessionId
                 val acceptedFiles = files.filter { it.id in prepared.files }
                 if (acceptedFiles.isEmpty()) throw IllegalStateException("接收方未接受文件")
-                listener.onSessionPrepared(prepared.sessionId, acceptedFiles.map { it.toQueueFile() })
+                if (cancelled.get()) throw IOException("发送已取消")
+                listener.onSessionPrepared(preparationSessionId, prepared.sessionId, acceptedFiles.map { it.toQueueFile() })
                 try {
                     var totalSent = 0L
                     val totalBytes = acceptedFiles.sumOf { it.size }
@@ -237,7 +248,9 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     interface Listener {
         fun onStatus(message: String)
         fun onPinRequired(device: RemoteDevice, attempt: Int, reply: (String?) -> Unit)
-        fun onSessionPrepared(sessionId: String, files: List<QueueFile>)
+        fun onPreparationStarted(sessionId: String, files: List<QueueFile>)
+        fun onChecksumProgress(sessionId: String, current: Int, total: Int)
+        fun onSessionPrepared(preparationSessionId: String, sessionId: String, files: List<QueueFile>)
         fun onProgress(sessionId: String, fileId: String, fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long)
         fun onFileCompleted(sessionId: String, fileId: String)
         fun onCompleted(names: List<String>)
