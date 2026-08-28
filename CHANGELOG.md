@@ -1,5 +1,37 @@
 # Changelog
 
+## [v0.7.5-alpha] - 2026-08-28
+
+### Added
+
+- Added a dedicated Transfer Center for active sending and receiving sessions.
+- Added a bottom-sheet queue for files selected before choosing a target device.
+
+### Changed
+
+- Moved transfer activity and history details out of the home screen so it focuses on device information and nearby devices.
+- Added preparation and checksum progress for outgoing transfers, with cancellation available before and during sending.
+- Kept cancelled and failed states visible in both session summaries and individual file entries.
+- Stabilized language selection across English, Simplified Chinese, System Default, and application restarts.
+- Allowed long English settings titles and descriptions to wrap instead of being clipped.
+
+## 中文说明
+
+### v0.7.5-alpha（2026-08-28）
+
+#### 新增
+
+- 新增独立的传输中心，用于查看正在发送和接收的会话。
+- 新增文件选择后的底部队列面板，可在选择目标设备前管理文件。
+
+#### 调整
+
+- 将传输状态和历史详情从主页移出，使主页专注于设备信息和附近设备。
+- 新增发送端准备阶段和校验和计算进度，并支持在发送前和发送过程中取消。
+- 失败和取消状态会保留在会话摘要及具体文件条目中。
+- 稳定 English、简体中文、系统默认三种语言选项在切换和重启后的显示状态。
+- 英文设置项标题和描述过长时会自动换行，不再被截断。
+
 ## [v0.7.4-alpha] - 2026-08-27
 
 ### Changed
