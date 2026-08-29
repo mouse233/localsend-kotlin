@@ -51,6 +51,7 @@ import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.transfer.IncomingMessageLink
 import io.github.mouse233.localsendkotlin.transfer.IncomingReceiveOptions
 import io.github.mouse233.localsendkotlin.transfer.TransferService
+import io.github.mouse233.localsendkotlin.transfer.TransferServiceState
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
 import io.github.mouse233.localsendkotlin.ui.PendingSendAdapter
 import io.github.mouse233.localsendkotlin.ui.SystemBars
@@ -891,10 +892,9 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
     }
 
     private fun startTransferService() {
-        val intent = Intent(this, TransferService::class.java)
         // This is called while the Activity is visible. Starting normally avoids
         // Xiaomi Android 16 treating the foreground-service promotion as late.
-        startService(intent)
+        TransferServiceState.start(this)
     }
 
     override fun onDevicesChanged(devices: List<RemoteDevice>) {

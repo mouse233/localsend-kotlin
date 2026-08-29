@@ -97,6 +97,7 @@ class TransferService : Service(), DiscoveryListener {
 
     override fun onCreate() {
         super.onCreate()
+        TransferServiceState.markRunning(true)
         createNotificationChannels()
         startForeground(NOTIFICATION_ID, baseNotification())
         settings = AppSettings(this)
@@ -114,6 +115,7 @@ class TransferService : Service(), DiscoveryListener {
             ACTION_REJECT_INCOMING -> resolveIncoming(false)
             ACTION_RELOAD_SETTINGS -> restartNetwork()
             ACTION_REFRESH_SCREEN_AWAKE -> updateScreenAwakeLock()
+            ACTION_STOP_SERVICE -> cancelCurrent(stopService = true)
         }
         return START_NOT_STICKY
     }
@@ -611,6 +613,7 @@ class TransferService : Service(), DiscoveryListener {
 
     override fun onDestroy() {
         serviceDestroyed = true
+        TransferServiceState.markRunning(false)
         resolveIncoming(false)
         endAllScreenAwakeSessions()
         cancellationExecutor.shutdownNow()
@@ -618,7 +621,7 @@ class TransferService : Service(), DiscoveryListener {
         discoveryManager?.stop()
         clearTransferHistory()
         if (::receiveHistory.isInitialized) receiveHistory.close()
-        stopForeground(true)
+        stopForegroundAndRemoveNotification()
         notificationManager().cancel(NOTIFICATION_ID)
         notificationManager().cancel(PROGRESS_NOTIFICATION_ID)
         notificationManager().cancel(INCOMING_NOTIFICATION_ID)
@@ -719,7 +722,16 @@ class TransferService : Service(), DiscoveryListener {
         notificationManager().cancel(NOTIFICATION_ID)
         notificationManager().cancel(PROGRESS_NOTIFICATION_ID)
         notificationManager().cancel(INCOMING_NOTIFICATION_ID)
-        stopForeground(true)
+        stopForegroundAndRemoveNotification()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun stopForegroundAndRemoveNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            stopForeground(true)
+        }
     }
 
     private fun beginScreenAwakeSession(sessionId: String) {
@@ -782,6 +794,7 @@ class TransferService : Service(), DiscoveryListener {
         const val ACTION_CANCEL = "io.github.mouse233.localsendkotlin.CANCEL_TRANSFER"
         const val ACTION_RELOAD_SETTINGS = "io.github.mouse233.localsendkotlin.RELOAD_SETTINGS"
         const val ACTION_REFRESH_SCREEN_AWAKE = "io.github.mouse233.localsendkotlin.REFRESH_SCREEN_AWAKE"
+        const val ACTION_STOP_SERVICE = "io.github.mouse233.localsendkotlin.STOP_SERVICE"
         private const val ACTION_ACCEPT_INCOMING = "io.github.mouse233.localsendkotlin.ACCEPT_INCOMING"
         private const val ACTION_REJECT_INCOMING = "io.github.mouse233.localsendkotlin.REJECT_INCOMING"
         private const val CHANNEL_TRANSFER = "transfer_progress"
