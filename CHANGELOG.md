@@ -1,5 +1,29 @@
 # Changelog
 
+## [v0.7.6-alpha] - 2026-08-29
+
+### Added
+
+- Added an Android Quick Settings tile named LocalSend Kotlin that toggles the background transfer service (PR #39).
+- Registered LocalSend Kotlin as an Android system share target for single files, multiple files, and text content.
+
+### Fixed
+
+- Replaced deprecated foreground-service stop calls with the modern API on Android 7.0 and later while retaining the Android 5.0–6.0 compatibility path.
+
+## 中文说明
+
+### v0.7.6-alpha（2026-08-29）
+
+#### 新增
+
+- 新增名为 LocalSend Kotlin 的 Android 系统快捷设置磁贴，可切换后台传输服务（PR #39）。
+- 注册为 Android 系统分享入口，支持分享单个文件、多个文件和文本内容。
+
+#### 修复
+
+- Android 7.0 及以上改用新版前台服务停止 API，同时保留 Android 5.0–6.0 的兼容分支。
+
 ## [v0.7.5-alpha] - 2026-08-28
 
 ### Added
