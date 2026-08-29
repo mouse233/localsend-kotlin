@@ -47,6 +47,7 @@ import io.github.mouse233.localsendkotlin.model.PendingSendQueue
 import io.github.mouse233.localsendkotlin.discovery.LocalNetworkAddress
 import io.github.mouse233.localsendkotlin.discovery.ManualEndpoint
 import io.github.mouse233.localsendkotlin.settings.AppSettings
+import io.github.mouse233.localsendkotlin.sharing.ShareIntentParser
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.transfer.IncomingMessageLink
 import io.github.mouse233.localsendkotlin.transfer.IncomingReceiveOptions
@@ -155,6 +156,13 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
         requestLegacyStoragePermission()
         requestNotificationPermission()
         startTransferService()
+        handleShareIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleShareIntent(intent)
     }
 
     override fun onStart() {
@@ -189,6 +197,16 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
         if (hasFocus) {
             ThemeColors.apply(this)
             SystemBars.apply(this)
+        }
+    }
+
+    private fun handleShareIntent(intent: Intent?) {
+        val sharedContent = intent?.let(ShareIntentParser::parse) ?: return
+        if (sharedContent.uris.isNotEmpty()) {
+            persistReadPermissions(sharedContent.uris)
+            setSelectedFiles(sharedContent.uris, sharedContent.text)
+        } else {
+            sharedContent.text?.let(::createOutgoingText)
         }
     }
 
