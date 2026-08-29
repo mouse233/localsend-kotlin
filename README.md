@@ -24,10 +24,11 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
   - Foreground-service transfers with lock-screen support, notifications, and an optional keep-screen-awake mode
 - Quick access
   - Android Quick Settings tile named LocalSend Kotlin that toggles the background service on Android 7.0 (API 24) and later; it is active while the service or the app is in the foreground
+- Android sharing
+  - Registered as an Android system share target for single files, multiple files, and text content
 
 ## Not implemented yet
 
-- Registration as an Android system share target.
 - Receiving files through browser links.
 - Multi-threaded transfers.
 - Large-file performance optimizations.
