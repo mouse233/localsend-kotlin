@@ -93,6 +93,7 @@ class TransferService : Service(), DiscoveryListener {
 
     override fun onCreate() {
         super.onCreate()
+        TransferServiceState.markRunning(true)
         createNotificationChannels()
         startForeground(NOTIFICATION_ID, baseNotification())
         settings = AppSettings(this)
@@ -110,6 +111,7 @@ class TransferService : Service(), DiscoveryListener {
             ACTION_REJECT_INCOMING -> resolveIncoming(false)
             ACTION_RELOAD_SETTINGS -> restartNetwork()
             ACTION_REFRESH_SCREEN_AWAKE -> updateScreenAwakeLock()
+            ACTION_STOP_SERVICE -> cancelCurrent(stopService = true)
         }
         return START_NOT_STICKY
     }
@@ -529,6 +531,7 @@ class TransferService : Service(), DiscoveryListener {
 
     override fun onDestroy() {
         serviceDestroyed = true
+        TransferServiceState.markRunning(false)
         resolveIncoming(false)
         endAllScreenAwakeSessions()
         cancellationExecutor.shutdownNow()
@@ -698,6 +701,7 @@ class TransferService : Service(), DiscoveryListener {
         const val ACTION_CANCEL = "io.github.mouse233.localsendkotlin.CANCEL_TRANSFER"
         const val ACTION_RELOAD_SETTINGS = "io.github.mouse233.localsendkotlin.RELOAD_SETTINGS"
         const val ACTION_REFRESH_SCREEN_AWAKE = "io.github.mouse233.localsendkotlin.REFRESH_SCREEN_AWAKE"
+        const val ACTION_STOP_SERVICE = "io.github.mouse233.localsendkotlin.STOP_SERVICE"
         private const val ACTION_ACCEPT_INCOMING = "io.github.mouse233.localsendkotlin.ACCEPT_INCOMING"
         private const val ACTION_REJECT_INCOMING = "io.github.mouse233.localsendkotlin.REJECT_INCOMING"
         private const val CHANNEL_TRANSFER = "transfer_progress"

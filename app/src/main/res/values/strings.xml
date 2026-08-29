@@ -18,6 +18,7 @@
     <string name="unfavorite_device">取消收藏</string>
     <string name="trusted_device">受信任设备</string>
     <string name="app_name">LocalSend Kotlin</string>
+    <string name="quick_settings_tile_label">LocalSend Kotlin</string>
     <string name="about">关于</string>
     <string name="settings">设置</string>
     <string name="save">保存</string>

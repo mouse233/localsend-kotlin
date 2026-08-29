@@ -22,6 +22,8 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
   - System Default, Simplified Chinese, and English, plus theme colors, dark mode, device and favorite management, and network/transfer settings
 - Background transfer
   - Foreground-service transfers with lock-screen support, notifications, and an optional keep-screen-awake mode
+- Quick access
+  - Android Quick Settings tile named LocalSend Kotlin that toggles the background service on Android 7.0 (API 24) and later; it is active while the service or the app is in the foreground
 
 ## Not implemented yet
 
@@ -56,6 +58,8 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 | Java/Kotlin JVM | Java 8 language level; JDK 17 required for builds |
 | Default port | TCP/UDP `53317` |
 | Protocol | LocalSend Protocol v2.2 / version `2.0` |
+
+The Quick Settings tile is available on Android 7.0 (API 24) and later. On Android 5.0–6.0 (API 21–23), the app continues to work normally without the system tile because those versions do not provide the platform API.
 
 Both devices must be on the same local network. Guest networks, AP/client isolation, multicast filtering, or vendor firewalls may prevent discovery or the TCP connection.
 
