@@ -27,6 +27,10 @@ import io.github.mouse233.localsendkotlin.settings.DarkModePreference
 import io.github.mouse233.localsendkotlin.settings.ThemeColorPreset
 
 object ThemeColors {
+    /** Returns whether an Activity must be recreated to switch between palettes. */
+    internal fun needsActivityRecreate(previousDarkMode: Boolean?, currentDarkMode: Boolean): Boolean =
+        previousDarkMode != null && previousDarkMode != currentDarkMode
+
     @Suppress("DEPRECATION")
     fun primaryColor(context: Context): Int = color(context, ThemeColorPreset.fromId(AppSettings(context).themeColor()))
 
@@ -155,6 +159,7 @@ object ThemeColors {
         val hasPrimaryBackground = background is ColorDrawable && background.color in palette.presetColors
         val hasWindowBackground = background is ColorDrawable && background.color == palette.dayWindowBackground
         val hasItemBorder = background is ColorDrawable && background.color == palette.dayItemBorder
+        val isPendingSendBar = view.id == R.id.pending_send_bar
         val isPrimarySurface = inPrimarySurface || hasPrimaryBackground
 
         if (view is TextView) {
@@ -180,7 +185,7 @@ object ThemeColors {
             hasPrimaryBackground -> view.setBackgroundColor(palette.primary)
             palette.dark && hasWindowBackground -> view.setBackgroundColor(palette.windowBackground)
             palette.dark && hasItemBorder -> view.setBackgroundColor(palette.itemBorder)
-            palette.dark && background is GradientDrawable && view.id == View.NO_ID -> {
+            palette.dark && background is GradientDrawable && (view.id == View.NO_ID || isPendingSendBar) -> {
                 background.mutate()
                 background.setColor(palette.darkSurface)
                 background.setStroke(dp(view.context, 1), palette.itemBorder)

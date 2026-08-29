@@ -1,0 +1,8 @@
+### Added
+
+- Added a dedicated Transfer Center for active sending and receiving sessions.
+- Added a bottom-sheet queue for files selected before choosing a target device.
+
+### Changed
+
+- Improved transfer preparation, cancellation, status visibility, language switching, and long-setting text wrapping.

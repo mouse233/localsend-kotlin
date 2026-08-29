@@ -3,14 +3,12 @@ package io.github.mouse233.localsendkotlin
 import android.app.Application
 import android.app.Activity
 import android.os.Build
-import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.quicksettings.QuickSettingsTileService
 import java.util.concurrent.atomic.AtomicInteger
 
 class LocalSendApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        AppLocale.apply(this)
         ForegroundActivityState.reset()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityStarted(activity: Activity) = ForegroundActivityState.started(activity)

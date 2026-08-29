@@ -37,7 +37,11 @@ class TransferService : Service(), DiscoveryListener {
         fun onDiscoveryError(message: String)
         fun onIncomingTransferRequest(request: IncomingTransferManager.PrepareUploadRequest, decide: (IncomingReceiveOptions?) -> Unit)
         fun onIncomingSessionPrepared(sessionId: String, request: IncomingTransferManager.PrepareUploadRequest)
+        fun onOutgoingSessionPreparing(sessionId: String, files: List<ActiveTransferFile>)
+        fun onOutgoingChecksumProgress(sessionId: String, current: Int, total: Int)
         fun onOutgoingSessionPrepared(sessionId: String, files: List<ActiveTransferFile>)
+        fun onOutgoingSessionStarted(preparationSessionId: String, sessionId: String, files: List<ActiveTransferFile>)
+        fun onActiveTransfersRestored(files: List<ActiveTransferFile>)
         fun onFileReceiveProgress(file: ActiveTransferFile)
         fun onFileSendProgress(file: ActiveTransferFile)
         fun onFileReceiveCancelled(file: ActiveTransferFile, sessionComplete: Boolean)
@@ -132,6 +136,12 @@ class TransferService : Service(), DiscoveryListener {
                     listener.onOutgoingSessionPrepared(sessionId, files.values.toList())
                 }
             }
+            val activeSnapshot = synchronized(incomingFiles) {
+                incomingFiles.values.flatMap { it.values }
+            } + synchronized(outgoingFiles) {
+                outgoingFiles.values.flatMap { it.values }
+            }
+            listener.onActiveTransfersRestored(activeSnapshot)
         }
     }
 
@@ -216,7 +226,23 @@ class TransferService : Service(), DiscoveryListener {
                 }
             }
 
-            override fun onSessionPrepared(sessionId: String, files: List<UploadClient.QueueFile>) {
+            override fun onPreparationStarted(sessionId: String, files: List<UploadClient.QueueFile>) {
+                val queue = LinkedHashMap<String, ActiveTransferFile>()
+                files.forEach { file ->
+                    queue[file.id] = ActiveTransferFile(
+                        sessionId, file.id, file.fileName, 0L, file.size,
+                        ActiveTransferFile.Status.WAITING, ActiveTransferFile.Direction.OUTGOING
+                    )
+                }
+                synchronized(outgoingFiles) { outgoingFiles[sessionId] = queue }
+                notifyListeners { it.onOutgoingSessionPreparing(sessionId, queue.values.toList()) }
+            }
+
+            override fun onChecksumProgress(sessionId: String, current: Int, total: Int) {
+                notifyListeners { it.onOutgoingChecksumProgress(sessionId, current, total) }
+            }
+
+            override fun onSessionPrepared(preparationSessionId: String, sessionId: String, files: List<UploadClient.QueueFile>) {
                 beginScreenAwakeSession(sessionId)
                 outgoingScreenAwakeSessionId = sessionId
                 val queue = LinkedHashMap<String, ActiveTransferFile>()
@@ -226,8 +252,11 @@ class TransferService : Service(), DiscoveryListener {
                         ActiveTransferFile.Status.WAITING, ActiveTransferFile.Direction.OUTGOING
                     )
                 }
-                synchronized(outgoingFiles) { outgoingFiles[sessionId] = queue }
-                notifyListeners { it.onOutgoingSessionPrepared(sessionId, queue.values.toList()) }
+                synchronized(outgoingFiles) {
+                    outgoingFiles.remove(preparationSessionId)
+                    outgoingFiles[sessionId] = queue
+                }
+                notifyListeners { it.onOutgoingSessionStarted(preparationSessionId, sessionId, queue.values.toList()) }
             }
 
             override fun onProgress(sessionId: String, fileId: String, fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long) {
@@ -264,24 +293,25 @@ class TransferService : Service(), DiscoveryListener {
             override fun onCompleted(names: List<String>) {
                 outgoingScreenAwakeSessionId?.let(::endScreenAwakeSession)
                 outgoingScreenAwakeSessionId = null
-                hasActiveTransfer = false
-                cancellationRequested = false
                 resetProgressDispatch()
                 lastTransferMessage = getString(R.string.upload_completed, names.joinToString("、"))
+                finishOutgoingQueues(ActiveTransferFile.Status.COMPLETED)
+                cancellationRequested = false
+                hasActiveTransfer = hasActiveTransferEntries()
                 notifyListeners { it.onUploadCompleted(names) }
-                clearOutgoingQueue()
                 clearTransferNotification()
             }
 
             override fun onError(message: String) {
                 outgoingScreenAwakeSessionId?.let(::endScreenAwakeSession)
                 outgoingScreenAwakeSessionId = null
-                hasActiveTransfer = false
+                val terminalStatus = if (cancellationRequested) ActiveTransferFile.Status.CANCELLED else ActiveTransferFile.Status.FAILED
+                finishOutgoingQueues(terminalStatus)
                 cancellationRequested = false
+                hasActiveTransfer = hasActiveTransferEntries()
                 resetProgressDispatch()
                 lastTransferMessage = message
                 notifyListeners { it.onUploadError(message) }
-                clearOutgoingQueue()
                 clearTransferNotification()
             }
         })
@@ -385,17 +415,22 @@ class TransferService : Service(), DiscoveryListener {
     }
 
     override fun onFileReceiveCancelled(sessionId: String, fileId: String, fileName: String, sessionComplete: Boolean) {
-        val state = ActiveTransferFile(sessionId, fileId, fileName, 0L, 0L, ActiveTransferFile.Status.CANCELLED)
-        synchronized(incomingFiles) { incomingFiles[sessionId]?.set(fileId, state) }
+        val state = synchronized(incomingFiles) {
+            val previous = incomingFiles[sessionId]?.get(fileId)
+            ActiveTransferFile(
+                sessionId,
+                fileId,
+                fileName,
+                previous?.receivedBytes ?: 0L,
+                previous?.totalBytes ?: 0L,
+                ActiveTransferFile.Status.CANCELLED
+            ).also { incomingFiles[sessionId]?.set(fileId, it) }
+        }
         lastTransferMessage = getString(R.string.download_cancelled, fileName)
         notifyListeners { it.onFileReceiveCancelled(state, sessionComplete) }
         if (sessionComplete) {
             endScreenAwakeSession(sessionId)
-            synchronized(incomingFiles) {
-                incomingFiles.remove(sessionId)
-                incomingSenders.remove(sessionId)
-            }
-            hasActiveTransfer = false
+            finishIncomingSession(sessionId, ActiveTransferFile.Status.CANCELLED)
             resetProgressDispatch()
             notifyListeners { it.onIncomingSessionCompleted(sessionId) }
             if (!cancellationRequested) clearTransferNotification()
@@ -412,11 +447,7 @@ class TransferService : Service(), DiscoveryListener {
         notifyListeners { it.onFileReceived(sessionId, fileId, file, sessionComplete) }
         if (sessionComplete) {
             endScreenAwakeSession(sessionId)
-            synchronized(incomingFiles) {
-                incomingFiles.remove(sessionId)
-                incomingSenders.remove(sessionId)
-            }
-            hasActiveTransfer = false
+            finishIncomingSession(sessionId, ActiveTransferFile.Status.COMPLETED)
             resetProgressDispatch()
             notifyListeners { it.onIncomingSessionCompleted(sessionId) }
             clearTransferNotification()
@@ -428,11 +459,62 @@ class TransferService : Service(), DiscoveryListener {
         files.sumOf { it.receivedBytes } to files.sumOf { it.totalBytes }
     }
 
-    private fun clearOutgoingQueue() {
-        val sessions = synchronized(outgoingFiles) {
-            outgoingFiles.keys.toList().also { outgoingFiles.clear() }
+    private fun finishOutgoingQueues(status: ActiveTransferFile.Status) {
+        val updated = synchronized(outgoingFiles) {
+            val states = mutableListOf<ActiveTransferFile>()
+            outgoingFiles.values.forEach { session ->
+                session.values.toList().forEach { file ->
+                    if (file.status != status) {
+                        file.copy(
+                            receivedBytes = if (status == ActiveTransferFile.Status.COMPLETED) file.totalBytes else file.receivedBytes,
+                            status = status
+                        ).also {
+                            session[file.fileId] = it
+                            states += it
+                        }
+                    }
+                }
+            }
+            states
         }
+        updated.forEach { state -> notifyListeners { it.onFileSendProgress(state) } }
+        val sessions = synchronized(outgoingFiles) { outgoingFiles.keys.toList() }
         sessions.forEach { sessionId -> notifyListeners { it.onOutgoingSessionCompleted(sessionId) } }
+    }
+
+    private fun finishIncomingSession(sessionId: String, status: ActiveTransferFile.Status) {
+        val updated = synchronized(incomingFiles) {
+            incomingFiles[sessionId]?.values?.mapNotNull { file ->
+                if (file.status != ActiveTransferFile.Status.WAITING && file.status != ActiveTransferFile.Status.TRANSFERRING) return@mapNotNull null
+                file.copy(
+                    receivedBytes = if (status == ActiveTransferFile.Status.COMPLETED) file.totalBytes else file.receivedBytes,
+                    status = status
+                ).also { incomingFiles[sessionId]?.set(file.fileId, it) }
+            }.orEmpty()
+        }
+        updated.forEach { state -> notifyListeners { it.onFileReceiveProgress(state) } }
+        hasActiveTransfer = hasActiveTransferEntries()
+    }
+
+    private fun hasActiveTransferEntries(): Boolean {
+        val incomingActive = synchronized(incomingFiles) {
+            incomingFiles.values.any { files -> files.values.any(::isActive) }
+        }
+        val outgoingActive = synchronized(outgoingFiles) {
+            outgoingFiles.values.any { files -> files.values.any(::isActive) }
+        }
+        return incomingActive || outgoingActive
+    }
+
+    private fun isActive(file: ActiveTransferFile): Boolean =
+        file.status == ActiveTransferFile.Status.WAITING || file.status == ActiveTransferFile.Status.TRANSFERRING
+
+    private fun clearTransferHistory() {
+        synchronized(incomingFiles) {
+            incomingFiles.clear()
+            incomingSenders.clear()
+        }
+        synchronized(outgoingFiles) { outgoingFiles.clear() }
     }
 
     /** Activity callbacks must always run on the main thread because they update Views. */
@@ -537,6 +619,8 @@ class TransferService : Service(), DiscoveryListener {
         cancellationExecutor.shutdownNow()
         networkExecutor.shutdownNow()
         discoveryManager?.stop()
+        clearTransferHistory()
+        if (::receiveHistory.isInitialized) receiveHistory.close()
         stopForeground(true)
         notificationManager().cancel(NOTIFICATION_ID)
         notificationManager().cancel(PROGRESS_NOTIFICATION_ID)

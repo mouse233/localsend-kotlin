@@ -64,8 +64,20 @@ class AppSettings(context: Context) {
         preferences.edit().putString(DARK_MODE_KEY, DarkModePreference.fromId(mode).id).apply()
     }
 
-    fun language(): String = preferences.getString(LANGUAGE_KEY, AppLocale.SYSTEM) ?: AppLocale.SYSTEM
-    fun setLanguage(language: String) = preferences.edit().putString(LANGUAGE_KEY, language).apply()
+    fun language(): String = when (preferences.getString(LANGUAGE_KEY, AppLocale.SYSTEM)) {
+        AppLocale.CHINESE -> AppLocale.CHINESE
+        AppLocale.ENGLISH -> AppLocale.ENGLISH
+        else -> AppLocale.SYSTEM
+    }
+
+    fun setLanguage(language: String) = preferences.edit().putString(
+        LANGUAGE_KEY,
+        when (language) {
+            AppLocale.CHINESE -> AppLocale.CHINESE
+            AppLocale.ENGLISH -> AppLocale.ENGLISH
+            else -> AppLocale.SYSTEM
+        }
+    ).apply()
 
     fun createChecksums(): Boolean = preferences.getBoolean(CREATE_CHECKSUMS_KEY, true)
 

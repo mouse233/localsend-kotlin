@@ -146,8 +146,7 @@
                     <TextView
                         android:id="@+id/device_info_value"
                         style="@style/SettingsListSummary"
-                        android:layout_marginTop="@dimen/settings_list_summary_spacing"
-                        android:maxLines="2" />
+                        android:layout_marginTop="@dimen/settings_list_summary_spacing" />
                 </LinearLayout>
             </LinearLayout>
 

@@ -55,6 +55,10 @@
             android:exported="false"
             android:theme="@style/Theme.Localsendkotlin" />
         <activity
+            android:name=".TransferCenterActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Localsendkotlin" />
+        <activity
             android:name=".SettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.Localsendkotlin" />

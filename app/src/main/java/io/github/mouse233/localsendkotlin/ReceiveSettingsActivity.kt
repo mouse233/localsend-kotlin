@@ -1,7 +1,6 @@
 package io.github.mouse233.localsendkotlin
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
@@ -23,7 +22,7 @@ import io.github.mouse233.localsendkotlin.ui.SystemBars
 import io.github.mouse233.localsendkotlin.ui.ThemeColors
 
 /** Edits choices for the pending receive request without changing global settings. */
-class ReceiveSettingsActivity : Activity() {
+class ReceiveSettingsActivity : LocalizedActivity() {
     private lateinit var fileList: LinearLayout
     private lateinit var directoryButton: Button
     private lateinit var gallerySwitch: Switch
