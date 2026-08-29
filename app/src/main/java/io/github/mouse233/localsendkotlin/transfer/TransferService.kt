@@ -621,7 +621,7 @@ class TransferService : Service(), DiscoveryListener {
         discoveryManager?.stop()
         clearTransferHistory()
         if (::receiveHistory.isInitialized) receiveHistory.close()
-        stopForeground(true)
+        stopForegroundAndRemoveNotification()
         notificationManager().cancel(NOTIFICATION_ID)
         notificationManager().cancel(PROGRESS_NOTIFICATION_ID)
         notificationManager().cancel(INCOMING_NOTIFICATION_ID)
@@ -722,7 +722,16 @@ class TransferService : Service(), DiscoveryListener {
         notificationManager().cancel(NOTIFICATION_ID)
         notificationManager().cancel(PROGRESS_NOTIFICATION_ID)
         notificationManager().cancel(INCOMING_NOTIFICATION_ID)
-        stopForeground(true)
+        stopForegroundAndRemoveNotification()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun stopForegroundAndRemoveNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            stopForeground(true)
+        }
     }
 
     private fun beginScreenAwakeSession(sessionId: String) {
