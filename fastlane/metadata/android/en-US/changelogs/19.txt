@@ -1,0 +1,3 @@
+Added the LocalSend Kotlin Quick Settings tile (PR #39).
+Added Android system sharing for single files, multiple files, and text.
+Updated foreground-service stopping for modern Android while keeping Android 5.0 compatibility.

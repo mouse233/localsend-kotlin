@@ -8,6 +8,8 @@ Implemented features:
 - HTTPS, certificate-fingerprint identity verification, optional PIN authentication, and SHA-256 checksums.
 - System Default, Simplified Chinese, and English interfaces, plus theme colors, dark mode, device and favorite management, and network and transfer settings.
 - Foreground-service transfers with lock-screen support, notifications, and an optional keep-screen-awake mode.
+- Android Quick Settings tile for toggling the background transfer service on Android 7.0 (API 24) and later.
+- Android system share target for single files, multiple files, and text content.
 
 Compatibility:
 
@@ -20,6 +22,6 @@ Storage:
 - Android 10 and later uses MediaStore to save files to the public Downloads directory by default.
 - Android 5.0 through Android 9 uses the Download/LocalSend Kotlin directory by default and requires legacy storage permission.
 
-Current limitations include a less polished transfer queue interface, no Android system share target registration, no browser-link receiving, no multi-threaded transfers, no large-file performance optimizations, and no resumable transfers. Android 4.x is not supported.
+Current limitations include a less polished transfer queue interface, no browser-link receiving, no multi-threaded transfers, no large-file performance optimizations, and no resumable transfers. Android 4.x is not supported.
 
 This is an Alpha project suitable for early-user testing. When reporting an issue, include the Android version, device model, both client versions, and reproducible steps.
