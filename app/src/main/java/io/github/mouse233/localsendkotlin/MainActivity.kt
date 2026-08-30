@@ -23,7 +23,9 @@ import android.os.Looper
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import android.text.Editable
 import android.text.InputType
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.Menu
@@ -44,6 +46,7 @@ import io.github.mouse233.localsendkotlin.model.FavoriteDevice
 import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
 import io.github.mouse233.localsendkotlin.model.PendingSendFile
 import io.github.mouse233.localsendkotlin.model.PendingSendQueue
+import io.github.mouse233.localsendkotlin.model.InstalledApp
 import io.github.mouse233.localsendkotlin.discovery.LocalNetworkAddress
 import io.github.mouse233.localsendkotlin.discovery.ManualEndpoint
 import io.github.mouse233.localsendkotlin.settings.AppSettings
@@ -54,11 +57,14 @@ import io.github.mouse233.localsendkotlin.transfer.IncomingReceiveOptions
 import io.github.mouse233.localsendkotlin.transfer.TransferService
 import io.github.mouse233.localsendkotlin.transfer.TransferServiceState
 import io.github.mouse233.localsendkotlin.ui.DeviceAdapter
+import io.github.mouse233.localsendkotlin.ui.InstalledAppAdapter
 import io.github.mouse233.localsendkotlin.ui.PendingSendAdapter
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 import io.github.mouse233.localsendkotlin.ui.ThemeColors
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -142,12 +148,14 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
             R.id.content_action_clipboard,
             R.id.content_action_text,
             R.id.content_action_media,
+            R.id.content_action_apps,
             R.id.content_action_folder,
             R.id.content_action_file
         ).forEach { configureFabShadow(findViewById(it)) }
         findViewById<android.view.View>(R.id.content_action_file).setOnClickListener { closeContentActionMenu(); chooseFile() }
         findViewById<android.view.View>(R.id.content_action_folder).setOnClickListener { closeContentActionMenu(); chooseFolder() }
         findViewById<android.view.View>(R.id.content_action_media).setOnClickListener { closeContentActionMenu(); chooseMedia() }
+        findViewById<android.view.View>(R.id.content_action_apps).setOnClickListener { closeContentActionMenu(); chooseInstalledApps() }
         findViewById<android.view.View>(R.id.content_action_text).setOnClickListener { closeContentActionMenu(); showTextInput() }
         findViewById<android.view.View>(R.id.content_action_clipboard).setOnClickListener { closeContentActionMenu(); chooseClipboard() }
         restorePendingSendState(savedInstanceState)
@@ -338,6 +346,109 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
     private fun chooseFolder() = startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
     }, FOLDER_REQUEST)
+
+    private fun chooseInstalledApps() {
+        statusText.text = getString(R.string.installed_apps_preparing)
+        contentExecutor.execute {
+            try {
+                val apps = loadInstalledApps()
+                mainHandler.post {
+                    if (apps.isEmpty()) {
+                        Toast.makeText(this, R.string.installed_apps_none, Toast.LENGTH_SHORT).show()
+                    } else {
+                        showInstalledAppsDialog(apps)
+                    }
+                }
+            } catch (_: Exception) {
+                mainHandler.post { Toast.makeText(this, R.string.installed_apps_none, Toast.LENGTH_SHORT).show() }
+            }
+        }
+    }
+
+    private fun loadInstalledApps(): List<InstalledApp> = packageManager
+        .getInstalledApplications(PackageManager.GET_META_DATA)
+        .mapNotNull { applicationInfo ->
+            val apkPath = applicationInfo.sourceDir ?: return@mapNotNull null
+            if (!File(apkPath).isFile) return@mapNotNull null
+            InstalledApp(
+                packageName = applicationInfo.packageName,
+                label = applicationInfo.loadLabel(packageManager).toString().ifBlank { applicationInfo.packageName },
+                apkPath = apkPath,
+                icon = runCatching { applicationInfo.loadIcon(packageManager) }.getOrNull()
+            )
+        }
+        .sortedWith(compareBy<InstalledApp> { it.label.lowercase(Locale.ROOT) }.thenBy { it.packageName })
+
+    private fun showInstalledAppsDialog(apps: List<InstalledApp>) {
+        val selectedPackages = linkedSetOf<String>()
+        val content = layoutInflater.inflate(R.layout.dialog_installed_apps, null)
+        val search = content.findViewById<EditText>(R.id.installed_apps_search)
+        val count = content.findViewById<TextView>(R.id.installed_apps_selection_count)
+        val adapter = InstalledAppAdapter(apps, selectedPackages) { selectedCount ->
+            count.text = getString(R.string.installed_apps_selection_count, selectedCount)
+        }
+        content.findViewById<RecyclerView>(R.id.installed_apps_list).apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            this.adapter = adapter
+            itemAnimator = null
+        }
+        count.text = getString(R.string.installed_apps_selection_count, 0)
+        search.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                adapter.filter(s?.toString().orEmpty())
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.installed_apps_title)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.installed_apps_share, null)
+            .create()
+        dialog.show()
+        ThemeColors.apply(content)
+        ThemeColors.apply(dialog)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val selectedApps = apps.filter { it.packageName in selectedPackages }
+            if (selectedApps.isEmpty()) {
+                Toast.makeText(this, R.string.installed_apps_select_at_least_one, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            prepareInstalledApps(selectedApps)
+        }
+    }
+
+    private fun prepareInstalledApps(apps: List<InstalledApp>) {
+        statusText.text = getString(R.string.installed_apps_preparing)
+        contentExecutor.execute {
+            try {
+                val directory = File(cacheDir, "apk_share_${UUID.randomUUID()}").apply {
+                    if (!mkdirs()) throw IllegalStateException("无法创建 APK 缓存目录")
+                }
+                val duplicateLabels = apps.groupingBy { safeApkName(it.label) }.eachCount()
+                val uris = apps.map { app ->
+                    val baseName = safeApkName(app.label)
+                    val suffix = if (duplicateLabels[baseName] == 1) "" else "_${app.packageName.substringAfterLast('.')}"
+                    val destination = File(directory, "$baseName$suffix.apk")
+                    FileInputStream(File(app.apkPath)).use { input ->
+                        FileOutputStream(destination).use { output -> input.copyTo(output) }
+                    }
+                    FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.fileprovider", destination)
+                }
+                mainHandler.post { setSelectedFiles(uris) }
+            } catch (_: Exception) {
+                mainHandler.post { Toast.makeText(this, R.string.installed_apps_prepare_failed, Toast.LENGTH_SHORT).show() }
+            }
+        }
+    }
+
+    private fun safeApkName(label: String): String = label
+        .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+        .trim()
+        .ifBlank { "application" }
+        .take(80)
 
     private fun setSelectedFiles(files: List<Uri>, messageText: String? = null) {
         selectedFiles = files

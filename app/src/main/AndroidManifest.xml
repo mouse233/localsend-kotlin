@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- The APK picker needs visibility of installed packages on Android 11+. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <!-- Required only on Android 9 and lower for the public Download directory. -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
