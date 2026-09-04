@@ -1,0 +1,3 @@
+Improved Send text prompt contrast in dark mode.
+Added a unique launcher icon that adapts to Android launcher shapes.
+Updated the Android 5.0–6.0 notification icon.

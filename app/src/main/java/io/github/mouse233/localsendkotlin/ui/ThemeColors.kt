@@ -16,6 +16,7 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckedTextView
 import android.widget.CompoundButton
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.Switch
@@ -218,6 +219,9 @@ object ThemeColors {
                 palette.dark && (textColor == palette.daySecondaryText) -> view.setTextColor(palette.secondaryText)
                 palette.dark -> view.setTextColor(palette.primaryText)
             }
+            // EditText hint colors are independent from the text color. Without this,
+            // the send-text prompt retains the platform's dark hint in dark dialogs.
+            if (palette.dark && view is EditText) view.setHintTextColor(palette.primaryText)
         }
         if (view is CheckedTextView) {
             val checkMarkTint = ColorStateList(

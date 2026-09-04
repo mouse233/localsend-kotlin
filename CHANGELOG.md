@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.7.7-alpha] - 2026-09-04
+
+### Fixed
+
+- Made the Send text prompt readable in dark mode.
+- Replaced the default launcher icon with a unique adaptive icon that respects launcher masks.
+- Replaced the Android 5.0–6.0 notification icon with a monochrome transfer glyph.
+
+## 中文说明
+
+### v0.7.7-alpha（2026-09-04）
+
+#### 修复
+
+- 修复深色模式下“发送文本”提示文字的可读性。
+- 替换默认应用图标为原创自适应图标，并适配不同启动器的遮罩形状。
+- Android 5.0–6.0 的通知图标改为单色传输符号。
+
 ## [v0.7.6-alpha] - 2026-08-29
 
 ### Added
