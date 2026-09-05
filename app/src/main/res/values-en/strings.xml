@@ -6,6 +6,7 @@
     <string name="edit_favorite_device">Edit favorite device</string>
     <string name="favorite_name">Device name</string>
     <string name="favorite_address">Address</string>
+    <string name="favorite_keep_manual_endpoint">Keep this address and do not update it from discovery</string>
     <string name="favorite_port">Port</string>
     <string name="delete_favorite_device">Delete favorite</string>
     <string name="delete_favorite_device_message">Remove “%1$s” from Favorites?</string>

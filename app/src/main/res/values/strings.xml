@@ -5,6 +5,7 @@
     <string name="edit_favorite_device">编辑收藏设备</string>
     <string name="favorite_name">设备名称</string>
     <string name="favorite_address">地址</string>
+    <string name="favorite_keep_manual_endpoint">固定手动地址，不随自动发现更新</string>
     <string name="favorite_port">端口</string>
     <string name="delete_favorite_device">删除收藏</string>
     <string name="delete_favorite_device_message">确定要删除收藏设备“%1$s”吗？</string>

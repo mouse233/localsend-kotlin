@@ -127,7 +127,13 @@ class AppSettings(context: Context) {
     }
 
     /** Updates the user-editable fields of a favorite by its certificate identity. */
-    fun updateFavorite(favorite: FavoriteDevice, alias: String, address: String, port: Int): Boolean {
+    fun updateFavorite(
+        favorite: FavoriteDevice,
+        alias: String,
+        address: String,
+        port: Int,
+        customEndpoint: Boolean = false
+    ): Boolean {
         val favorites = favoriteDevices().toMutableList()
         val index = favorites.indexOfFirst {
             it.fingerprint.equals(favorite.fingerprint, ignoreCase = true)
@@ -137,7 +143,8 @@ class AppSettings(context: Context) {
             alias = alias.trim(),
             address = address.trim(),
             port = port,
-            customAlias = true
+            customAlias = alias.trim() != favorites[index].alias || favorites[index].customAlias,
+            customEndpoint = customEndpoint
         )
         saveFavoriteDevices(favorites)
         return true

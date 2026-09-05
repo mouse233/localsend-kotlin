@@ -33,6 +33,18 @@ class FavoriteDeviceTest {
         assertEquals("192.168.1.20", refreshed.address)
     }
 
+    @Test
+    fun customEndpointIsKeptWhenDeviceIsRediscovered() {
+        val favorite = FavoriteDevice(
+            "ABC123", "Peer", "100.64.0.10", 53317, "https", customEndpoint = true
+        )
+        val refreshed = favorite.refreshedFrom(device(address = "192.168.1.20", port = 53318))
+
+        assertEquals("100.64.0.10", refreshed.address)
+        assertEquals(53317, refreshed.port)
+        assertEquals("https", refreshed.protocol)
+    }
+
     private fun device(
         alias: String = "Peer",
         address: String = "192.168.1.10",
