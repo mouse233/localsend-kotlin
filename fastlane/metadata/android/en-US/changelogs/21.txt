@@ -1,0 +1,3 @@
+Added manual favorite device creation.
+Saved favorite endpoints are now probed directly and preserved across discovery.
+Favorites are matched by certificate fingerprint.
