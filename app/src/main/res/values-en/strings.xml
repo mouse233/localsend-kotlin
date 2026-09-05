@@ -2,6 +2,7 @@
     <string name="shared_file">Shared file</string><string name="file_size_unknown">Size unknown</string><string name="remove_pending_file">Remove from queue</string><string name="pending_send_title">Queue</string><string name="pending_send_summary">%1$d files in queue</string><string name="pending_send_summary_with_size">%1$d files in queue · %2$s</string><string name="view_pending_files">View</string><string name="clear_pending_files">Clear</string><string name="view_transfers">View transfers</string><string name="transfer_center">Transfer center</string><string name="transfer_center_active">Transfer in progress</string><string name="transfer_checksum_progress">Calculating checksums (%1$d/%2$d)</string><string name="transfer_center_empty">No active transfers</string><string name="transfer_session_sending">Sending session</string><string name="transfer_session_receiving">Receiving session</string><string name="transfer_session_summary">%1$d files · %2$s / %3$s</string><string name="transfer_session_summary_unknown">%1$d files</string><string name="transfer_progress_bytes">%1$s / %2$s</string><string name="transfer_progress_bytes_unknown">Processed %1$s</string><string name="cancel_all_transfers_title">Cancel all transfers?</string><string name="cancel_all_transfers_message">Current transfers will be cancelled. Completed files are not affected.</string>
     <string name="favorites">Favorites</string>
     <string name="favorites_empty">No favorite devices yet.</string>
+    <string name="new_favorite_device">NEW</string>
     <string name="favorite_device_item_format">%1$s\n%2$s:%3$d</string>
     <string name="edit_favorite_device">Edit favorite device</string>
     <string name="favorite_name">Device name</string>
@@ -12,6 +13,8 @@
     <string name="favorite_name_required">Device name cannot be empty</string>
     <string name="favorite_address_required">Address cannot be empty</string>
     <string name="favorite_port_invalid">Enter a port from 1 to 65535</string>
+    <string name="favorite_already_exists">This device is already in Favorites</string>
+    <string name="favorite_connection_failed">Could not connect to this LocalSend device</string>
     <string name="settings_auto_save_favorites">Auto-save from favorites</string>
     <string name="settings_auto_save_favorites_summary">Automatically save files from devices in Favorites.</string>
     <string name="device_actions">Device actions</string>

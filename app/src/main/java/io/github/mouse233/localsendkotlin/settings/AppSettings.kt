@@ -117,7 +117,22 @@ class AppSettings(context: Context) {
         }
     }
 
-    /** Refreshes endpoint metadata while retaining the fingerprint-based identity. */
+    /** Adds a manually resolved device without toggling an existing favorite off. */
+    fun addFavorite(device: RemoteDevice): Boolean {
+        val favorites = favoriteDevices().toMutableList()
+        if (favorites.any { it.matches(device) }) return false
+        favorites += FavoriteDevice(
+            fingerprint = device.fingerprint,
+            alias = device.alias,
+            address = device.address,
+            port = device.port,
+            protocol = device.protocol
+        )
+        saveFavoriteDevices(favorites)
+        return true
+    }
+
+    /** Refreshes the derived alias while retaining the saved endpoint and fingerprint identity. */
     fun refreshFavorite(device: RemoteDevice) {
         val favorites = favoriteDevices().toMutableList()
         val index = favorites.indexOfFirst { it.matches(device) }
@@ -127,7 +142,12 @@ class AppSettings(context: Context) {
     }
 
     /** Updates the user-editable fields of a favorite by its certificate identity. */
-    fun updateFavorite(favorite: FavoriteDevice, alias: String, address: String, port: Int): Boolean {
+    fun updateFavorite(
+        favorite: FavoriteDevice,
+        alias: String,
+        address: String,
+        port: Int
+    ): Boolean {
         val favorites = favoriteDevices().toMutableList()
         val index = favorites.indexOfFirst {
             it.fingerprint.equals(favorite.fingerprint, ignoreCase = true)
@@ -137,7 +157,7 @@ class AppSettings(context: Context) {
             alias = alias.trim(),
             address = address.trim(),
             port = port,
-            customAlias = true
+            customAlias = alias.trim() != favorites[index].alias || favorites[index].customAlias
         )
         saveFavoriteDevices(favorites)
         return true

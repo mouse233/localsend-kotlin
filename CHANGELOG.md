@@ -1,5 +1,29 @@
 # Changelog
 
+## [v0.7.8-alpha] - 2026-09-05
+
+### Added
+
+- Added a Favorites entry point with manual device creation.
+- Added direct probing of saved favorite endpoints before regular network discovery.
+
+### Fixed
+
+- Preserved saved favorite addresses and ports while matching devices by certificate fingerprint.
+
+## 中文说明
+
+### v0.7.8-alpha（2026-09-05）
+
+#### 新增
+
+- 新增收藏设备入口，支持手动添加设备。
+- 常规网络发现前优先直接探测已保存的收藏地址。
+
+#### 修复
+
+- 收藏设备改为通过证书指纹匹配，并保持已保存的地址和端口不被发现结果覆盖。
+
 ## [v0.7.7-alpha] - 2026-09-04
 
 ### Fixed

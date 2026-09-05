@@ -12,9 +12,6 @@ data class FavoriteDevice(
     fun matches(device: RemoteDevice): Boolean = fingerprint.equals(device.fingerprint, ignoreCase = true)
 
     fun refreshedFrom(device: RemoteDevice): FavoriteDevice = copy(
-        alias = if (customAlias) alias else device.alias,
-        address = device.address,
-        port = device.port,
-        protocol = device.protocol
+        alias = if (customAlias) alias else device.alias
     )
 }
