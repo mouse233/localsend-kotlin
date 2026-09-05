@@ -14,30 +14,28 @@ class FavoriteDeviceTest {
     }
 
     @Test
-    fun endpointMetadataCanBeRefreshedWithoutChangingIdentity() {
+    fun discoveredAliasCanBeRefreshedWithoutChangingSavedEndpoint() {
         val favorite = FavoriteDevice("ABC123", "Old name", "192.168.1.10", 53317, "https")
         val refreshed = favorite.refreshedFrom(device(alias = "New name", address = "192.168.1.20", port = 53318))
 
         assertEquals("ABC123", refreshed.fingerprint)
         assertEquals("New name", refreshed.alias)
-        assertEquals("192.168.1.20", refreshed.address)
-        assertEquals(53318, refreshed.port)
+        assertEquals("192.168.1.10", refreshed.address)
+        assertEquals(53317, refreshed.port)
     }
 
     @Test
-    fun customAliasIsKeptWhenEndpointMetadataIsRefreshed() {
+    fun customAliasAndSavedEndpointAreKeptWhenRediscovered() {
         val favorite = FavoriteDevice("ABC123", "My saved name", "192.168.1.10", 53317, "https", customAlias = true)
         val refreshed = favorite.refreshedFrom(device(alias = "Discovered name", address = "192.168.1.20"))
 
         assertEquals("My saved name", refreshed.alias)
-        assertEquals("192.168.1.20", refreshed.address)
+        assertEquals("192.168.1.10", refreshed.address)
     }
 
     @Test
-    fun customEndpointIsKeptWhenDeviceIsRediscovered() {
-        val favorite = FavoriteDevice(
-            "ABC123", "Peer", "100.64.0.10", 53317, "https", customEndpoint = true
-        )
+    fun savedEndpointIsKeptWhenDeviceIsRediscovered() {
+        val favorite = FavoriteDevice("ABC123", "Peer", "100.64.0.10", 53317, "https")
         val refreshed = favorite.refreshedFrom(device(address = "192.168.1.20", port = 53318))
 
         assertEquals("100.64.0.10", refreshed.address)

@@ -30,7 +30,6 @@ import android.view.Menu
 import android.view.ViewOutlineProvider
 import android.view.WindowManager
 import android.widget.ImageButton
-import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.EditText
@@ -792,10 +791,6 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
             setSelection(length())
             inputType = InputType.TYPE_CLASS_NUMBER
         }
-        val customEndpointToggle = content.findViewById<CheckBox>(R.id.favorite_custom_endpoint_toggle).apply {
-            isChecked = favorite?.customEndpoint == true
-            visibility = if (favorite == null) android.view.View.GONE else android.view.View.VISIBLE
-        }
         val dialogBuilder = AlertDialog.Builder(this)
             .setTitle(if (favorite == null) R.string.new_favorite_device else R.string.edit_favorite_device)
             .setView(content)
@@ -827,13 +822,11 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
                 }
             }
             if (favorite != null) {
-                val endpointChanged = address != favorite.address || port != favorite.port
                 settings.updateFavorite(
                     favorite,
                     alias,
                     address,
-                    port,
-                    customEndpoint = customEndpointToggle.isChecked || endpointChanged
+                    port
                 )
                 dialog.dismiss()
                 showFavoritesDialog()

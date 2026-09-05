@@ -126,14 +126,13 @@ class AppSettings(context: Context) {
             alias = device.alias,
             address = device.address,
             port = device.port,
-            protocol = device.protocol,
-            customEndpoint = true
+            protocol = device.protocol
         )
         saveFavoriteDevices(favorites)
         return true
     }
 
-    /** Refreshes endpoint metadata while retaining the fingerprint-based identity. */
+    /** Refreshes the derived alias while retaining the saved endpoint and fingerprint identity. */
     fun refreshFavorite(device: RemoteDevice) {
         val favorites = favoriteDevices().toMutableList()
         val index = favorites.indexOfFirst { it.matches(device) }
@@ -147,8 +146,7 @@ class AppSettings(context: Context) {
         favorite: FavoriteDevice,
         alias: String,
         address: String,
-        port: Int,
-        customEndpoint: Boolean = false
+        port: Int
     ): Boolean {
         val favorites = favoriteDevices().toMutableList()
         val index = favorites.indexOfFirst {
@@ -159,8 +157,7 @@ class AppSettings(context: Context) {
             alias = alias.trim(),
             address = address.trim(),
             port = port,
-            customAlias = alias.trim() != favorites[index].alias || favorites[index].customAlias,
-            customEndpoint = customEndpoint
+            customAlias = alias.trim() != favorites[index].alias || favorites[index].customAlias
         )
         saveFavoriteDevices(favorites)
         return true
