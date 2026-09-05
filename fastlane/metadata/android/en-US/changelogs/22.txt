@@ -1,0 +1,1 @@
+Preserved completed, failed, and cancelled outgoing transfer states when a later transfer finishes.

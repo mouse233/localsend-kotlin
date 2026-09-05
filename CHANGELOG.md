@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.7.9-alpha] - 2026-09-06
+
+### Fixed
+
+- Preserved completed, failed, and cancelled outgoing transfer states when a later transfer finishes.
+
+## 中文说明
+
+### v0.7.9-alpha（2026-09-06）
+
+#### 修复
+
+- 修复后续发送完成时错误覆盖之前已完成、失败或取消的发送记录状态。
+
 ## [v0.7.8-alpha] - 2026-09-05
 
 ### Added
