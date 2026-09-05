@@ -18,6 +18,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.net.ssl.HostnameVerifier
 import io.github.mouse233.localsendkotlin.model.DeviceInfo
+import io.github.mouse233.localsendkotlin.model.FavoriteDevice
 import io.github.mouse233.localsendkotlin.model.RegisterResponse
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
@@ -190,7 +191,7 @@ class DiscoveryManager(
             sockets.forEach { multicastReceiveExecutor?.execute { receiveAnnouncements(it) } }
             sendAnnouncement(announce = true)
             scheduleMulticastRetries()
-            scheduleLegacyScan()
+            scheduleStagedDiscovery()
             while (running.get()) {
                 try {
                     Thread.sleep(500L)
@@ -270,15 +271,50 @@ class DiscoveryManager(
         }
     }
 
-    private fun scheduleLegacyScan() {
+    /**
+     * Mirrors LocalSend's staged discovery: probe known favorite endpoints first,
+     * then fall back to a subnet scan only when none of them answered.
+     */
+    private fun scheduleStagedDiscovery() {
         legacyScanExecutor?.execute {
             try {
+                val favoriteFutures = settings.favoriteDevices().mapNotNull { favorite ->
+                    legacyScanExecutor?.submit { probeFavorite(favorite) }
+                }
+                favoriteFutures.forEach { future ->
+                    try {
+                        future.get()
+                    } catch (_: Exception) {
+                        // An unavailable favorite must not prevent other discovery stages.
+                    }
+                }
                 Thread.sleep(LEGACY_SCAN_DELAY_MS)
                 if (running.get() && devices.isEmpty()) scanLocalNetwork()
             } catch (exception: InterruptedException) {
                 Thread.currentThread().interrupt()
             }
         }
+    }
+
+    private fun probeFavorite(favorite: FavoriteDevice) {
+        if (!running.get()) return
+        val response = postRegistration(favorite.address, favorite.port, favorite.protocol) ?: return
+        val alias = response.body.alias ?: return
+        val version = response.body.version ?: return
+        val fingerprint = response.peerFingerprint ?: response.body.fingerprint ?: return
+        registerDevice(
+            DeviceInfo(
+                alias = alias,
+                version = version,
+                deviceModel = response.body.deviceModel,
+                deviceType = response.body.deviceType,
+                fingerprint = fingerprint,
+                port = favorite.port,
+                protocol = favorite.protocol,
+                download = response.body.download
+            ),
+            favorite.address
+        )
     }
 
     /**
