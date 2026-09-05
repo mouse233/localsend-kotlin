@@ -117,6 +117,22 @@ class AppSettings(context: Context) {
         }
     }
 
+    /** Adds a manually resolved device without toggling an existing favorite off. */
+    fun addFavorite(device: RemoteDevice): Boolean {
+        val favorites = favoriteDevices().toMutableList()
+        if (favorites.any { it.matches(device) }) return false
+        favorites += FavoriteDevice(
+            fingerprint = device.fingerprint,
+            alias = device.alias,
+            address = device.address,
+            port = device.port,
+            protocol = device.protocol,
+            customEndpoint = true
+        )
+        saveFavoriteDevices(favorites)
+        return true
+    }
+
     /** Refreshes endpoint metadata while retaining the fingerprint-based identity. */
     fun refreshFavorite(device: RemoteDevice) {
         val favorites = favoriteDevices().toMutableList()

@@ -1,6 +1,7 @@
 <resources>
     <string name="favorites">收藏夹</string>
     <string name="favorites_empty">暂无收藏设备。</string>
+    <string name="new_favorite_device">新增收藏</string>
     <string name="favorite_device_item_format">%1$s\n%2$s:%3$d</string>
     <string name="edit_favorite_device">编辑收藏设备</string>
     <string name="favorite_name">设备名称</string>
@@ -12,6 +13,8 @@
     <string name="favorite_name_required">设备名称不能为空</string>
     <string name="favorite_address_required">地址不能为空</string>
     <string name="favorite_port_invalid">请输入 1 到 65535 之间的端口号</string>
+    <string name="favorite_already_exists">该设备已经在收藏夹中</string>
+    <string name="favorite_connection_failed">无法连接到此 LocalSend 设备</string>
     <string name="settings_auto_save_favorites">自动保存收藏设备文件</string>
     <string name="settings_auto_save_favorites_summary">自动保存来自“收藏夹”设备的文件。</string>
     <string name="device_actions">设备操作</string>

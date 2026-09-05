@@ -46,6 +46,7 @@ import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
 import io.github.mouse233.localsendkotlin.model.PendingSendFile
 import io.github.mouse233.localsendkotlin.model.PendingSendQueue
 import io.github.mouse233.localsendkotlin.discovery.LocalNetworkAddress
+import io.github.mouse233.localsendkotlin.discovery.ManualDeviceConnector
 import io.github.mouse233.localsendkotlin.discovery.ManualEndpoint
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.sharing.ShareIntentParser
@@ -730,20 +731,15 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
 
     private fun showFavoritesDialog() {
         val favorites = settings.favoriteDevices()
-        if (favorites.isEmpty()) {
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(R.string.favorites)
-                .setMessage(R.string.favorites_empty)
-                .setPositiveButton(R.string.close, null)
-                .create()
-            dialog.show()
-            ThemeColors.apply(dialog)
-            return
-        }
-
         val content = layoutInflater.inflate(R.layout.dialog_favorite_devices, null)
         val list = content.findViewById<LinearLayout>(R.id.favorite_devices_list)
         val rows = mutableListOf<Pair<android.view.View, FavoriteDevice>>()
+        if (favorites.isEmpty()) {
+            list.addView(TextView(this).apply {
+                text = getString(R.string.favorites_empty)
+                setPadding(16, 16, 16, 16)
+            })
+        }
         favorites.forEach { favorite ->
             val row = layoutInflater.inflate(R.layout.item_favorite_device, list, false)
             row.findViewById<TextView>(R.id.favorite_device_text).text = favoriteDisplayName(favorite)
@@ -754,10 +750,15 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.favorites)
             .setView(content)
+            .setNeutralButton(R.string.new_favorite_device, null)
             .setNegativeButton(R.string.close, null)
             .create()
         dialog.show()
         ThemeColors.apply(dialog)
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+            dialog.dismiss()
+            showFavoriteEditor(null)
+        }
         val actionIconTint = ColorStateList.valueOf(ThemeColors.primaryColor(this))
         rows.forEach { (row, favorite) ->
             row.setOnClickListener {
@@ -768,39 +769,40 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
                 imageTintList = actionIconTint
                 setOnClickListener {
                     dialog.dismiss()
-                    showEditFavoriteDialog(favorite)
+                    showFavoriteEditor(favorite)
                 }
             }
         }
     }
 
-    private fun showEditFavoriteDialog(favorite: FavoriteDevice) {
+    private fun showFavoriteEditor(favorite: FavoriteDevice?) {
         val content = layoutInflater.inflate(R.layout.dialog_edit_favorite, null)
         val nameInput = content.findViewById<EditText>(R.id.favorite_name_editor).apply {
-            setText(favorite.alias)
+            setText(favorite?.alias.orEmpty())
             setSelection(length())
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         }
         val addressInput = content.findViewById<EditText>(R.id.favorite_address_editor).apply {
-            setText(favorite.address)
+            setText(favorite?.address.orEmpty())
             setSelection(length())
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         }
         val portInput = content.findViewById<EditText>(R.id.favorite_port_editor).apply {
-            setText(favorite.port.toString())
+            setText(favorite?.port?.toString() ?: settings.port().toString())
             setSelection(length())
             inputType = InputType.TYPE_CLASS_NUMBER
         }
         val customEndpointToggle = content.findViewById<CheckBox>(R.id.favorite_custom_endpoint_toggle).apply {
-            isChecked = favorite.customEndpoint
+            isChecked = favorite?.customEndpoint == true
+            visibility = if (favorite == null) android.view.View.GONE else android.view.View.VISIBLE
         }
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.edit_favorite_device)
+        val dialogBuilder = AlertDialog.Builder(this)
+            .setTitle(if (favorite == null) R.string.new_favorite_device else R.string.edit_favorite_device)
             .setView(content)
-            .setNeutralButton(R.string.delete_favorite_device, null)
             .setNegativeButton(android.R.string.cancel) { _, _ -> showFavoritesDialog() }
             .setPositiveButton(R.string.save, null)
-            .create()
+        if (favorite != null) dialogBuilder.setNeutralButton(R.string.delete_favorite_device, null)
+        val dialog = dialogBuilder.create()
         dialog.show()
         ThemeColors.apply(dialog)
         val customPanelId = resources.getIdentifier("customPanel", "id", "android")
@@ -811,7 +813,7 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
             val address = addressInput.text.toString().trim()
             val port = portInput.text.toString().trim().toIntOrNull()
             when {
-                alias.isEmpty() -> {
+                favorite != null && alias.isEmpty() -> {
                     nameInput.error = getString(R.string.favorite_name_required)
                     return@setOnClickListener
                 }
@@ -824,20 +826,48 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
                     return@setOnClickListener
                 }
             }
-            val endpointChanged = address != favorite.address || port != favorite.port
-            settings.updateFavorite(
-                favorite,
-                alias,
-                address,
-                port,
-                customEndpoint = customEndpointToggle.isChecked || endpointChanged
-            )
-            dialog.dismiss()
-            showFavoritesDialog()
+            if (favorite != null) {
+                val endpointChanged = address != favorite.address || port != favorite.port
+                settings.updateFavorite(
+                    favorite,
+                    alias,
+                    address,
+                    port,
+                    customEndpoint = customEndpointToggle.isChecked || endpointChanged
+                )
+                dialog.dismiss()
+                showFavoritesDialog()
+                return@setOnClickListener
+            }
+
+            val saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            saveButton.isEnabled = false
+            contentExecutor.execute {
+                try {
+                    val device = ManualDeviceConnector(this@MainActivity).resolve(ManualEndpoint(address, port))
+                    val added = settings.addFavorite(device)
+                    mainHandler.post {
+                        if (!added) {
+                            addressInput.error = getString(R.string.favorite_already_exists)
+                            saveButton.isEnabled = true
+                        } else {
+                            dialog.dismiss()
+                            showFavoritesDialog()
+                        }
+                    }
+                } catch (_: Exception) {
+                    mainHandler.post {
+                        addressInput.error = getString(R.string.favorite_connection_failed)
+                        saveButton.isEnabled = true
+                    }
+                }
+            }
         }
-        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-            dialog.dismiss()
-            showDeleteFavoriteConfirmation(favorite)
+        if (favorite != null) {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                dialog.dismiss()
+                showDeleteFavoriteConfirmation(favorite)
+            }
         }
     }
 
