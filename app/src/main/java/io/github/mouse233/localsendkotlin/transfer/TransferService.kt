@@ -27,6 +27,7 @@ import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
 import io.github.mouse233.localsendkotlin.settings.AppSettings
+import io.github.mouse233.localsendkotlin.model.finalizeOutgoingSessions
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -94,6 +95,7 @@ class TransferService : Service(), DiscoveryListener {
     private val incomingFiles = LinkedHashMap<String, LinkedHashMap<String, ActiveTransferFile>>()
     private val incomingSenders = LinkedHashMap<String, String>()
     private val outgoingFiles = LinkedHashMap<String, LinkedHashMap<String, ActiveTransferFile>>()
+    private val outgoingSessionsInProgress = LinkedHashSet<String>()
 
     override fun onCreate() {
         super.onCreate()
@@ -234,7 +236,10 @@ class TransferService : Service(), DiscoveryListener {
                         ActiveTransferFile.Status.WAITING, ActiveTransferFile.Direction.OUTGOING
                     )
                 }
-                synchronized(outgoingFiles) { outgoingFiles[sessionId] = queue }
+                synchronized(outgoingFiles) {
+                    outgoingFiles[sessionId] = queue
+                    outgoingSessionsInProgress += sessionId
+                }
                 notifyListeners { it.onOutgoingSessionPreparing(sessionId, queue.values.toList()) }
             }
 
@@ -255,6 +260,8 @@ class TransferService : Service(), DiscoveryListener {
                 synchronized(outgoingFiles) {
                     outgoingFiles.remove(preparationSessionId)
                     outgoingFiles[sessionId] = queue
+                    outgoingSessionsInProgress.remove(preparationSessionId)
+                    outgoingSessionsInProgress += sessionId
                 }
                 notifyListeners { it.onOutgoingSessionStarted(preparationSessionId, sessionId, queue.values.toList()) }
             }
@@ -460,26 +467,14 @@ class TransferService : Service(), DiscoveryListener {
     }
 
     private fun finishOutgoingQueues(status: ActiveTransferFile.Status) {
+        val sessionIds = synchronized(outgoingFiles) {
+            outgoingSessionsInProgress.toSet().also { outgoingSessionsInProgress.clear() }
+        }
         val updated = synchronized(outgoingFiles) {
-            val states = mutableListOf<ActiveTransferFile>()
-            outgoingFiles.values.forEach { session ->
-                session.values.toList().forEach { file ->
-                    if (file.status != status) {
-                        file.copy(
-                            receivedBytes = if (status == ActiveTransferFile.Status.COMPLETED) file.totalBytes else file.receivedBytes,
-                            status = status
-                        ).also {
-                            session[file.fileId] = it
-                            states += it
-                        }
-                    }
-                }
-            }
-            states
+            finalizeOutgoingSessions(outgoingFiles, sessionIds, status)
         }
         updated.forEach { state -> notifyListeners { it.onFileSendProgress(state) } }
-        val sessions = synchronized(outgoingFiles) { outgoingFiles.keys.toList() }
-        sessions.forEach { sessionId -> notifyListeners { it.onOutgoingSessionCompleted(sessionId) } }
+        sessionIds.forEach { sessionId -> notifyListeners { it.onOutgoingSessionCompleted(sessionId) } }
     }
 
     private fun finishIncomingSession(sessionId: String, status: ActiveTransferFile.Status) {
@@ -514,7 +509,10 @@ class TransferService : Service(), DiscoveryListener {
             incomingFiles.clear()
             incomingSenders.clear()
         }
-        synchronized(outgoingFiles) { outgoingFiles.clear() }
+        synchronized(outgoingFiles) {
+            outgoingFiles.clear()
+            outgoingSessionsInProgress.clear()
+        }
     }
 
     /** Activity callbacks must always run on the main thread because they update Views. */
