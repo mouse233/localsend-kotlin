@@ -12,6 +12,10 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    # AndroidX Core 1.18+ requires minSdk 23; keep Android 5.0 (API 21) support.
+    ignore:
+      - dependency-name: "androidx.core:core-ktx"
+        versions: [ "[1.18.0,)" ]
     groups:
       gradle-non-major:
         patterns: [ "*" ]
