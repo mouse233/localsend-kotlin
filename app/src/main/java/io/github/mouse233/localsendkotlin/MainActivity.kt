@@ -531,8 +531,8 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.content_action_text_title)
             .setView(content)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.ok, null)
             .create()
         dialog.show()
         ThemeColors.apply(dialog)
@@ -570,7 +570,7 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
         if (name.isBlank()) name = "$prefix.bin"
         val file = File(cacheDir, "${prefix}_${UUID.randomUUID()}_${File(name).name}")
         contentResolver.openInputStream(sourceUri)?.use { input -> FileOutputStream(file).use { output -> input.copyTo(output) } }
-            ?: throw IllegalStateException("无法读取剪贴板文件")
+            ?: throw IllegalStateException(getString(R.string.upload_cannot_read_file))
         return FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
     }
 
@@ -703,7 +703,7 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.manual_send_title)
             .setView(content)
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.manual_send, null)
             .create()
         dialog.show()
@@ -794,7 +794,7 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
         val dialogBuilder = AlertDialog.Builder(this)
             .setTitle(if (favorite == null) R.string.new_favorite_device else R.string.edit_favorite_device)
             .setView(content)
-            .setNegativeButton(android.R.string.cancel) { _, _ -> showFavoritesDialog() }
+            .setNegativeButton(R.string.cancel) { _, _ -> showFavoritesDialog() }
             .setPositiveButton(R.string.save, null)
         if (favorite != null) dialogBuilder.setNeutralButton(R.string.delete_favorite_device, null)
         val dialog = dialogBuilder.create()
@@ -868,7 +868,7 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.delete_favorite_device)
             .setMessage(getString(R.string.delete_favorite_device_message, favorite.alias))
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.delete_favorite_device) { _, _ ->
                 settings.removeFavorite(favorite.fingerprint)
                 deviceAdapter.refreshFavoriteStates()
@@ -993,7 +993,7 @@ class MainActivity : LocalizedActivity(), TransferService.Listener {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.pin_required_title)
             .setView(content)
-            .setNegativeButton(android.R.string.cancel) { _, _ -> respond(null) }
+            .setNegativeButton(R.string.cancel) { _, _ -> respond(null) }
             .setPositiveButton(R.string.submit) { _, _ -> respond(input.text.toString()) }
             .setOnCancelListener { respond(null) }
             .create()

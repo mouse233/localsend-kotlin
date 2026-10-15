@@ -110,6 +110,6 @@ class ReceiveHistoryStore(context: Context) : SQLiteOpenHelper(context.applicati
         const val COLUMN_SENDER = "sender_alias"
         const val COLUMN_RECEIVED_AT = "received_at"
         const val COLUMN_IS_MESSAGE = "is_message"
-        const val UNKNOWN_SENDER = "未知设备"
+        const val UNKNOWN_SENDER = ReceiveHistoryText.LEGACY_UNKNOWN_SENDER
     }
 }

@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Order matches VerificationCode.ICON_ALPHABET; glyph names remain protocol identifiers. -->
+    <string-array name="verification_icon_labels">
+        <!-- icon: ac_unit -->
+        <item>Snowflake</item>
+        <!-- icon: accessibility -->
+        <item>Accessibility</item>
+        <!-- icon: agriculture -->
+        <item>Agriculture</item>
+        <!-- icon: alarm -->
+        <item>Alarm</item>
+        <!-- icon: album -->
+        <item>Album</item>
+        <!-- icon: anchor -->
+        <item>Anchor</item>
+        <!-- icon: android -->
+        <item>Android</item>
+        <!-- icon: apartment -->
+        <item>Apartment</item>
+        <!-- icon: apple -->
+        <item>Apple</item>
+        <!-- icon: architecture -->
+        <item>Architecture</item>
+        <!-- icon: attach_file -->
+        <item>Attach File</item>
+        <!-- icon: attach_money -->
+        <item>Attach Money</item>
+        <!-- icon: audiotrack -->
+        <item>Audiotrack</item>
+        <!-- icon: back_hand -->
+        <item>Back Hand</item>
+        <!-- icon: backpack -->
+        <item>Backpack</item>
+        <!-- icon: badge -->
+        <item>Badge</item>
+        <!-- icon: bakery_dining -->
+        <item>Bakery Dining</item>
+        <!-- icon: balance -->
+        <item>Balance</item>
+        <!-- icon: bathtub -->
+        <item>Bathtub</item>
+        <!-- icon: battery_full -->
+        <item>Battery Full</item>
+        <!-- icon: bento -->
+        <item>Bento</item>
+        <!-- icon: biotech -->
+        <item>Biotech</item>
+        <!-- icon: blender -->
+        <item>Blender</item>
+        <!-- icon: bluetooth -->
+        <item>Bluetooth</item>
+        <!-- icon: bolt -->
+        <item>Bolt</item>
+        <!-- icon: bookmark -->
+        <item>Bookmark</item>
+        <!-- icon: brush -->
+        <item>Brush</item>
+        <!-- icon: bug_report -->
+        <item>Bug Report</item>
+        <!-- icon: build -->
+        <item>Build</item>
+        <!-- icon: cable -->
+        <item>Cable</item>
+        <!-- icon: cake -->
+        <item>Cake</item>
+        <!-- icon: calculate -->
+        <item>Calculate</item>
+        <!-- icon: calendar_today -->
+        <item>Calendar Today</item>
+        <!-- icon: campaign -->
+        <item>Campaign</item>
+        <!-- icon: casino -->
+        <item>Casino</item>
+        <!-- icon: cast -->
+        <item>Cast</item>
+        <!-- icon: castle -->
+        <item>Castle</item>
+        <!-- icon: celebration -->
+        <item>Celebration</item>
+        <!-- icon: cell_tower -->
+        <item>Cell Tower</item>
+        <!-- icon: chair -->
+        <item>Chair</item>
+        <!-- icon: change_history -->
+        <item>Triangle</item>
+        <!-- icon: chat -->
+        <item>Chat</item>
+        <!-- icon: checkroom -->
+        <item>Checkroom</item>
+        <!-- icon: church -->
+        <item>Church</item>
+        <!-- icon: circle -->
+        <item>Circle</item>
+        <!-- icon: cloud -->
+        <item>Cloud</item>
+        <!-- icon: coffee_maker -->
+        <item>Coffee Maker</item>
+        <!-- icon: colorize -->
+        <item>Colorize</item>
+        <!-- icon: computer -->
+        <item>Computer</item>
+        <!-- icon: confirmation_number -->
+        <item>Confirmation Number</item>
+        <!-- icon: content_cut -->
+        <item>Content Cut</item>
+        <!-- icon: conveyor_belt -->
+        <item>Conveyor Belt</item>
+        <!-- icon: cookie -->
+        <item>Cookie</item>
+        <!-- icon: coronavirus -->
+        <item>Coronavirus</item>
+        <!-- icon: cottage -->
+        <item>Cottage</item>
+        <!-- icon: credit_card -->
+        <item>Credit Card</item>
+        <!-- icon: cruelty_free -->
+        <item>Rabbit</item>
+        <!-- icon: cyclone -->
+        <item>Cyclone</item>
+        <!-- icon: delete -->
+        <item>Delete</item>
+        <!-- icon: diamond -->
+        <item>Diamond</item>
+        <!-- icon: directions_bike -->
+        <item>Directions Bike</item>
+        <!-- icon: directions_boat -->
+        <item>Directions Boat</item>
+        <!-- icon: directions_bus -->
+        <item>Directions Bus</item>
+        <!-- icon: directions_car -->
+        <item>Directions Car</item>
+        <!-- icon: door_front_door -->
+        <item>Door Front Door</item>
+        <!-- icon: earbuds -->
+        <item>Earbuds</item>
+        <!-- icon: eco -->
+        <item>Eco</item>
+        <!-- icon: edit -->
+        <item>Edit</item>
+        <!-- icon: egg -->
+        <item>Egg</item>
+        <!-- icon: elevator -->
+        <item>Elevator</item>
+        <!-- icon: email -->
+        <item>Email</item>
+        <!-- icon: emoji_events -->
+        <item>Emoji Events</item>
+        <!-- icon: emoji_nature -->
+        <item>Emoji Nature</item>
+        <!-- icon: engineering -->
+        <item>Engineering</item>
+        <!-- icon: explore -->
+        <item>Explore</item>
+        <!-- icon: extension -->
+        <item>Puzzle piece</item>
+        <!-- icon: face -->
+        <item>Face</item>
+        <!-- icon: factory -->
+        <item>Factory</item>
+        <!-- icon: fastfood -->
+        <item>Fastfood</item>
+        <!-- icon: favorite -->
+        <item>Favorite</item>
+        <!-- icon: fence -->
+        <item>Fence</item>
+        <!-- icon: festival -->
+        <item>Festival</item>
+        <!-- icon: fingerprint -->
+        <item>Fingerprint</item>
+        <!-- icon: fire_extinguisher -->
+        <item>Fire Extinguisher</item>
+        <!-- icon: fireplace -->
+        <item>Fireplace</item>
+        <!-- icon: fitness_center -->
+        <item>Fitness Center</item>
+        <!-- icon: flag -->
+        <item>Flag</item>
+        <!-- icon: flashlight_on -->
+        <item>Flashlight On</item>
+        <!-- icon: flight -->
+        <item>Flight</item>
+        <!-- icon: flutter_dash -->
+        <item>Bird</item>
+        <!-- icon: forklift -->
+        <item>Forklift</item>
+        <!-- icon: format_paint -->
+        <item>Format Paint</item>
+        <!-- icon: gavel -->
+        <item>Gavel</item>
+        <!-- icon: grass -->
+        <item>Grass</item>
+        <!-- icon: groups -->
+        <item>Groups</item>
+        <!-- icon: handshake -->
+        <item>Handshake</item>
+        <!-- icon: hardware -->
+        <item>Hardware</item>
+        <!-- icon: headphones -->
+        <item>Headphones</item>
+        <!-- icon: healing -->
+        <item>Healing</item>
+        <!-- icon: hearing -->
+        <item>Hearing</item>
+        <!-- icon: hexagon -->
+        <item>Hexagon</item>
+        <!-- icon: history_edu -->
+        <item>Document</item>
+        <!-- icon: hive -->
+        <item>Hive</item>
+        <!-- icon: home -->
+        <item>Home</item>
+        <!-- icon: hourglass_empty -->
+        <item>Hourglass Empty</item>
+        <!-- icon: houseboat -->
+        <item>Houseboat</item>
+        <!-- icon: hub -->
+        <item>Hub</item>
+        <!-- icon: ice_skating -->
+        <item>Ice Skating</item>
+        <!-- icon: icecream -->
+        <item>Icecream</item>
+        <!-- icon: inventory_2 -->
+        <item>Inventory</item>
+        <!-- icon: iron -->
+        <item>Iron</item>
+        <!-- icon: kebab_dining -->
+        <item>Kebab Dining</item>
+        <!-- icon: key -->
+        <item>Key</item>
+        <!-- icon: keyboard -->
+        <item>Keyboard</item>
+        <!-- icon: king_bed -->
+        <item>King Bed</item>
+        <!-- icon: kitchen -->
+        <item>Kitchen</item>
+        <!-- icon: landscape -->
+        <item>Landscape</item>
+        <!-- icon: layers -->
+        <item>Layers</item>
+        <!-- icon: light -->
+        <item>Light</item>
+        <!-- icon: lightbulb -->
+        <item>Lightbulb</item>
+        <!-- icon: link -->
+        <item>Link</item>
+        <!-- icon: liquor -->
+        <item>Liquor</item>
+        <!-- icon: local_bar -->
+        <item>Cocktail</item>
+        <!-- icon: local_cafe -->
+        <item>Coffee cup</item>
+        <!-- icon: local_drink -->
+        <item>Local Drink</item>
+        <!-- icon: local_florist -->
+        <item>Local Florist</item>
+        <!-- icon: local_gas_station -->
+        <item>Local Gas Station</item>
+        <!-- icon: local_laundry_service -->
+        <item>Local Laundry Service</item>
+        <!-- icon: local_mall -->
+        <item>Local Mall</item>
+        <!-- icon: local_pizza -->
+        <item>Local Pizza</item>
+        <!-- icon: local_shipping -->
+        <item>Local Shipping</item>
+        <!-- icon: local_taxi -->
+        <item>Local Taxi</item>
+        <!-- icon: location_city -->
+        <item>Location City</item>
+        <!-- icon: lock -->
+        <item>Lock</item>
+        <!-- icon: luggage -->
+        <item>Luggage</item>
+        <!-- icon: map -->
+        <item>Map</item>
+        <!-- icon: markunread_mailbox -->
+        <item>Mailbox</item>
+        <!-- icon: masks -->
+        <item>Masks</item>
+        <!-- icon: medication -->
+        <item>Medication</item>
+        <!-- icon: memory -->
+        <item>Memory</item>
+        <!-- icon: menu -->
+        <item>Menu</item>
+        <!-- icon: menu_book -->
+        <item>Menu Book</item>
+        <!-- icon: mic -->
+        <item>Mic</item>
+        <!-- icon: microwave -->
+        <item>Microwave</item>
+        <!-- icon: military_tech -->
+        <item>Military Tech</item>
+        <!-- icon: monitor_heart -->
+        <item>Monitor Heart</item>
+        <!-- icon: mood -->
+        <item>Smiling face</item>
+        <!-- icon: mosque -->
+        <item>Mosque</item>
+        <!-- icon: motorcycle -->
+        <item>Motorcycle</item>
+        <!-- icon: mouse -->
+        <item>Mouse</item>
+        <!-- icon: movie -->
+        <item>Movie</item>
+        <!-- icon: museum -->
+        <item>Museum</item>
+        <!-- icon: newspaper -->
+        <item>Newspaper</item>
+        <!-- icon: nightlight -->
+        <item>Nightlight</item>
+        <!-- icon: notifications -->
+        <item>Notifications</item>
+        <!-- icon: oil_barrel -->
+        <item>Oil Barrel</item>
+        <!-- icon: outdoor_grill -->
+        <item>Outdoor Grill</item>
+        <!-- icon: outlet -->
+        <item>Outlet</item>
+        <!-- icon: palette -->
+        <item>Palette</item>
+        <!-- icon: park -->
+        <item>Park</item>
+        <!-- icon: pentagon -->
+        <item>Pentagon</item>
+        <!-- icon: person -->
+        <item>Person</item>
+        <!-- icon: pets -->
+        <item>Pets</item>
+        <!-- icon: phishing -->
+        <item>Phishing</item>
+        <!-- icon: phone -->
+        <item>Phone</item>
+        <!-- icon: photo_camera -->
+        <item>Photo Camera</item>
+        <!-- icon: piano -->
+        <item>Piano</item>
+        <!-- icon: pie_chart -->
+        <item>Pie Chart</item>
+        <!-- icon: place -->
+        <item>Place</item>
+        <!-- icon: pool -->
+        <item>Pool</item>
+        <!-- icon: power -->
+        <item>Power</item>
+        <!-- icon: precision_manufacturing -->
+        <item>Precision Manufacturing</item>
+        <!-- icon: print -->
+        <item>Print</item>
+        <!-- icon: propane_tank -->
+        <item>Propane Tank</item>
+        <!-- icon: psychology -->
+        <item>Psychology</item>
+        <!-- icon: public -->
+        <item>Globe</item>
+        <!-- icon: push_pin -->
+        <item>Push Pin</item>
+        <!-- icon: qr_code -->
+        <item>Qr Code</item>
+        <!-- icon: radar -->
+        <item>Radar</item>
+        <!-- icon: radio -->
+        <item>Radio</item>
+        <!-- icon: ramen_dining -->
+        <item>Ramen Dining</item>
+        <!-- icon: receipt -->
+        <item>Receipt</item>
+        <!-- icon: recycling -->
+        <item>Recycling</item>
+        <!-- icon: redeem -->
+        <item>Redeem</item>
+        <!-- icon: refresh -->
+        <item>Refresh</item>
+        <!-- icon: restaurant -->
+        <item>Restaurant</item>
+        <!-- icon: rocket -->
+        <item>Rocket</item>
+        <!-- icon: room_service -->
+        <item>Room Service</item>
+        <!-- icon: route -->
+        <item>Route</item>
+        <!-- icon: router -->
+        <item>Router</item>
+        <!-- icon: sailing -->
+        <item>Sailing</item>
+        <!-- icon: satellite_alt -->
+        <item>Satellite Alt</item>
+        <!-- icon: savings -->
+        <item>Savings</item>
+        <!-- icon: school -->
+        <item>School</item>
+        <!-- icon: science -->
+        <item>Science</item>
+        <!-- icon: search -->
+        <item>Search</item>
+        <!-- icon: settings -->
+        <item>Settings</item>
+        <!-- icon: shelves -->
+        <item>Shelves</item>
+        <!-- icon: shield -->
+        <item>Shield</item>
+        <!-- icon: shopping_basket -->
+        <item>Shopping Basket</item>
+        <!-- icon: shopping_cart -->
+        <item>Shopping Cart</item>
+        <!-- icon: shower -->
+        <item>Shower</item>
+        <!-- icon: signpost -->
+        <item>Signpost</item>
+        <!-- icon: sim_card -->
+        <item>SIM card</item>
+        <!-- icon: smart_toy -->
+        <item>Smart Toy</item>
+        <!-- icon: smartphone -->
+        <item>Smartphone</item>
+        <!-- icon: smoking_rooms -->
+        <item>Smoking Rooms</item>
+        <!-- icon: soap -->
+        <item>Soap</item>
+        <!-- icon: solar_power -->
+        <item>Solar Power</item>
+        <!-- icon: speaker -->
+        <item>Speaker</item>
+        <!-- icon: sports_esports -->
+        <item>Sports Esports</item>
+        <!-- icon: sports_football -->
+        <item>Sports Football</item>
+        <!-- icon: sports_golf -->
+        <item>Sports Golf</item>
+        <!-- icon: sports_hockey -->
+        <item>Sports Hockey</item>
+        <!-- icon: sports_motorsports -->
+        <item>Sports Motorsports</item>
+        <!-- icon: sports_soccer -->
+        <item>Sports Soccer</item>
+        <!-- icon: sports_tennis -->
+        <item>Sports Tennis</item>
+        <!-- icon: square -->
+        <item>Square</item>
+        <!-- icon: stadium -->
+        <item>Stadium</item>
+        <!-- icon: stairs -->
+        <item>Stairs</item>
+        <!-- icon: star -->
+        <item>Star</item>
+        <!-- icon: store -->
+        <item>Store</item>
+        <!-- icon: straighten -->
+        <item>Straighten</item>
+        <!-- icon: stroller -->
+        <item>Stroller</item>
+        <!-- icon: table_restaurant -->
+        <item>Table Restaurant</item>
+        <!-- icon: tag -->
+        <item>Tag</item>
+        <!-- icon: temple_buddhist -->
+        <item>Temple Buddhist</item>
+        <!-- icon: theater_comedy -->
+        <item>Theater Comedy</item>
+        <!-- icon: theaters -->
+        <item>Theaters</item>
+        <!-- icon: thermostat -->
+        <item>Thermostat</item>
+        <!-- icon: thumb_up -->
+        <item>Thumb Up</item>
+        <!-- icon: toggle_on -->
+        <item>Toggle On</item>
+        <!-- icon: toll -->
+        <item>Toll</item>
+        <!-- icon: tornado -->
+        <item>Tornado</item>
+        <!-- icon: toys -->
+        <item>Toys</item>
+        <!-- icon: traffic -->
+        <item>Traffic</item>
+        <!-- icon: train -->
+        <item>Train</item>
+        <!-- icon: tune -->
+        <item>Tune</item>
+        <!-- icon: umbrella -->
+        <item>Umbrella</item>
+        <!-- icon: usb -->
+        <item>USB</item>
+        <!-- icon: vaccines -->
+        <item>Vaccines</item>
+        <!-- icon: videocam -->
+        <item>Videocam</item>
+        <!-- icon: view_in_ar -->
+        <item>Augmented reality</item>
+        <!-- icon: visibility -->
+        <item>Eye</item>
+        <!-- icon: voicemail -->
+        <item>Voicemail</item>
+        <!-- icon: volcano -->
+        <item>Volcano</item>
+        <!-- icon: wallet -->
+        <item>Wallet</item>
+        <!-- icon: warehouse -->
+        <item>Warehouse</item>
+        <!-- icon: warning -->
+        <item>Warning</item>
+        <!-- icon: watch -->
+        <item>Watch</item>
+        <!-- icon: water_drop -->
+        <item>Water Drop</item>
+        <!-- icon: waves -->
+        <item>Waves</item>
+        <!-- icon: wb_sunny -->
+        <item>Sun</item>
+        <!-- icon: weekend -->
+        <item>Weekend</item>
+        <!-- icon: whatshot -->
+        <item>Flame</item>
+        <!-- icon: wifi -->
+        <item>Wi-Fi</item>
+        <!-- icon: wind_power -->
+        <item>Wind Power</item>
+        <!-- icon: window -->
+        <item>Window</item>
+        <!-- icon: wine_bar -->
+        <item>Wine Bar</item>
+        <!-- icon: work -->
+        <item>Work</item>
+    </string-array>
+</resources>

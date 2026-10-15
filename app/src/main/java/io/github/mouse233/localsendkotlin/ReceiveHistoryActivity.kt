@@ -17,14 +17,13 @@ import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.history.ReceiveHistoryStore
+import io.github.mouse233.localsendkotlin.history.ReceiveHistoryText
 import io.github.mouse233.localsendkotlin.model.ReceiveHistoryEntry
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.transfer.IncomingMessageLink
 import io.github.mouse233.localsendkotlin.ui.ReceiveHistoryAdapter
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 import io.github.mouse233.localsendkotlin.ui.ThemeColors
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import java.io.File
 import java.util.concurrent.ExecutorService
@@ -105,7 +104,7 @@ class ReceiveHistoryActivity : LocalizedActivity() {
             setTextIsSelectable(true)
         }
         val dialog = AlertDialog.Builder(this)
-            .setTitle(getString(R.string.incoming_message_title, entry.senderAlias))
+            .setTitle(getString(R.string.incoming_message_title, ReceiveHistoryText.sender(this, entry.senderAlias)))
             .setView(content)
             .setNegativeButton(R.string.close, null)
             .setPositiveButton(R.string.content_action_clipboard) { _, _ ->
@@ -220,8 +219,8 @@ class ReceiveHistoryActivity : LocalizedActivity() {
         detailsView.findViewById<TextView>(R.id.file_info_name).text = entry.displayName
         detailsView.findViewById<TextView>(R.id.file_info_path).text = displayPath(entry)
         detailsView.findViewById<TextView>(R.id.file_info_size).text = formatBytes(entry.size)
-        detailsView.findViewById<TextView>(R.id.file_info_sender).text = entry.senderAlias
-        detailsView.findViewById<TextView>(R.id.file_info_time).text = DATE_FORMAT.format(Date(entry.receivedAt))
+        detailsView.findViewById<TextView>(R.id.file_info_sender).text = ReceiveHistoryText.sender(this, entry.senderAlias)
+        detailsView.findViewById<TextView>(R.id.file_info_time).text = ReceiveHistoryText.receivedAt(this, entry.receivedAt)
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.file_info_title)
             .setView(detailsView)
@@ -234,7 +233,7 @@ class ReceiveHistoryActivity : LocalizedActivity() {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.clear_history_title)
             .setMessage(R.string.clear_history_message)
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.delete_history_records) { _, _ ->
                 databaseExecutor.execute {
                     store.clear()
@@ -291,7 +290,6 @@ class ReceiveHistoryActivity : LocalizedActivity() {
     }
 
     private companion object {
-        val DATE_FORMAT = SimpleDateFormat("yyyy/M/d HH:mm", Locale.CHINA)
         const val EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY = "com.android.externalstorage.documents"
     }
 }

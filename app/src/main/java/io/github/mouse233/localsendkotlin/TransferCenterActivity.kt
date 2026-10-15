@@ -172,7 +172,7 @@ class TransferCenterActivity : LocalizedActivity(), TransferService.Listener {
             .setTitle(R.string.pin_required_title)
             .setMessage(getString(R.string.pin_required_message, device.alias, attempt))
             .setView(input)
-            .setNegativeButton(android.R.string.cancel) { _, _ -> respond(null) }
+            .setNegativeButton(R.string.cancel) { _, _ -> respond(null) }
             .setPositiveButton(R.string.submit, null)
             .setOnCancelListener { respond(null) }
             .create()
@@ -212,7 +212,7 @@ class TransferCenterActivity : LocalizedActivity(), TransferService.Listener {
         AlertDialog.Builder(this)
             .setTitle(R.string.cancel_all_transfers_title)
             .setMessage(R.string.cancel_all_transfers_message)
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.cancel_transfer) { _, _ -> transferService?.cancelCurrent() }
             .create()
             .also { it.show(); ThemeColors.apply(it) }

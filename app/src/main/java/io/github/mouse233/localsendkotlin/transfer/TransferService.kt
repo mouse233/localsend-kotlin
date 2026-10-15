@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
+import androidx.annotation.StringRes
 import android.content.Intent
 import android.net.Uri
 import android.os.Binder
@@ -26,6 +27,7 @@ import io.github.mouse233.localsendkotlin.history.ReceiveHistoryStore
 import io.github.mouse233.localsendkotlin.model.ReceivedFile
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.model.ActiveTransferFile
+import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.model.finalizeOutgoingSessions
 import java.util.concurrent.Executors
@@ -61,6 +63,8 @@ class TransferService : Service(), DiscoveryListener {
     inner class LocalBinder : Binder() {
         fun service(): TransferService = this@TransferService
     }
+
+    private fun text(@StringRes resource: Int, vararg arguments: Any): String = AppLocale.text(this, resource, *arguments)
 
     private val binder = LocalBinder()
     private val listenerLock = Any()
@@ -117,6 +121,7 @@ class TransferService : Service(), DiscoveryListener {
             ACTION_REJECT_INCOMING -> resolveIncoming(false)
             ACTION_RELOAD_SETTINGS -> restartNetwork()
             ACTION_REFRESH_SCREEN_AWAKE -> updateScreenAwakeLock()
+            ACTION_REFRESH_LANGUAGE -> refreshLanguage()
             ACTION_STOP_SERVICE -> cancelCurrent(stopService = true)
         }
         return START_NOT_STICKY
@@ -128,7 +133,7 @@ class TransferService : Service(), DiscoveryListener {
         synchronized(listenerLock) { listeners += listener }
         mainHandler.post {
             listener.onDevicesChanged(currentDevices)
-            if (hasActiveTransfer) listener.onTransferStateRestored(activeNotificationTitle ?: getString(R.string.notification_service_title), activeNotificationProgress)
+            if (hasActiveTransfer) listener.onTransferStateRestored(activeNotificationTitle ?: text(R.string.notification_service_title), activeNotificationProgress)
             else lastTransferMessage?.let(listener::onTransferFinished)
             pendingIncoming?.let { pending ->
                 listener.onIncomingTransferRequest(pending.request) { options -> resolveIncoming(options) }
@@ -177,7 +182,7 @@ class TransferService : Service(), DiscoveryListener {
 
     fun sendManual(uris: List<Uri>, endpoint: ManualEndpoint, messageText: String? = null) {
         if (uris.isEmpty()) return
-        notifyListeners { it.onUploadStatus(getString(R.string.manual_send_connecting)) }
+        notifyListeners { it.onUploadStatus(text(R.string.manual_send_connecting)) }
         networkExecutor.execute {
             try {
                 // A discovered device already carries its announced protocol and, for HTTPS,
@@ -197,7 +202,7 @@ class TransferService : Service(), DiscoveryListener {
                     if (!serviceDestroyed) send(uris, device, messageText)
                 }
             } catch (_: Exception) {
-                notifyListeners { it.onUploadError(getString(R.string.manual_send_failed, endpoint.host, endpoint.port)) }
+                notifyListeners { it.onUploadError(text(R.string.manual_send_failed, endpoint.host, endpoint.port)) }
             }
         }
     }
@@ -209,7 +214,7 @@ class TransferService : Service(), DiscoveryListener {
         lastTransferMessage = null
         resetProgressDispatch()
         resetTransferMetrics()
-        activeNotificationTitle = getString(R.string.notification_uploading)
+        activeNotificationTitle = text(R.string.notification_uploading)
         activeNotificationProgress = 0
         uploadClient.send(uris, device, messageText, object : UploadClient.Listener {
             override fun onStatus(message: String) {
@@ -269,7 +274,7 @@ class TransferService : Service(), DiscoveryListener {
             override fun onProgress(sessionId: String, fileId: String, fileName: String, fileIndex: Int, fileCount: Int, sent: Long, total: Long, totalSent: Long, totalBytes: Long) {
                 if (cancellationRequested) return
                 hasActiveTransfer = true
-                activeNotificationTitle = getString(R.string.notification_uploading)
+                activeNotificationTitle = text(R.string.notification_uploading)
                 activeNotificationProgress = if (totalBytes > 0) ((totalSent * 100L) / totalBytes).toInt().coerceIn(0, 100) else 0
                 updateTransferMetrics(totalSent, totalBytes)
                 dispatchProgressIfNeeded(totalSent, totalBytes) { listener ->
@@ -301,7 +306,7 @@ class TransferService : Service(), DiscoveryListener {
                 outgoingScreenAwakeSessionId?.let(::endScreenAwakeSession)
                 outgoingScreenAwakeSessionId = null
                 resetProgressDispatch()
-                lastTransferMessage = getString(R.string.upload_completed, names.joinToString("、"))
+                lastTransferMessage = text(R.string.upload_completed, names.joinToString(text(R.string.file_name_separator)))
                 finishOutgoingQueues(ActiveTransferFile.Status.COMPLETED)
                 cancellationRequested = false
                 hasActiveTransfer = hasActiveTransferEntries()
@@ -338,7 +343,7 @@ class TransferService : Service(), DiscoveryListener {
             // on this worker, before the local session is removed.
             discoveryManager?.cancelIncomingTransfer()
             mainHandler.post {
-                lastTransferMessage = getString(R.string.upload_cancelled)
+                lastTransferMessage = text(R.string.upload_cancelled)
                 if (!stopService) {
                     cancellationRequested = false
                     clearTransferNotification()
@@ -414,7 +419,7 @@ class TransferService : Service(), DiscoveryListener {
         hasActiveTransfer = true
         // Multiple files may upload concurrently. Keep the notification title
         // stable instead of replacing it on every file progress callback.
-        activeNotificationTitle = getString(R.string.notification_receiving_files)
+        activeNotificationTitle = text(R.string.notification_receiving_files)
         val aggregate = incomingProgress(sessionId)
         activeNotificationProgress = if (aggregate.second > 0) ((aggregate.first * 100L) / aggregate.second).toInt().coerceIn(0, 100) else 0
         updateTransferMetrics(aggregate.first, aggregate.second)
@@ -433,7 +438,7 @@ class TransferService : Service(), DiscoveryListener {
                 ActiveTransferFile.Status.CANCELLED
             ).also { incomingFiles[sessionId]?.set(fileId, it) }
         }
-        lastTransferMessage = getString(R.string.download_cancelled, fileName)
+        lastTransferMessage = text(R.string.download_cancelled, fileName)
         notifyListeners { it.onFileReceiveCancelled(state, sessionComplete) }
         if (sessionComplete) {
             endScreenAwakeSession(sessionId)
@@ -450,7 +455,7 @@ class TransferService : Service(), DiscoveryListener {
             incomingFiles[sessionId]?.get(fileId)?.let { incomingFiles[sessionId]?.set(fileId, it.copy(receivedBytes = it.totalBytes, status = ActiveTransferFile.Status.COMPLETED)) }
             if (settings.saveReceiveHistory()) receiveHistory.add(file, incomingSenders[sessionId])
         }
-        lastTransferMessage = getString(R.string.download_completed, file.displayName)
+        lastTransferMessage = text(R.string.download_completed, file.displayName)
         notifyListeners { it.onFileReceived(sessionId, fileId, file, sessionComplete) }
         if (sessionComplete) {
             endScreenAwakeSession(sessionId)
@@ -588,15 +593,15 @@ class TransferService : Service(), DiscoveryListener {
         val files = message ?: request.files.values.joinToString(", ") { it.fileName }
         val notification = NotificationCompat.Builder(this, CHANNEL_INCOMING)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(getString(if (message == null) R.string.notification_incoming_title else R.string.incoming_message_title, request.info.alias))
+            .setContentTitle(text(if (message == null) R.string.notification_incoming_title else R.string.incoming_message_title, request.info.alias))
             .setContentText(files)
             .setContentIntent(openAppIntent())
             .setOngoing(true)
             .setAutoCancel(false)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .addAction(0, getString(R.string.incoming_request_accept), acceptIncomingIntent())
-            .addAction(0, getString(R.string.incoming_request_reject), rejectIncomingIntent())
+            .addAction(0, text(R.string.incoming_request_accept), acceptIncomingIntent())
+            .addAction(0, text(R.string.incoming_request_reject), rejectIncomingIntent())
             .build()
         notificationManager().notify(INCOMING_NOTIFICATION_ID, notification)
     }
@@ -626,28 +631,41 @@ class TransferService : Service(), DiscoveryListener {
         super.onDestroy()
     }
 
+    private fun refreshLanguage() {
+        notificationGeneration++
+        createNotificationChannels()
+        if (hasActiveTransfer) {
+            // Progress callbacks will supply the next detailed title in the new language.
+            activeNotificationTitle = text(R.string.notification_service_title)
+            notifyProgress()
+        } else {
+            startForeground(NOTIFICATION_ID, baseNotification())
+        }
+        pendingIncoming?.let { showIncomingRequestNotification(it.request) }
+    }
+
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = notificationManager()
             manager.createNotificationChannel(NotificationChannel(
-                CHANNEL_TRANSFER, getString(R.string.notification_channel_transfer), NotificationManager.IMPORTANCE_LOW
+                CHANNEL_TRANSFER, text(R.string.notification_channel_transfer), NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = getString(R.string.notification_channel_transfer_description)
+                description = text(R.string.notification_channel_transfer_description)
                 setSound(null, null)
                 enableVibration(false)
             })
             manager.createNotificationChannel(NotificationChannel(
-                CHANNEL_INCOMING, getString(R.string.notification_channel_incoming), NotificationManager.IMPORTANCE_DEFAULT
+                CHANNEL_INCOMING, text(R.string.notification_channel_incoming), NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = getString(R.string.notification_channel_incoming_description)
+                description = text(R.string.notification_channel_incoming_description)
             })
         }
     }
 
     private fun baseNotification(): Notification = NotificationCompat.Builder(this, CHANNEL_TRANSFER)
         .setSmallIcon(R.drawable.ic_notification)
-        .setContentTitle(getString(R.string.notification_service_title))
-        .setContentText(getString(R.string.notification_service_text))
+        .setContentTitle(text(R.string.notification_service_title))
+        .setContentText(text(R.string.notification_service_text))
         .setContentIntent(openAppIntent())
         .setOngoing(true)
         .setProgress(0, 0, false)
@@ -657,7 +675,7 @@ class TransferService : Service(), DiscoveryListener {
 
     private fun notifyProgress() {
         val generation = notificationGeneration
-        val title = activeNotificationTitle ?: getString(R.string.notification_service_title)
+        val title = activeNotificationTitle ?: text(R.string.notification_service_title)
         val progress = activeNotificationProgress
         val transferred = activeTransferredBytes
         val total = activeTotalBytes
@@ -671,9 +689,9 @@ class TransferService : Service(), DiscoveryListener {
             }
             val secondLine = if (speed > 0L && total >= transferred) {
                 val remaining = (total - transferred) / speed
-                "ETA: ${formatDuration(remaining)} · ${formatBytes(speed)}/s"
+                text(R.string.notification_eta_speed, formatDuration(remaining), formatBytes(speed))
             } else {
-                "ETA: --:-- · ${formatBytes(speed)}/s"
+                text(R.string.notification_eta_speed, "--:--", formatBytes(speed))
             }
             val builder = NotificationCompat.Builder(this, CHANNEL_TRANSFER)
                 .setSmallIcon(R.drawable.ic_notification)
@@ -684,7 +702,7 @@ class TransferService : Service(), DiscoveryListener {
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
-                .addAction(0, getString(R.string.cancel_transfer), cancelIntent())
+                .addAction(0, text(R.string.cancel_transfer), cancelIntent())
                 .setStyle(NotificationCompat.BigTextStyle().bigText("$firstLine\n$secondLine"))
                 .setProgress(100, progress, false)
             startForeground(NOTIFICATION_ID, builder.build())
@@ -791,6 +809,7 @@ class TransferService : Service(), DiscoveryListener {
     companion object {
         const val ACTION_CANCEL = "io.github.mouse233.localsendkotlin.CANCEL_TRANSFER"
         const val ACTION_RELOAD_SETTINGS = "io.github.mouse233.localsendkotlin.RELOAD_SETTINGS"
+        const val ACTION_REFRESH_LANGUAGE = "io.github.mouse233.localsendkotlin.REFRESH_LANGUAGE"
         const val ACTION_REFRESH_SCREEN_AWAKE = "io.github.mouse233.localsendkotlin.REFRESH_SCREEN_AWAKE"
         const val ACTION_STOP_SERVICE = "io.github.mouse233.localsendkotlin.STOP_SERVICE"
         private const val ACTION_ACCEPT_INCOMING = "io.github.mouse233.localsendkotlin.ACCEPT_INCOMING"

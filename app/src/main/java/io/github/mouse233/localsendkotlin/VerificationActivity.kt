@@ -48,7 +48,7 @@ class VerificationActivity : LocalizedActivity() {
     private fun createIconView(name: String, iconTypeface: Typeface): TextView = TextView(this).apply {
         layoutParams = GridLayout.LayoutParams().apply { width = 52.dp; height = 52.dp; setMargins(4.dp, 4.dp, 4.dp, 4.dp) }
         gravity = android.view.Gravity.CENTER
-        contentDescription = name
+        contentDescription = resources.getStringArray(R.array.verification_icon_labels)[VerificationCode.ICON_ALPHABET.indexOf(name)]
         text = name
         typeface = iconTypeface
         setFontFeatureSettings("liga")

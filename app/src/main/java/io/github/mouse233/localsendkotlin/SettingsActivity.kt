@@ -26,6 +26,7 @@ import io.github.mouse233.localsendkotlin.settings.DeviceType
 import io.github.mouse233.localsendkotlin.settings.ThemeColorPreset
 import io.github.mouse233.localsendkotlin.discovery.NetworkInterfaceCatalog
 import io.github.mouse233.localsendkotlin.transfer.TransferService
+import io.github.mouse233.localsendkotlin.transfer.TransferServiceState
 import io.github.mouse233.localsendkotlin.ui.SystemBars
 import io.github.mouse233.localsendkotlin.ui.ThemeColors
 import java.util.concurrent.ExecutorService
@@ -179,7 +180,7 @@ class SettingsActivity : LocalizedActivity() {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.settings_device_information)
             .setView(content)
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .show()
         ThemeColors.apply(dialog)
@@ -206,7 +207,7 @@ class SettingsActivity : LocalizedActivity() {
             .setTitle(R.string.settings_receive_pin_title)
             .setMessage(R.string.settings_receive_pin_message)
             .setView(content)
-            .setNegativeButton(android.R.string.cancel) { _, _ -> pinSwitch.isChecked = false }
+            .setNegativeButton(R.string.cancel) { _, _ -> pinSwitch.isChecked = false }
             .setPositiveButton(R.string.save, null)
             .setOnCancelListener { if (!saved) pinSwitch.isChecked = false }
             .create()
@@ -236,6 +237,9 @@ class SettingsActivity : LocalizedActivity() {
             .setTitle(R.string.settings_language)
             .setSingleChoiceItems(languages, selected) { dialog, which ->
                 settings.setLanguage(codes[which])
+                if (TransferServiceState.isRunning()) {
+                    startService(Intent(this, TransferService::class.java).setAction(TransferService.ACTION_REFRESH_LANGUAGE))
+                }
                 dialog.dismiss()
                 recreate()
             }
@@ -362,7 +366,7 @@ class SettingsActivity : LocalizedActivity() {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.settings_network_interfaces)
             .setView(content)
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .create()
         dialog.setOnShowListener {
@@ -398,7 +402,7 @@ class SettingsActivity : LocalizedActivity() {
         val dialog = AlertDialog.Builder(this)
             .setTitle(title)
             .setView(content)
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .show()
         ThemeColors.apply(dialog)
