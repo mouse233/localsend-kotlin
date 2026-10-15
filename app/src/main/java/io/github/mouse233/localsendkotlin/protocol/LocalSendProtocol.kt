@@ -5,6 +5,7 @@ object LocalSendProtocol {
     const val VERSION = "2.0"
     const val DEFAULT_PORT = 53317
     const val MULTICAST_ADDRESS = "224.0.0.167"
+    const val INFO_PATH = "/api/localsend/v2/info"
     const val REGISTER_PATH = "/api/localsend/v2/register"
     const val PREPARE_UPLOAD_PATH = "/api/localsend/v2/prepare-upload"
     const val PIN_QUERY_PARAMETER = "pin"

@@ -3,6 +3,7 @@ package io.github.mouse233.localsendkotlin.server
 import com.google.gson.Gson
 import fi.iki.elonen.NanoHTTPD
 import io.github.mouse233.localsendkotlin.model.DeviceInfo
+import io.github.mouse233.localsendkotlin.model.InfoResponse
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
 import io.github.mouse233.localsendkotlin.security.PinAuthenticator
@@ -54,12 +55,19 @@ class LocalSendServer(
                 "contentLength=$contentLengthHeader transferEncoding=$transferEncodingHeader " +
                 "parameters=${session.parms.keys}"
         )
-        if (session.method != Method.POST) {
-            Log.w(TAG, "Rejecting non-POST request")
-            return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "Not found")
-        }
-
         return try {
+            // This read-only query must not register a peer or enter the PIN/transfer flow.
+            if (session.method == Method.GET && session.uri == LocalSendProtocol.INFO_PATH) {
+                return newFixedLengthResponse(
+                    Response.Status.OK,
+                    "application/json; charset=utf-8",
+                    gson.toJson(InfoResponse.from(localDevice()))
+                )
+            }
+            if (session.method != Method.POST) {
+                Log.w(TAG, "Rejecting unsupported request method: ${session.method}")
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "Not found")
+            }
             if (session.uri == LocalSendProtocol.PREPARE_UPLOAD_PATH) return prepareUpload(session)
             if (session.uri == LocalSendProtocol.UPLOAD_PATH) return receiveFile(session)
             if (session.uri == LocalSendProtocol.CANCEL_PATH) return cancel(session)

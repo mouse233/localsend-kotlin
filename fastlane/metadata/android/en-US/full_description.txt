@@ -3,10 +3,11 @@ LocalSend Kotlin is an unofficial, lightweight native Android LocalSend client w
 Implemented features:
 
 - LAN device discovery using LocalSend v2 UDP multicast, with an HTTPS scanning fallback and selectable network interfaces.
+- Read-only LocalSend v2 device information endpoint (/api/localsend/v2/info), including the device fingerprint.
 - Sending and receiving files, folders, media, text, and clipboard content.
 - Multi-file queues with progress, cancellation, configurable receive behavior, and history.
 - HTTPS, certificate-fingerprint identity verification, optional PIN authentication, and SHA-256 checksums.
-- System Default, Simplified Chinese, and English interfaces, plus theme colors, dark mode, device and favorite management, and network and transfer settings.
+- System Default, Simplified Chinese, and English interfaces, with English as the fallback for unsupported system languages, plus theme colors, dark mode, device and favorite management, and network and transfer settings.
 - Foreground-service transfers with lock-screen support, notifications, and an optional keep-screen-awake mode.
 - Android Quick Settings tile for toggling the background transfer service on Android 7.0 (API 24) and later.
 - Android system share target for single files, multiple files, and text content.
@@ -15,6 +16,7 @@ Compatibility:
 
 - Android 5.0 (API 21) and later.
 - Both devices must be connected to the same local network.
+- The client advertises protocol version 2.0 and implements the main LocalSend v2 discovery and upload workflows; complete protocol conformance has not been verified. The browser download API is not implemented (download: false).
 - Guest networks, AP/client isolation, multicast filtering, or vendor firewalls may prevent discovery or the TCP connection.
 
 Storage:

@@ -1,0 +1,4 @@
+- Added the LocalSend v2 /info endpoint with the device identity and certificate fingerprint.
+- Unsupported system languages now fall back to English.
+- Completed localization of transfer status, notifications, discovery errors, history text, verification accessibility labels, and dialog buttons.
+- Preserved Android 5.0 compatibility constraints for automatic AndroidX Core updates.
