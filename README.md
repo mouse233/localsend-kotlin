@@ -4,7 +4,7 @@
 
 An unofficial, lightweight native Android LocalSend client written in Kotlin. This project is not affiliated with or endorsed by the official LocalSend project. It aims to interoperate with the official LocalSend clients and provide secure file transfer on local networks, including older Android devices.
 
-> Current version: `v0.7.9-alpha`
+> Current version: `v0.8.0-alpha`
 >
 > The core workflow is usable, but compatibility across Android versions, vendor-specific background policies, and long-running transfers still needs more real-device validation.
 
@@ -14,12 +14,14 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 
 - LAN device discovery
   - LocalSend v2 UDP multicast with an HTTPS scanning fallback, selectable network interfaces, and Android 5.0 (API 21) compatibility
+- Device information API
+  - Read-only LocalSend v2 `/info` endpoint with the device identity and certificate fingerprint
 - File transfer
   - Send and receive files, folders, media, text, and clipboard content with multi-file queues, progress, cancellation, configurable receive behavior, and history
 - Secure transfer
   - HTTPS, certificate-fingerprint identity verification, optional PIN authentication, and SHA-256 checksums
 - Interface and settings
-  - System Default, Simplified Chinese, and English, plus theme colors, dark mode, device and favorite management, and network/transfer settings
+  - System Default, Simplified Chinese, and English, with English as the fallback for unsupported system languages, plus theme colors, dark mode, device and favorite management, and network/transfer settings
 - Background transfer
   - Foreground-service transfers with lock-screen support, notifications, and an optional keep-screen-awake mode
 - Quick access
@@ -57,7 +59,7 @@ An unofficial, lightweight native Android LocalSend client written in Kotlin. Th
 | Target SDK | API 33 |
 | Java/Kotlin JVM | Java 8 language level; JDK 17 required for builds |
 | Default port | TCP/UDP `53317` |
-| Protocol | LocalSend Protocol v2.2 / version `2.0` |
+| Protocol | LocalSend v2; advertised protocol version `2.0` |
 
 The Quick Settings tile is available on Android 7.0 (API 24) and later. On Android 5.0–6.0 (API 21–23), the app continues to work normally without the system tile because those versions do not provide the platform API.
 
@@ -113,7 +115,11 @@ The **Refresh** button clears the current device list and sends another device m
 
 ## Protocol and security
 
-The implementation covers LocalSend v2 device registration, prepare-upload, upload, receive, and cancellation endpoints. HTTPS uses a locally generated device certificate and pins the peer certificate fingerprint for outbound device communication; the server also validates the client fingerprint at the LocalSend layer. It does not depend on a public CA and is intended for local-network use, not as a public HTTPS service.
+The implementation covers LocalSend v2 device information, device registration, prepare-upload, upload, receive, and cancellation endpoints. HTTPS uses a locally generated device certificate and pins the peer certificate fingerprint for outbound device communication; the server also validates the client fingerprint at the LocalSend layer. It does not depend on a public CA and is intended for local-network use, not as a public HTTPS service.
+
+`GET /api/localsend/v2/info` returns `alias`, protocol `version`, optional `deviceModel` and `deviceType`, `fingerprint`, and `download` (`false`, because the browser download API is not implemented). This read-only query requires no receive PIN and does not register the caller. It uses the configured HTTP/HTTPS port; HTTPS retains the server's client-certificate requirement. The fingerprint is the SHA-256 hash of the server certificate in HTTPS mode, or the saved random device identity in HTTP mode. Clients verifying a trusted HTTPS device should compare the actual TLS certificate fingerprint with their saved value.
+
+The v2.2 specification below is a reference. The client implements the main v2 discovery and upload workflows; complete conformance to all protocol requirements has not been verified. The browser download API is not implemented and is advertised as `download: false`. The app version (`0.8.0-alpha`) and the advertised protocol version (`2.0`) are separate values.
 
 Protocol references:
 

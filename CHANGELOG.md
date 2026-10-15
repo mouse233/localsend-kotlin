@@ -1,5 +1,41 @@
 # Changelog
 
+## [v0.8.0-alpha] - 2026-10-15
+
+### Added
+
+- Added the read-only LocalSend v2 `GET /api/localsend/v2/info` endpoint, including the device identity, fingerprint, and download capability (issue #54).
+
+### Changed
+
+- Made English the fallback for unsupported system languages while retaining Simplified Chinese and English language selection.
+- Kept automatic AndroidX Core updates within the Android 5.0 (API 21) compatibility constraints.
+- Clarified the advertised protocol version and the limits of protocol conformance in the documentation.
+
+### Fixed
+
+- Localized transfer progress, notifications, discovery errors, history placeholders, and verification icon accessibility descriptions.
+- Kept dialog action buttons in the selected app language, independently of the system or device manufacturer's language.
+
+## 中文说明
+
+### v0.8.0-alpha（2026-10-15）
+
+#### 新增
+
+- 新增只读的 LocalSend v2 `GET /api/localsend/v2/info` 接口，返回设备身份、指纹和下载能力（issue #54）。
+
+#### 调整
+
+- 不支持的系统语言改为回退到英文，同时保留简体中文和 English 语言选项。
+- 限制 AndroidX Core 的自动更新范围，保持 Android 5.0（API 21）兼容要求。
+- 在文档中明确对外声明的协议版本和协议符合性的验证范围。
+
+#### 修复
+
+- 补全传输进度、通知、设备发现错误、历史记录占位文本和验证图标无障碍描述的中英文文案。
+- 对话框操作按钮遵循应用所选语言，不再受系统或设备厂商语言影响。
+
 ## [v0.7.9-alpha] - 2026-09-06
 
 ### Fixed
