@@ -137,7 +137,7 @@ class ReceiveSettingsActivity : LocalizedActivity() {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.incoming_settings_rename_file_title)
             .setView(input)
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .create()
         dialog.show()

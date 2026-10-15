@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cancel">取消</string>
+    <string name="ok">确定</string>
+    <string name="upload_preparing_files">正在准备 %1$d 个文件…</string>
+    <string name="upload_preparing_file">正在准备文件 %1$d/%2$d…</string>
+    <string name="upload_requesting_receiver">正在请求 %1$s 接收文件…</string>
+    <string name="upload_sending_file">正在发送 %1$d/%2$d：%3$s</string>
+    <string name="upload_not_accepted">接收方未接受文件</string>
+    <string name="upload_failed">文件发送失败</string>
+    <string name="upload_tls_failed">无法验证接收方的 TLS 证书，已拒绝连接。</string>
+    <string name="upload_timeout">接收方响应超时，请检查其网络连接后重试。</string>
+    <string name="upload_connection_failed">无法连接到接收方，请检查其地址和网络连接。</string>
+    <string name="upload_access_denied">没有文件访问权限，请重新选择文件后重试。</string>
+    <string name="upload_request_rejected">接收方拒绝请求（%1$d）</string>
+    <string name="upload_invalid_response">接收方响应无效</string>
+    <string name="upload_cannot_read_file">无法读取文件</string>
+    <string name="upload_http_failed">上传失败（%1$d）</string>
+    <string name="upload_unknown_file_size">无法确定文件大小</string>
+    <string name="notification_eta_speed">剩余时间：%1$s · %2$s/秒</string>
+    <string name="discovery_start_failed">无法启动设备发现：%1$s</string>
+    <string name="discovery_network_error">网络错误</string>
+    <string name="discovery_connection_lost">设备发现连接已断开</string>
+    <string name="discovery_no_interface">所选网络接口均不可用</string>
+    <string name="discovery_listen_failed">无法在所选网络接口上监听</string>
+    <string name="discovery_connectivity_unavailable">网络连接服务不可用</string>
+    <string name="discovery_bind_failed">无法使用所选网络接口</string>
+    <string name="unknown_sender">未知设备</string>
+    <string name="file_name_separator">、</string>
+</resources>

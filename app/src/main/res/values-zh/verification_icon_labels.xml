@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Order matches VerificationCode.ICON_ALPHABET; glyph names remain protocol identifiers. -->
+    <string-array name="verification_icon_labels">
+        <!-- icon: ac_unit -->
+        <item>雪花</item>
+        <!-- icon: accessibility -->
+        <item>无障碍</item>
+        <!-- icon: agriculture -->
+        <item>农业</item>
+        <!-- icon: alarm -->
+        <item>闹钟</item>
+        <!-- icon: album -->
+        <item>唱片</item>
+        <!-- icon: anchor -->
+        <item>船锚</item>
+        <!-- icon: android -->
+        <item>安卓机器人</item>
+        <!-- icon: apartment -->
+        <item>公寓</item>
+        <!-- icon: apple -->
+        <item>苹果</item>
+        <!-- icon: architecture -->
+        <item>建筑</item>
+        <!-- icon: attach_file -->
+        <item>附件</item>
+        <!-- icon: attach_money -->
+        <item>金钱</item>
+        <!-- icon: audiotrack -->
+        <item>音符</item>
+        <!-- icon: back_hand -->
+        <item>手背</item>
+        <!-- icon: backpack -->
+        <item>背包</item>
+        <!-- icon: badge -->
+        <item>证件</item>
+        <!-- icon: bakery_dining -->
+        <item>面包</item>
+        <!-- icon: balance -->
+        <item>天平</item>
+        <!-- icon: bathtub -->
+        <item>浴缸</item>
+        <!-- icon: battery_full -->
+        <item>满电电池</item>
+        <!-- icon: bento -->
+        <item>便当</item>
+        <!-- icon: biotech -->
+        <item>生物科技</item>
+        <!-- icon: blender -->
+        <item>搅拌机</item>
+        <!-- icon: bluetooth -->
+        <item>蓝牙</item>
+        <!-- icon: bolt -->
+        <item>闪电</item>
+        <!-- icon: bookmark -->
+        <item>书签</item>
+        <!-- icon: brush -->
+        <item>画笔</item>
+        <!-- icon: bug_report -->
+        <item>昆虫</item>
+        <!-- icon: build -->
+        <item>扳手</item>
+        <!-- icon: cable -->
+        <item>电缆</item>
+        <!-- icon: cake -->
+        <item>蛋糕</item>
+        <!-- icon: calculate -->
+        <item>计算器</item>
+        <!-- icon: calendar_today -->
+        <item>日历</item>
+        <!-- icon: campaign -->
+        <item>扩音器</item>
+        <!-- icon: casino -->
+        <item>骰子</item>
+        <!-- icon: cast -->
+        <item>投屏</item>
+        <!-- icon: castle -->
+        <item>城堡</item>
+        <!-- icon: celebration -->
+        <item>庆祝</item>
+        <!-- icon: cell_tower -->
+        <item>信号塔</item>
+        <!-- icon: chair -->
+        <item>椅子</item>
+        <!-- icon: change_history -->
+        <item>三角形</item>
+        <!-- icon: chat -->
+        <item>聊天</item>
+        <!-- icon: checkroom -->
+        <item>衣帽间</item>
+        <!-- icon: church -->
+        <item>教堂</item>
+        <!-- icon: circle -->
+        <item>圆形</item>
+        <!-- icon: cloud -->
+        <item>云</item>
+        <!-- icon: coffee_maker -->
+        <item>咖啡机</item>
+        <!-- icon: colorize -->
+        <item>滴管</item>
+        <!-- icon: computer -->
+        <item>电脑</item>
+        <!-- icon: confirmation_number -->
+        <item>票券</item>
+        <!-- icon: content_cut -->
+        <item>剪刀</item>
+        <!-- icon: conveyor_belt -->
+        <item>传送带</item>
+        <!-- icon: cookie -->
+        <item>饼干</item>
+        <!-- icon: coronavirus -->
+        <item>病毒</item>
+        <!-- icon: cottage -->
+        <item>小屋</item>
+        <!-- icon: credit_card -->
+        <item>信用卡</item>
+        <!-- icon: cruelty_free -->
+        <item>兔子</item>
+        <!-- icon: cyclone -->
+        <item>旋风</item>
+        <!-- icon: delete -->
+        <item>删除</item>
+        <!-- icon: diamond -->
+        <item>钻石</item>
+        <!-- icon: directions_bike -->
+        <item>自行车</item>
+        <!-- icon: directions_boat -->
+        <item>船</item>
+        <!-- icon: directions_bus -->
+        <item>公交车</item>
+        <!-- icon: directions_car -->
+        <item>汽车</item>
+        <!-- icon: door_front_door -->
+        <item>前门</item>
+        <!-- icon: earbuds -->
+        <item>耳塞</item>
+        <!-- icon: eco -->
+        <item>叶子</item>
+        <!-- icon: edit -->
+        <item>编辑</item>
+        <!-- icon: egg -->
+        <item>鸡蛋</item>
+        <!-- icon: elevator -->
+        <item>电梯</item>
+        <!-- icon: email -->
+        <item>电子邮件</item>
+        <!-- icon: emoji_events -->
+        <item>奖杯</item>
+        <!-- icon: emoji_nature -->
+        <item>自然</item>
+        <!-- icon: engineering -->
+        <item>工程</item>
+        <!-- icon: explore -->
+        <item>指南针</item>
+        <!-- icon: extension -->
+        <item>拼图</item>
+        <!-- icon: face -->
+        <item>人脸</item>
+        <!-- icon: factory -->
+        <item>工厂</item>
+        <!-- icon: fastfood -->
+        <item>快餐</item>
+        <!-- icon: favorite -->
+        <item>爱心</item>
+        <!-- icon: fence -->
+        <item>围栏</item>
+        <!-- icon: festival -->
+        <item>节日</item>
+        <!-- icon: fingerprint -->
+        <item>指纹</item>
+        <!-- icon: fire_extinguisher -->
+        <item>灭火器</item>
+        <!-- icon: fireplace -->
+        <item>壁炉</item>
+        <!-- icon: fitness_center -->
+        <item>健身</item>
+        <!-- icon: flag -->
+        <item>旗帜</item>
+        <!-- icon: flashlight_on -->
+        <item>手电筒</item>
+        <!-- icon: flight -->
+        <item>飞机</item>
+        <!-- icon: flutter_dash -->
+        <item>小鸟</item>
+        <!-- icon: forklift -->
+        <item>叉车</item>
+        <!-- icon: format_paint -->
+        <item>油漆滚筒</item>
+        <!-- icon: gavel -->
+        <item>法槌</item>
+        <!-- icon: grass -->
+        <item>草地</item>
+        <!-- icon: groups -->
+        <item>人群</item>
+        <!-- icon: handshake -->
+        <item>握手</item>
+        <!-- icon: hardware -->
+        <item>锤子</item>
+        <!-- icon: headphones -->
+        <item>耳机</item>
+        <!-- icon: healing -->
+        <item>创可贴</item>
+        <!-- icon: hearing -->
+        <item>耳朵</item>
+        <!-- icon: hexagon -->
+        <item>六边形</item>
+        <!-- icon: history_edu -->
+        <item>文书</item>
+        <!-- icon: hive -->
+        <item>蜂巢</item>
+        <!-- icon: home -->
+        <item>家</item>
+        <!-- icon: hourglass_empty -->
+        <item>沙漏</item>
+        <!-- icon: houseboat -->
+        <item>船屋</item>
+        <!-- icon: hub -->
+        <item>集线器</item>
+        <!-- icon: ice_skating -->
+        <item>溜冰鞋</item>
+        <!-- icon: icecream -->
+        <item>冰淇淋</item>
+        <!-- icon: inventory_2 -->
+        <item>库存</item>
+        <!-- icon: iron -->
+        <item>熨斗</item>
+        <!-- icon: kebab_dining -->
+        <item>烤串</item>
+        <!-- icon: key -->
+        <item>钥匙</item>
+        <!-- icon: keyboard -->
+        <item>键盘</item>
+        <!-- icon: king_bed -->
+        <item>大床</item>
+        <!-- icon: kitchen -->
+        <item>厨房</item>
+        <!-- icon: landscape -->
+        <item>山景</item>
+        <!-- icon: layers -->
+        <item>图层</item>
+        <!-- icon: light -->
+        <item>顶灯</item>
+        <!-- icon: lightbulb -->
+        <item>灯泡</item>
+        <!-- icon: link -->
+        <item>链接</item>
+        <!-- icon: liquor -->
+        <item>酒瓶</item>
+        <!-- icon: local_bar -->
+        <item>鸡尾酒</item>
+        <!-- icon: local_cafe -->
+        <item>咖啡杯</item>
+        <!-- icon: local_drink -->
+        <item>饮料</item>
+        <!-- icon: local_florist -->
+        <item>花朵</item>
+        <!-- icon: local_gas_station -->
+        <item>加油站</item>
+        <!-- icon: local_laundry_service -->
+        <item>洗衣机</item>
+        <!-- icon: local_mall -->
+        <item>购物袋</item>
+        <!-- icon: local_pizza -->
+        <item>披萨</item>
+        <!-- icon: local_shipping -->
+        <item>货车</item>
+        <!-- icon: local_taxi -->
+        <item>出租车</item>
+        <!-- icon: location_city -->
+        <item>城市</item>
+        <!-- icon: lock -->
+        <item>锁</item>
+        <!-- icon: luggage -->
+        <item>行李箱</item>
+        <!-- icon: map -->
+        <item>地图</item>
+        <!-- icon: markunread_mailbox -->
+        <item>信箱</item>
+        <!-- icon: masks -->
+        <item>口罩</item>
+        <!-- icon: medication -->
+        <item>药物</item>
+        <!-- icon: memory -->
+        <item>芯片</item>
+        <!-- icon: menu -->
+        <item>菜单</item>
+        <!-- icon: menu_book -->
+        <item>菜单书</item>
+        <!-- icon: mic -->
+        <item>麦克风</item>
+        <!-- icon: microwave -->
+        <item>微波炉</item>
+        <!-- icon: military_tech -->
+        <item>军衔</item>
+        <!-- icon: monitor_heart -->
+        <item>心率</item>
+        <!-- icon: mood -->
+        <item>笑脸</item>
+        <!-- icon: mosque -->
+        <item>清真寺</item>
+        <!-- icon: motorcycle -->
+        <item>摩托车</item>
+        <!-- icon: mouse -->
+        <item>老鼠</item>
+        <!-- icon: movie -->
+        <item>电影</item>
+        <!-- icon: museum -->
+        <item>博物馆</item>
+        <!-- icon: newspaper -->
+        <item>报纸</item>
+        <!-- icon: nightlight -->
+        <item>月亮</item>
+        <!-- icon: notifications -->
+        <item>通知铃</item>
+        <!-- icon: oil_barrel -->
+        <item>油桶</item>
+        <!-- icon: outdoor_grill -->
+        <item>烧烤架</item>
+        <!-- icon: outlet -->
+        <item>插座</item>
+        <!-- icon: palette -->
+        <item>调色板</item>
+        <!-- icon: park -->
+        <item>树木</item>
+        <!-- icon: pentagon -->
+        <item>五边形</item>
+        <!-- icon: person -->
+        <item>人物</item>
+        <!-- icon: pets -->
+        <item>宠物</item>
+        <!-- icon: phishing -->
+        <item>鱼钩</item>
+        <!-- icon: phone -->
+        <item>电话</item>
+        <!-- icon: photo_camera -->
+        <item>照相机</item>
+        <!-- icon: piano -->
+        <item>钢琴</item>
+        <!-- icon: pie_chart -->
+        <item>饼图</item>
+        <!-- icon: place -->
+        <item>地图标记</item>
+        <!-- icon: pool -->
+        <item>游泳池</item>
+        <!-- icon: power -->
+        <item>电源插头</item>
+        <!-- icon: precision_manufacturing -->
+        <item>机械臂</item>
+        <!-- icon: print -->
+        <item>打印机</item>
+        <!-- icon: propane_tank -->
+        <item>煤气罐</item>
+        <!-- icon: psychology -->
+        <item>大脑</item>
+        <!-- icon: public -->
+        <item>地球</item>
+        <!-- icon: push_pin -->
+        <item>图钉</item>
+        <!-- icon: qr_code -->
+        <item>二维码</item>
+        <!-- icon: radar -->
+        <item>雷达</item>
+        <!-- icon: radio -->
+        <item>收音机</item>
+        <!-- icon: ramen_dining -->
+        <item>拉面</item>
+        <!-- icon: receipt -->
+        <item>收据</item>
+        <!-- icon: recycling -->
+        <item>回收</item>
+        <!-- icon: redeem -->
+        <item>礼物</item>
+        <!-- icon: refresh -->
+        <item>刷新</item>
+        <!-- icon: restaurant -->
+        <item>餐厅</item>
+        <!-- icon: rocket -->
+        <item>火箭</item>
+        <!-- icon: room_service -->
+        <item>客房服务</item>
+        <!-- icon: route -->
+        <item>路线</item>
+        <!-- icon: router -->
+        <item>路由器</item>
+        <!-- icon: sailing -->
+        <item>帆船</item>
+        <!-- icon: satellite_alt -->
+        <item>卫星</item>
+        <!-- icon: savings -->
+        <item>储蓄罐</item>
+        <!-- icon: school -->
+        <item>学校</item>
+        <!-- icon: science -->
+        <item>科学</item>
+        <!-- icon: search -->
+        <item>搜索</item>
+        <!-- icon: settings -->
+        <item>设置</item>
+        <!-- icon: shelves -->
+        <item>货架</item>
+        <!-- icon: shield -->
+        <item>盾牌</item>
+        <!-- icon: shopping_basket -->
+        <item>购物篮</item>
+        <!-- icon: shopping_cart -->
+        <item>购物车</item>
+        <!-- icon: shower -->
+        <item>淋浴</item>
+        <!-- icon: signpost -->
+        <item>路标</item>
+        <!-- icon: sim_card -->
+        <item>电话卡</item>
+        <!-- icon: smart_toy -->
+        <item>机器人玩具</item>
+        <!-- icon: smartphone -->
+        <item>智能手机</item>
+        <!-- icon: smoking_rooms -->
+        <item>吸烟区</item>
+        <!-- icon: soap -->
+        <item>肥皂</item>
+        <!-- icon: solar_power -->
+        <item>太阳能</item>
+        <!-- icon: speaker -->
+        <item>扬声器</item>
+        <!-- icon: sports_esports -->
+        <item>游戏手柄</item>
+        <!-- icon: sports_football -->
+        <item>橄榄球</item>
+        <!-- icon: sports_golf -->
+        <item>高尔夫</item>
+        <!-- icon: sports_hockey -->
+        <item>冰球</item>
+        <!-- icon: sports_motorsports -->
+        <item>赛车</item>
+        <!-- icon: sports_soccer -->
+        <item>足球</item>
+        <!-- icon: sports_tennis -->
+        <item>网球</item>
+        <!-- icon: square -->
+        <item>正方形</item>
+        <!-- icon: stadium -->
+        <item>体育场</item>
+        <!-- icon: stairs -->
+        <item>楼梯</item>
+        <!-- icon: star -->
+        <item>星星</item>
+        <!-- icon: store -->
+        <item>商店</item>
+        <!-- icon: straighten -->
+        <item>尺子</item>
+        <!-- icon: stroller -->
+        <item>婴儿车</item>
+        <!-- icon: table_restaurant -->
+        <item>餐桌</item>
+        <!-- icon: tag -->
+        <item>标签</item>
+        <!-- icon: temple_buddhist -->
+        <item>佛寺</item>
+        <!-- icon: theater_comedy -->
+        <item>喜剧面具</item>
+        <!-- icon: theaters -->
+        <item>电影院</item>
+        <!-- icon: thermostat -->
+        <item>温度计</item>
+        <!-- icon: thumb_up -->
+        <item>点赞</item>
+        <!-- icon: toggle_on -->
+        <item>开关</item>
+        <!-- icon: toll -->
+        <item>收费站</item>
+        <!-- icon: tornado -->
+        <item>龙卷风</item>
+        <!-- icon: toys -->
+        <item>玩具</item>
+        <!-- icon: traffic -->
+        <item>交通灯</item>
+        <!-- icon: train -->
+        <item>火车</item>
+        <!-- icon: tune -->
+        <item>调节</item>
+        <!-- icon: umbrella -->
+        <item>雨伞</item>
+        <!-- icon: usb -->
+        <item>通用串行总线</item>
+        <!-- icon: vaccines -->
+        <item>疫苗</item>
+        <!-- icon: videocam -->
+        <item>摄像机</item>
+        <!-- icon: view_in_ar -->
+        <item>增强现实</item>
+        <!-- icon: visibility -->
+        <item>眼睛</item>
+        <!-- icon: voicemail -->
+        <item>语音信箱</item>
+        <!-- icon: volcano -->
+        <item>火山</item>
+        <!-- icon: wallet -->
+        <item>钱包</item>
+        <!-- icon: warehouse -->
+        <item>仓库</item>
+        <!-- icon: warning -->
+        <item>警告</item>
+        <!-- icon: watch -->
+        <item>手表</item>
+        <!-- icon: water_drop -->
+        <item>水滴</item>
+        <!-- icon: waves -->
+        <item>波浪</item>
+        <!-- icon: wb_sunny -->
+        <item>太阳</item>
+        <!-- icon: weekend -->
+        <item>沙发</item>
+        <!-- icon: whatshot -->
+        <item>火焰</item>
+        <!-- icon: wifi -->
+        <item>无线网络</item>
+        <!-- icon: wind_power -->
+        <item>风力发电</item>
+        <!-- icon: window -->
+        <item>窗户</item>
+        <!-- icon: wine_bar -->
+        <item>葡萄酒</item>
+        <!-- icon: work -->
+        <item>公文包</item>
+    </string-array>
+</resources>

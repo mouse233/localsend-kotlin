@@ -10,9 +10,8 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import io.github.mouse233.localsendkotlin.R
+import io.github.mouse233.localsendkotlin.history.ReceiveHistoryText
 import io.github.mouse233.localsendkotlin.model.ReceiveHistoryEntry
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 class ReceiveHistoryAdapter(
@@ -61,15 +60,15 @@ class ReceiveHistoryAdapter(
             details.text = if (entry.isMessage) {
                 itemView.context.getString(
                     R.string.receive_history_message_details,
-                    DATE_FORMAT.format(Date(entry.receivedAt)),
-                    entry.senderAlias
+                    ReceiveHistoryText.receivedAt(itemView.context, entry.receivedAt),
+                    ReceiveHistoryText.sender(itemView.context, entry.senderAlias)
                 )
             } else {
                 itemView.context.getString(
                     R.string.receive_history_details,
-                    DATE_FORMAT.format(Date(entry.receivedAt)),
+                    ReceiveHistoryText.receivedAt(itemView.context, entry.receivedAt),
                     formatBytes(entry.size),
-                    entry.senderAlias
+                    ReceiveHistoryText.sender(itemView.context, entry.senderAlias)
                 )
             }
             itemView.setOnClickListener { onOpen(entry) }
@@ -96,7 +95,6 @@ class ReceiveHistoryAdapter(
         const val MENU_OPEN = 1
         const val MENU_DETAILS = 2
         const val MENU_DELETE = 3
-        val DATE_FORMAT = SimpleDateFormat("yyyy/M/d HH:mm", Locale.CHINA)
         fun formatBytes(bytes: Long): String = when {
             bytes < 1024L -> "$bytes B"
             bytes < 1024L * 1024L -> "%.1f KB".format(Locale.US, bytes / 1024.0)

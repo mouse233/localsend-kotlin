@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="upload_preparing_files">Preparing files (%1$d)…</string>
+    <string name="upload_preparing_file">Preparing file %1$d/%2$d…</string>
+    <string name="upload_requesting_receiver">Requesting %1$s to receive files…</string>
+    <string name="upload_sending_file">Sending %1$d/%2$d: %3$s</string>
+    <string name="upload_not_accepted">The receiver did not accept any files</string>
+    <string name="upload_failed">Could not send files</string>
+    <string name="upload_tls_failed">Could not verify the receiver’s TLS certificate. The connection was refused.</string>
+    <string name="upload_timeout">The receiver did not respond in time. Check its network connection and try again.</string>
+    <string name="upload_connection_failed">Could not connect to the receiver. Check its address and network connection.</string>
+    <string name="upload_access_denied">File access was denied. Select the file again and retry.</string>
+    <string name="upload_request_rejected">The receiver rejected the request (%1$d)</string>
+    <string name="upload_invalid_response">Invalid response from the receiver</string>
+    <string name="upload_cannot_read_file">Could not read the file</string>
+    <string name="upload_http_failed">Upload failed (%1$d)</string>
+    <string name="upload_unknown_file_size">Could not determine the file size</string>
+    <string name="notification_eta_speed">Time left: %1$s · %2$s/s</string>
+    <string name="discovery_start_failed">Could not start device discovery: %1$s</string>
+    <string name="discovery_network_error">Network error</string>
+    <string name="discovery_connection_lost">Device discovery connection lost</string>
+    <string name="discovery_no_interface">No selected network interface is available</string>
+    <string name="discovery_listen_failed">Could not listen on the selected network interfaces</string>
+    <string name="discovery_connectivity_unavailable">Network connectivity service is unavailable</string>
+    <string name="discovery_bind_failed">Could not use the selected network interface</string>
+    <string name="unknown_sender">Unknown device</string>
+    <string name="file_name_separator">", "</string>
+</resources>

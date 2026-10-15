@@ -2,6 +2,7 @@ package io.github.mouse233.localsendkotlin.transfer
 
 import android.content.ContentResolver
 import android.content.Context
+import androidx.annotation.StringRes
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.google.gson.Gson
@@ -9,6 +10,7 @@ import io.github.mouse233.localsendkotlin.discovery.LocalIdentity
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.R
+import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import okhttp3.HttpUrl
 import okhttp3.MediaType
@@ -33,6 +35,7 @@ import java.util.concurrent.TimeUnit.MILLISECONDS
 
 class UploadClient(context: Context, private val identity: LocalIdentity) {
     private val appContext = context.applicationContext
+    private fun text(@StringRes resource: Int, vararg arguments: Any): String = AppLocale.text(appContext, resource, *arguments)
     private val resolver: ContentResolver = appContext.contentResolver
     private val settings = AppSettings(appContext)
     private val httpClient = OkHttpClient.Builder().connectTimeout(8, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
@@ -50,14 +53,14 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     fun send(uris: List<Uri>, device: RemoteDevice, messageText: String?, listener: Listener) {
         executor.execute {
             try {
-                require(uris.isNotEmpty()) { "至少选择一个文件" }
+                require(uris.isNotEmpty()) { text(R.string.select_file_first) }
                 activeDevice = device
                 val cancelled = AtomicBoolean(false)
                 activeCancelFlag = cancelled
-                listener.onStatus("正在准备 ${uris.size} 个文件…")
+                listener.onStatus(text(R.string.upload_preparing_files, uris.size))
                 val filesWithoutChecksums = uris.mapIndexed { index, uri ->
-                    if (cancelled.get()) throw IOException("发送已取消")
-                    listener.onStatus("正在准备文件 ${index + 1}/${uris.size}…")
+                    if (cancelled.get()) throw IOException(text(R.string.upload_cancelled))
+                    listener.onStatus(text(R.string.upload_preparing_file, index + 1, uris.size))
                     val file = readFile(uri, messageText.takeIf { uris.size == 1 })
                     file.copy(id = UUID.randomUUID().toString())
                 }
@@ -65,15 +68,15 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 listener.onPreparationStarted(preparationSessionId, filesWithoutChecksums.map { it.toQueueFile() })
                 val files = if (settings.createChecksums()) {
                     filesWithoutChecksums.mapIndexed { index, file ->
-                        if (cancelled.get()) throw IOException("发送已取消")
+                        if (cancelled.get()) throw IOException(text(R.string.upload_cancelled))
                         listener.onChecksumProgress(preparationSessionId, index + 1, filesWithoutChecksums.size)
                         file.copy(sha256 = sha256(file.uri) { cancelled.get() })
                     }
                 } else {
                     filesWithoutChecksums
                 }
-                if (cancelled.get()) throw IOException("发送已取消")
-                listener.onStatus("正在请求 ${device.alias} 接收文件…")
+                if (cancelled.get()) throw IOException(text(R.string.upload_cancelled))
+                listener.onStatus(text(R.string.upload_requesting_receiver, device.alias))
                 val prepareResult = prepareWithPin(device, files, listener, cancelled)
                 if (prepareResult is PrepareResult.NoTransfer) {
                     // Message requests carry their content in the prepare-upload
@@ -86,15 +89,15 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 activeTransfers[prepared.sessionId] = cancelled
                 activeSessionId = prepared.sessionId
                 val acceptedFiles = files.filter { it.id in prepared.files }
-                if (acceptedFiles.isEmpty()) throw IllegalStateException("接收方未接受文件")
-                if (cancelled.get()) throw IOException("发送已取消")
+                if (acceptedFiles.isEmpty()) throw IllegalStateException(text(R.string.upload_not_accepted))
+                if (cancelled.get()) throw IOException(text(R.string.upload_cancelled))
                 listener.onSessionPrepared(preparationSessionId, prepared.sessionId, acceptedFiles.map { it.toQueueFile() })
                 try {
                     var totalSent = 0L
                     val totalBytes = acceptedFiles.sumOf { it.size }
                     acceptedFiles.forEachIndexed { index, file ->
                         val token = prepared.files.getValue(file.id)
-                        listener.onStatus("正在发送 ${index + 1}/${acceptedFiles.size}：${file.fileName}")
+                        listener.onStatus(text(R.string.upload_sending_file, index + 1, acceptedFiles.size, file.fileName))
                         upload(device, prepared.sessionId, file.id, token, file, cancelled) { sent ->
                             listener.onProgress(prepared.sessionId, file.id, file.fileName, index, acceptedFiles.size, sent, file.size, totalSent + sent, totalBytes)
                         }
@@ -112,7 +115,8 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 activeCancelFlag = null
                 activeSessionId = null
                 activeDevice = null
-                listener.onError(exception.message ?: "文件发送失败")
+                listener.onError(uploadErrorResource(exception)?.let { text(it) }
+                    ?: exception.message ?: text(R.string.upload_failed))
             }
         }
     }
@@ -151,10 +155,10 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
                 PrepareResult.PinRequired -> {
                     attempt++
                     if (attempt > MAX_PIN_ATTEMPTS) {
-                        throw IllegalStateException(appContext.getString(R.string.pin_too_many_attempts))
+                        throw IllegalStateException(text(R.string.pin_too_many_attempts))
                     }
                     pin = awaitPin(device, attempt, listener, cancelled)
-                        ?: throw IllegalStateException(appContext.getString(R.string.pin_input_cancelled))
+                        ?: throw IllegalStateException(text(R.string.pin_input_cancelled))
                 }
             }
         }
@@ -170,12 +174,12 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
             .build()
         client(device).newCall(request).execute().use { response ->
             if (response.code == 401) return PrepareResult.PinRequired
-            if (response.code == 429) throw IllegalStateException(appContext.getString(R.string.pin_too_many_attempts))
+            if (response.code == 429) throw IllegalStateException(text(R.string.pin_too_many_attempts))
             if (response.code == 204) return PrepareResult.NoTransfer
-            if (!response.isSuccessful) throw IllegalStateException("接收方拒绝请求（${response.code}）")
+            if (!response.isSuccessful) throw IllegalStateException(text(R.string.upload_request_rejected, response.code))
             return PrepareResult.Success(
                 gson.fromJson(response.body?.charStream(), PrepareResponse::class.java)
-                    ?: throw IllegalStateException("接收方响应无效")
+                    ?: throw IllegalStateException(text(R.string.upload_invalid_response))
             )
         }
     }
@@ -200,13 +204,13 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         val body = StreamBody(
             file.fileType,
             file.size,
-            source = { resolver.openInputStream(file.uri) ?: throw IllegalStateException("无法读取文件") },
+            source = { resolver.openInputStream(file.uri) ?: throw IllegalStateException(text(R.string.upload_cannot_read_file)) },
             progress = onProgress,
             shouldCancel = { cancelled.get() }
         )
         val request = Request.Builder().url(uploadUrl).post(body).build()
         client(device).newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IllegalStateException("上传失败（${response.code}）")
+            if (!response.isSuccessful) throw IllegalStateException(text(R.string.upload_http_failed, response.code))
         }
     }
 
@@ -227,7 +231,7 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) { name = cursor.getString(0) ?: name; size = cursor.getLong(1) }
         }
-        if (size < 0) throw IllegalArgumentException("无法确定文件大小")
+        if (size < 0) throw IllegalArgumentException(text(R.string.upload_unknown_file_size))
         return FileInfo("", uri, name, size, resolver.getType(uri) ?: "application/octet-stream", null, preview)
     }
 
@@ -236,12 +240,12 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
         resolver.openInputStream(uri)?.use { input ->
             val buffer = ByteArray(BUFFER_SIZE)
             while (true) {
-                if (shouldCancel()) throw IOException("发送已取消")
+                if (shouldCancel()) throw IOException(text(R.string.upload_cancelled))
                 val count = input.read(buffer)
                 if (count < 0) break
                 digest.update(buffer, 0, count)
             }
-        } ?: throw IllegalStateException("无法读取文件")
+        } ?: throw IllegalStateException(text(R.string.upload_cannot_read_file))
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
@@ -266,10 +270,10 @@ class UploadClient(context: Context, private val identity: LocalIdentity) {
     }
     private data class FileInfo(val id: String, val uri: Uri, val fileName: String, val size: Long, val fileType: String, val sha256: String?, val preview: String? = null)
     private fun FileInfo.toQueueFile() = QueueFile(id, fileName, size)
-    private class StreamBody(private val type: String, private val length: Long, private val source: () -> java.io.InputStream, private val progress: (Long) -> Unit, private val shouldCancel: () -> Boolean) : RequestBody() {
+    private inner class StreamBody(private val type: String, private val length: Long, private val source: () -> java.io.InputStream, private val progress: (Long) -> Unit, private val shouldCancel: () -> Boolean) : RequestBody() {
         override fun contentType(): MediaType? = type.toMediaTypeOrNull()
         override fun contentLength(): Long = length
-        override fun writeTo(sink: BufferedSink) { source().use { input -> val buffer = ByteArray(BUFFER_SIZE); var sent = 0L; while (true) { if (shouldCancel()) throw IOException("发送已取消"); val count = input.read(buffer); if (count < 0) break; sink.write(buffer, 0, count); sent += count; progress(sent) } } }
+        override fun writeTo(sink: BufferedSink) { source().use { input -> val buffer = ByteArray(BUFFER_SIZE); var sent = 0L; while (true) { if (shouldCancel()) throw IOException(text(R.string.upload_cancelled)); val count = input.read(buffer); if (count < 0) break; sink.write(buffer, 0, count); sent += count; progress(sent) } } }
     }
     companion object {
         private val activeTransfers = ConcurrentHashMap<String, AtomicBoolean>()
