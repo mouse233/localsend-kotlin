@@ -1,6 +1,7 @@
 package io.github.mouse233.localsendkotlin.discovery
 
 import android.content.Context
+import androidx.annotation.StringRes
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -24,6 +25,8 @@ import io.github.mouse233.localsendkotlin.model.RemoteDevice
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.server.LocalSendServer
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
+import io.github.mouse233.localsendkotlin.R
+import io.github.mouse233.localsendkotlin.settings.AppLocale
 import io.github.mouse233.localsendkotlin.settings.AppSettings
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
 import io.github.mouse233.localsendkotlin.transfer.UploadClient
@@ -47,6 +50,7 @@ class DiscoveryManager(
 ) {
 
     private val appContext = context.applicationContext
+    private fun text(@StringRes resource: Int, vararg arguments: Any): String = AppLocale.text(appContext, resource, *arguments)
     private val gson = Gson()
     private val identity = LocalIdentity(appContext)
     private val settings = AppSettings(appContext)
@@ -124,7 +128,7 @@ class DiscoveryManager(
             acquireMulticastLock()
             val selectedInterfaces = selectedInterfaces()
             if (selectedInterfaces.isEmpty()) {
-                throw IOException("No selected network interface is available")
+                throw IOException(text(R.string.discovery_no_interface))
             }
             val transferManager = IncomingTransferManager(
                 appContext,
@@ -171,7 +175,7 @@ class DiscoveryManager(
                     Log.w(TAG, "Unable to listen on $address:${settings.port()}", exception)
                 }
             }
-            if (startedServers.isEmpty()) throw IOException("Unable to listen on selected network interfaces")
+            if (startedServers.isEmpty()) throw IOException(text(R.string.discovery_listen_failed))
             servers = startedServers
 
             val transports = selectedInterfaces.mapNotNull { createTransport(it) }
@@ -202,7 +206,7 @@ class DiscoveryManager(
             }
         } catch (exception: Exception) {
             Log.e(TAG, "Unable to start LocalSend discovery", exception)
-            reportError("Unable to start discovery: ${exception.message ?: "network error"}")
+            reportError(text(R.string.discovery_start_failed, exception.message ?: text(R.string.discovery_network_error)))
         } finally {
             stop()
         }
@@ -230,7 +234,7 @@ class DiscoveryManager(
                 val device = gson.fromJson(message, DeviceInfo::class.java) ?: continue
                 processAnnouncement(device, packet.address.hostAddress ?: continue)
             } catch (exception: IOException) {
-                if (running.get()) reportError("Discovery connection lost")
+                if (running.get()) reportError(text(R.string.discovery_connection_lost))
                 return
             } catch (exception: Exception) {
                 // Ignore malformed packets from unrelated services on the multicast address.
@@ -341,7 +345,7 @@ class DiscoveryManager(
     private fun scanLocalNetwork() {
         val selectedInterfaces = selectedInterfaces()
         if (selectedInterfaces.isEmpty()) {
-            reportError("No selected network interface is available")
+            reportError(text(R.string.discovery_no_interface))
             return
         }
         selectedInterfaces.flatMap { it.ipv4Addresses }.forEach { localAddress ->
@@ -483,7 +487,7 @@ class DiscoveryManager(
     private fun createTransport(interfaceInfo: LocalNetworkInterface): InterfaceTransport? {
         val networkInterface = NetworkInterface.getByName(interfaceInfo.name) ?: return null
         val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE)
-            as? ConnectivityManager ?: throw IOException("Connectivity service is unavailable")
+            as? ConnectivityManager ?: throw IOException(text(R.string.discovery_connectivity_unavailable))
         val network = connectivityManager.allNetworks.firstOrNull { candidate ->
             connectivityManager.getLinkProperties(candidate)?.interfaceName == interfaceInfo.name
         }
@@ -495,7 +499,7 @@ class DiscoveryManager(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1 || transports.size != 1) return
         val network = transports.first().network ?: return
         if (!ConnectivityManager.setProcessDefaultNetwork(network)) {
-            throw IOException("Unable to bind process to selected network interface")
+            throw IOException(text(R.string.discovery_bind_failed))
         }
         legacyProcessNetworkBound = true
     }
