@@ -75,7 +75,11 @@ class TlsIdentity(context: Context) {
         generator.initialize(KEY_SIZE_BITS)
         val keyPair = generator.generateKeyPair()
         val certificate = createCertificate(keyPair.private, keyPair.public)
-        store.setKeyEntry(ALIAS, keyPair.private, password, arrayOf(certificate))
+        store.setEntry(
+            ALIAS,
+            KeyStore.PrivateKeyEntry(keyPair.private, arrayOf<java.security.cert.Certificate>(certificate)),
+            KeyStore.PasswordProtection(password)
+        )
         FileOutputStream(file).use { store.store(it, password) }
         return store
     }
