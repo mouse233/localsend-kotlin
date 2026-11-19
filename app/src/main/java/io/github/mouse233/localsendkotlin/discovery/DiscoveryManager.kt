@@ -19,6 +19,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.net.ssl.HostnameVerifier
 import io.github.mouse233.localsendkotlin.model.DeviceInfo
+import io.github.mouse233.localsendkotlin.model.DeviceInfoPayload
 import io.github.mouse233.localsendkotlin.model.FavoriteDevice
 import io.github.mouse233.localsendkotlin.model.RegisterResponse
 import io.github.mouse233.localsendkotlin.model.RemoteDevice
@@ -231,7 +232,7 @@ class DiscoveryManager(
             try {
                 multicastSocket.receive(packet)
                 val message = String(packet.data, packet.offset, packet.length, Charsets.UTF_8)
-                val device = gson.fromJson(message, DeviceInfo::class.java) ?: continue
+                val device = gson.fromJson(message, DeviceInfoPayload::class.java)?.toDeviceInfo() ?: continue
                 processAnnouncement(device, packet.address.hostAddress ?: continue)
             } catch (exception: IOException) {
                 if (running.get()) reportError(text(R.string.discovery_connection_lost))

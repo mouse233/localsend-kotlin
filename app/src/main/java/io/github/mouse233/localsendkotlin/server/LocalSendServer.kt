@@ -3,11 +3,13 @@ package io.github.mouse233.localsendkotlin.server
 import com.google.gson.Gson
 import fi.iki.elonen.NanoHTTPD
 import io.github.mouse233.localsendkotlin.model.DeviceInfo
+import io.github.mouse233.localsendkotlin.model.DeviceInfoPayload
 import io.github.mouse233.localsendkotlin.model.InfoResponse
 import io.github.mouse233.localsendkotlin.protocol.LocalSendProtocol
 import io.github.mouse233.localsendkotlin.security.TlsIdentity
 import io.github.mouse233.localsendkotlin.security.PinAuthenticator
 import io.github.mouse233.localsendkotlin.transfer.IncomingTransferManager
+import io.github.mouse233.localsendkotlin.transfer.PrepareUploadPayload
 import java.net.ServerSocket
 import java.net.Socket
 import java.io.IOException
@@ -75,8 +77,8 @@ class LocalSendServer(
                 Log.w(TAG, "Rejecting unknown route: ${session.uri}")
                 return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "Not found")
             }
-            val device = gson.fromJson(readUtf8Body(session), DeviceInfo::class.java)
-                ?: return badRequest()
+            val device = gson.fromJson(readUtf8Body(session), DeviceInfoPayload::class.java)
+                ?.toDeviceInfo() ?: return badRequest()
             if (!validIdentity(device)) return forbidden()
 
             onDeviceRegistered(device, session.remoteIpAddress)
@@ -107,7 +109,7 @@ class LocalSendServer(
 
     private fun prepareUpload(session: IHTTPSession): Response {
         checkPin(session)?.let { return it }
-        val request = gson.fromJson(readUtf8Body(session), IncomingTransferManager.PrepareUploadRequest::class.java) ?: return badRequest()
+        val request = gson.fromJson(readUtf8Body(session), PrepareUploadPayload::class.java)?.toRequest() ?: return badRequest()
         Log.i(TAG, "Prepare upload: files=${request.files.size} ids=${request.files.keys}")
         if (!validIdentity(request.info)) {
             Log.w(TAG, "Prepare upload rejected because client identity did not match TLS certificate")
