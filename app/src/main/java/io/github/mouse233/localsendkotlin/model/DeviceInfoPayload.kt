@@ -19,15 +19,17 @@ data class DeviceInfoPayload(
     val announce: Boolean?
 ) {
     /** Returns null when a field required by the LocalSend v2 protocol is missing. */
-    fun toDeviceInfo(): DeviceInfo? = DeviceInfo(
-        alias = alias ?: return null,
-        version = version ?: return null,
-        deviceModel = deviceModel,
-        deviceType = deviceType,
-        fingerprint = fingerprint ?: return null,
-        port = port ?: return null,
-        protocol = protocol ?: return null,
-        download = download ?: false,
-        announce = announce
-    )
+    fun toDeviceInfo(): DeviceInfo? {
+        return DeviceInfo(
+            alias = alias ?: return null,
+            version = version ?: return null,
+            deviceModel = deviceModel,
+            deviceType = deviceType,
+            fingerprint = fingerprint ?: return null,
+            port = port ?: return null,
+            protocol = protocol ?: return null,
+            download = download ?: false,
+            announce = announce
+        )
+    }
 }
