@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
 import io.github.mouse233.localsendkotlin.BuildConfig
@@ -74,7 +75,7 @@ class IncomingFileStore(context: Context) {
         )
         val uri = DocumentsContract.createDocument(resolver, parentUri, mimeType, displayName)
             ?: throw IOException("Unable to create file in selected directory")
-        return Destination(ReceivedFile(displayName, uri, mimeType, size), null, mediaStorePending = false)
+        return Destination(ReceivedFile(displayName, uri, mimeType, size), null, mediaStorePending = false, isDocument = true)
     }
 
     private fun createInGallery(displayName: String, mimeType: String, size: Long): Destination {
@@ -122,8 +123,23 @@ class IncomingFileStore(context: Context) {
         }
     }
 
+    /**
+     * Removes a partial or rejected download. Cleanup is best-effort and never throws:
+     * callers run on the main thread and on executor threads during cancellation.
+     */
     fun discard(destination: Destination) {
-        destination.legacyFile?.delete() ?: resolver.delete(destination.file.uri, null, null)
+        try {
+            val legacyFile = destination.legacyFile
+            when {
+                legacyFile != null -> legacyFile.delete()
+                // DocumentsProvider.delete() always throws; SAF documents need deleteDocument().
+                destination.isDocument -> DocumentsContract.deleteDocument(resolver, destination.file.uri)
+                else -> resolver.delete(destination.file.uri, null, null)
+            }
+        } catch (exception: Exception) {
+            // Access may have been revoked or the file may already be gone.
+            Log.w(TAG, "Unable to discard ${destination.file.displayName}", exception)
+        }
     }
 
     fun listReceivedFiles(): List<ReceivedFile> {
@@ -187,9 +203,16 @@ class IncomingFileStore(context: Context) {
         return candidate
     }
 
-    data class Destination(val file: ReceivedFile, val legacyFile: File?, val mediaStorePending: Boolean)
+    data class Destination(
+        val file: ReceivedFile,
+        val legacyFile: File?,
+        val mediaStorePending: Boolean,
+        /** True for a document created in a Storage Access Framework tree. */
+        val isDocument: Boolean = false
+    )
 
     private companion object {
+        const val TAG = "IncomingFileStore"
         const val FOLDER_NAME = "LocalSend Kotlin"
         const val GALLERY_FOLDER = "LocalSend Kotlin"
         const val RELATIVE_PATH = "Download/$FOLDER_NAME/"
